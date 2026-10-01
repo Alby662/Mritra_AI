@@ -40,7 +40,7 @@ On bank-partitioned synthetic transaction data, does exchanging encrypted bounda
 | Account key | `(bank_id, account_id)` |
 | Institutions | **K = 5** |
 | **Partition P1** (primary) | Sort bank IDs by total transaction count (sender + receiver), descending, ties by bank ID ascending; assign each to the institution with the lowest current total count (lowest index on ties) |
-| **Partition P2** (robustness) | Uniform random assignment of bank IDs to institutions with `numpy.random.default_rng(42)` |
+| **Partition P2** (robustness) | Uniform random assignment of bank IDs to institutions with `numpy.random.default_rng(42)`, drawing one institution index per bank in ascending bank-ID order (so the result does not depend on load order) |
 | Institution of an account | Institution of its bank |
 | Cross-bank transaction | Sender institution ≠ receiver institution |
 | Within-bank transaction | Sender institution = receiver institution |

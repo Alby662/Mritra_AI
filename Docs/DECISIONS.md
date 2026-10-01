@@ -27,3 +27,12 @@ One line per decision, newest at the bottom. Format: `YYYY-MM-DD · area · deci
 ## Log
 
 <!-- add new decisions below this line -->
+- 2026-10-01 · tooling · uv + pyproject.toml (lockfile `uv.lock`) instead of requirements.txt; deps added per module as it is built, not all up front (Claude, for Rehan)
+- 2026-10-01 · data · Amounts stored as float64, not float32 — float32 loses cents above ~$170k, which breaks exact-amount reconciliation (Claude, for Rehan)
+- 2026-10-01 · data · `row_id` = 0-based row position in the raw CSV, assigned before de-dup; it is the transaction identity and the protocol `edge_ref` (Claude, for Rehan)
+- 2026-10-01 · partition · P2 draws `rng.integers(0, K)` over bank IDs sorted ascending, so the result is independent of load order (Claude, for Rehan)
+- 2026-10-01 · split · Cut points are cumulative (floor(n·0.6), floor(n·0.8)); a split can shrink if a tied-timestamp run crosses its whole width (Claude, for Rehan)
+- 2026-10-01 · data · Download only the three HI-Small files via Kaggle API, not the full dataset archive (Claude, for Rehan)
+- 2026-10-01 · tooling · ruff excludes `Docs/` (ruff 0.16 reformats Python blocks inside Markdown) (Claude, for Rehan)
+- 2026-10-01 · partition · P2 draw order formalised into PREREGISTRATION.md §4 itself (supersedes the DECISIONS-only entry above); implementation unchanged (Claude, for Rehan)
+- 2026-10-01 · data · Removed the duplicate-row drop from load.py; it now only counts and logs exact duplicates. PREREGISTRATION.md §3 still says "drop exact duplicate rows" — unreconciled contradiction, flagged to Rehan, pending the real-data counts (Claude, for Rehan)

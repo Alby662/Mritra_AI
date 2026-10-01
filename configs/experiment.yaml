@@ -1,0 +1,64 @@
+# Machine-readable copy of Docs/PREREGISTRATION.md (v1).
+# Becomes FROZEN at git tag `prereg-v1`. After that, do not edit — record changes in
+# PREREGISTRATION.md §9 Deviations and DECISIONS.md.
+
+dataset:
+  name: HI-Small
+  kaggle_slug: ealtman2019/ibm-transactions-for-anti-money-laundering-aml
+  files:
+    trans: HI-Small_Trans.csv
+    patterns: HI-Small_Patterns.txt
+    accounts: HI-Small_accounts.csv
+  timestamp_format: "%Y/%m/%d %H:%M"
+
+paths:
+  raw: data/raw
+  parquet: data/parquet
+  results: results
+
+institutions:
+  k: 5
+
+partitions:
+  P1:
+    method: volume_balanced   # PREREGISTRATION §4
+  P2:
+    method: random
+    seed: 42                  # numpy.random.default_rng(42) over bank IDs sorted ascending
+
+split:                        # temporal, by row count; boundary-timestamp ties go to earlier split
+  train: 0.6
+  val: 0.2
+  test: 0.2
+
+gates:
+  h1_min_cross_pattern_share: 0.15
+  min_gap_f1: 0.01            # H0-gap: F1_C4 - F1_C1 on cross-bank, validation
+
+labels:
+  # Exact Payment Format strings for exit transactions; fill from DATA.md §5 BEFORE freezing.
+  exit_formats: []
+  innocent_recipient_max_laundering_share: 0.10
+
+model:
+  family: lightgbm
+  seeds: [42, 52, 62]
+  # Same grid for every configuration; searched on validation PR-AUC. Review before freezing.
+  grid:
+    num_leaves: [31, 63]
+    learning_rate: [0.05, 0.1]
+    n_estimators: [500]
+    min_child_samples: [20]
+  threshold_objective: max_minority_f1_on_val
+
+evaluation:
+  bootstrap_resamples: 1000
+  ci_level: 0.95
+  subsets: [all, cross_bank, within_bank]
+
+reconciliation_injection:
+  lying_institution: 4
+  drop_share: 0.30
+  perturb_share: 0.10
+  perturb_range: [0.05, 0.20]
+  seed: 42

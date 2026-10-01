@@ -24,28 +24,55 @@ ROW_A = (
 ROW_B = "2022/09/01 00:06,021174,800737690,012,80011F990,2848.96,Euro,2848.96,Euro,ACH,1\n"
 
 
-def test_read_transactions_renames_types_and_does_not_drop_duplicates(tmp_path: Path) -> None:
+def test_read_transactions_renames_and_types_columns(tmp_path: Path) -> None:
     p = tmp_path / "t.csv"
-    p.write_text(HEADER + ROW_A + ROW_B + ROW_A, encoding="utf-8")
-    df, n_raw, dup_stats = read_transactions(p, FMT)
-    assert n_raw == 3
-    assert len(df) == 3  # nothing dropped
-    assert df["row_id"].tolist() == [0, 1, 2]
+    p.write_text(HEADER + ROW_A + ROW_B, encoding="utf-8")
+    df, n_raw, _ = read_transactions(p, FMT, drop_exact_duplicates=False)
+    assert n_raw == 2
+    assert df["row_id"].tolist() == [0, 1]
     assert df.loc[1, "from_bank"] == 21174 and df.loc[1, "to_bank"] == 12
     assert df.loc[0, "ts"] == 1661991600  # 2022-09-01 00:20 UTC
     assert df.loc[1, "from_acct"] == "800737690"
-    assert df["is_laund"].tolist() == [0, 1, 0]
-    # row 2 (index 2) is an exact duplicate of row 0 (ROW_A, is_laund=0)
-    assert dup_stats.duplicate_rows == 1
-    assert dup_stats.duplicate_rows_is_laund == 0
+    assert df["is_laund"].tolist() == [0, 1]
 
 
-def test_read_transactions_counts_duplicates_with_is_laund(tmp_path: Path) -> None:
+def test_duplicate_stats_always_computed_the_same_regardless_of_the_flag(
+    tmp_path: Path,
+) -> None:
+    p = tmp_path / "t.csv"
+    p.write_text(HEADER + ROW_A + ROW_B + ROW_A, encoding="utf-8")  # row 2 dups row 0
+    _, n_raw_keep, dup_keep = read_transactions(p, FMT, drop_exact_duplicates=False)
+    _, n_raw_drop, dup_drop = read_transactions(p, FMT, drop_exact_duplicates=True)
+    assert n_raw_keep == n_raw_drop == 3
+    assert dup_keep == dup_drop  # DuplicateStats computed before the flag is applied
+    assert dup_keep.duplicate_rows == 1
+    assert dup_keep.duplicate_rows_is_laund == 0  # the duplicated row (ROW_A) has is_laund=0
+
+
+def test_drop_exact_duplicates_false_keeps_every_row(tmp_path: Path) -> None:
+    p = tmp_path / "t.csv"
+    p.write_text(HEADER + ROW_A + ROW_B + ROW_A, encoding="utf-8")
+    df, _, _ = read_transactions(p, FMT, drop_exact_duplicates=False)
+    assert len(df) == 3
+    assert df["row_id"].tolist() == [0, 1, 2]
+
+
+def test_drop_exact_duplicates_true_is_the_default_and_drops_later_occurrences(
+    tmp_path: Path,
+) -> None:
+    p = tmp_path / "t.csv"
+    p.write_text(HEADER + ROW_A + ROW_B + ROW_A, encoding="utf-8")
+    df, _, _ = read_transactions(p, FMT)  # default: drop_exact_duplicates=True
+    assert len(df) == 2
+    assert df["row_id"].tolist() == [0, 1]  # row 2 (dup of row 0) dropped; row_id stable
+
+
+def test_duplicate_stats_counts_is_laund_rows(tmp_path: Path) -> None:
     p = tmp_path / "t.csv"
     p.write_text(HEADER + ROW_B + ROW_B, encoding="utf-8")
-    df, n_raw, dup_stats = read_transactions(p, FMT)
+    df, n_raw, dup_stats = read_transactions(p, FMT, drop_exact_duplicates=False)
     assert n_raw == 2
-    assert len(df) == 2  # nothing dropped
+    assert len(df) == 2
     assert dup_stats.duplicate_rows == 1
     assert dup_stats.duplicate_rows_is_laund == 1  # ROW_B has is_laund=1
 
@@ -127,3 +154,31 @@ def test_match_patterns_to_transactions(tmp_path: Path) -> None:
     assert result["pattern_to_transaction_match_rate"] == pytest.approx(1 / 3)
     assert result["laundering_txns_total"] == 1  # ROW_B
     assert result["laundering_txns_not_in_any_pattern"] == 0  # ROW_B is in the patterns file
+
+
+STACK_ROW = "2022/09/02 10:00,012,80011F990,012,8001AAAA0,100.00,Euro,100.00,Euro,Cash,1\n"
+
+
+def test_match_patterns_to_transactions_reports_match_multiplicity(tmp_path: Path) -> None:
+    # 3 pattern rows total: the FAN-OUT row equal to ROW_B, a second unique FAN-OUT row,
+    # and the STACK row.
+    # trans has: ROW_B duplicated twice (-> that pattern row matches 2 txns, "gt1"),
+    # the STACK row once (-> matches exactly 1), and nothing matching the second
+    # FAN-OUT row (-> matches 0).
+    trans_p = tmp_path / "t.csv"
+    trans_p.write_text(HEADER + ROW_B + ROW_B + STACK_ROW, encoding="utf-8")
+    trans, _, _ = read_transactions(trans_p, FMT, drop_exact_duplicates=False)
+
+    patterns_p = tmp_path / "p.txt"
+    patterns_p.write_text(PATTERNS, encoding="utf-8")
+    patterns = parse_patterns(patterns_p, FMT)
+
+    result = match_patterns_to_transactions(trans, patterns)
+    assert result["pattern_rows"] == 3
+    assert result["pattern_rows_matching_0"] == 1  # the unique second FAN-OUT row
+    assert result["pattern_rows_matching_1"] == 1  # STACK
+    assert result["pattern_rows_matching_gt1"] == 1  # ROW_B's pattern row, 2 txn matches
+    assert result["matched_pattern_rows"] == 2  # matching_1 + matching_gt1, NOT a joined-row count
+    assert result["pattern_to_transaction_match_rate"] == pytest.approx(2 / 3)
+    assert result["laundering_txns_total"] == 3  # ROW_B x2 + STACK_ROW, all is_laund=1
+    assert result["laundering_txns_not_in_any_pattern"] == 0

@@ -21,7 +21,11 @@ def iso(ts: int) -> str:
 
 
 def data_stats(
-    df: pd.DataFrame, n_raw: int, dup_stats: DuplicateStats, patterns: pd.DataFrame
+    df: pd.DataFrame,
+    n_raw: int,
+    dup_stats: DuplicateStats,
+    drop_exact_duplicates: bool,
+    patterns: pd.DataFrame,
 ) -> dict:
     accounts = pd.concat(
         [
@@ -40,13 +44,10 @@ def data_stats(
         }
     return {
         "rows_raw": n_raw,
-        "rows_loaded": len(df),  # nothing dropped; see duplicate_rows below
-        "duplicate_rows": dup_stats.duplicate_rows,
+        "rows_loaded": len(df),  # after the drop below, if any
+        "drop_exact_duplicates": drop_exact_duplicates,  # configs/experiment.yaml: data.*
+        "duplicate_rows": dup_stats.duplicate_rows,  # always computed, regardless of the flag
         "duplicate_rows_is_laund": dup_stats.duplicate_rows_is_laund,
-        "duplicate_rows_note": (
-            "Exact-duplicate rows found but NOT dropped (PREREGISTRATION.md §3 says to "
-            "drop; not yet reconciled — see DECISIONS.md). Decide before prereg-v1."
-        ),
         "distinct_banks": int(pd.concat([df["from_bank"], df["to_bank"]]).nunique()),
         "distinct_accounts": int(len(accounts.drop_duplicates())),
         "laundering_txns": int(df["is_laund"].sum()),
@@ -77,22 +78,25 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     results.mkdir(parents=True, exist_ok=True)
 
-    df, n_raw, dup_stats = read_transactions(raw / files["trans"], fmt)
+    drop_exact_duplicates = cfg["data"]["drop_exact_duplicates"]
+    df, n_raw, dup_stats = read_transactions(
+        raw / files["trans"], fmt, drop_exact_duplicates=drop_exact_duplicates
+    )
     df["split"] = temporal_split(df["ts"], cfg["split"]["train"], cfg["split"]["val"])
     df.to_parquet(out / "trans.parquet", index=False)
 
     patterns = parse_patterns(raw / files["patterns"], fmt)
     patterns.to_parquet(out / "patterns.parquet", index=False)
 
-    stats = data_stats(df, n_raw, dup_stats, patterns)
+    stats = data_stats(df, n_raw, dup_stats, drop_exact_duplicates, patterns)
     (results / "data_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     logger.info("wrote %s and %s", out, results / "data_stats.json")
     if dup_stats.duplicate_rows:
-        logger.warning(
-            "STOP: %d exact-duplicate rows found (%d with is_laund=1) — not dropped. "
-            "Reconcile with PREREGISTRATION.md §3 before tagging prereg-v1.",
+        logger.info(
+            "%d exact-duplicate rows found (%d with is_laund=1); drop_exact_duplicates=%s",
             dup_stats.duplicate_rows,
             dup_stats.duplicate_rows_is_laund,
+            drop_exact_duplicates,
         )
 
 

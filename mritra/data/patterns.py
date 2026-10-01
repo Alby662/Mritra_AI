@@ -99,14 +99,24 @@ def match_patterns_to_transactions(trans: pd.DataFrame, patterns: pd.DataFrame) 
     """Exact-field match rate between Patterns-file rows and the main transaction table.
 
     Matches on every COLUMNS field (full row content, not row_id — the Patterns file
-    carries no row_id). Reports how many pattern rows have at least one matching
-    transaction, and how many laundering transactions in `trans` match no pattern row
+    carries no row_id). For each pattern row we count how many transaction rows share its
+    key (0, 1, or >1 — the trans table can itself hold exact duplicates), via a
+    groupby-count join: the right side of the merge has exactly one row per distinct key,
+    so every pattern row contributes exactly one row to the result regardless of how many
+    transactions share its key. That keeps the match rate computed over unique pattern
+    rows, not over a join that could silently multiply rows.
+
+    Also reports how many laundering transactions in `trans` match no pattern row
     (DATA.md §9: "not every laundering transaction belongs to a Patterns-file attempt").
     """
     key = MATCH_KEY_COLUMNS
-    trans_keys = trans[key].drop_duplicates()
-    trans_keys["_in_trans"] = True
-    matched = patterns[key].merge(trans_keys, on=key, how="left")["_in_trans"].notna()
+    trans_match_counts = trans.groupby(key, observed=True).size().reset_index(name="n_matches")
+    n_matches = (
+        patterns[key]
+        .merge(trans_match_counts, on=key, how="left")["n_matches"]
+        .fillna(0)
+        .astype("int64")
+    )
 
     pattern_keys = patterns[key].drop_duplicates()
     pattern_keys["_in_pattern"] = True
@@ -114,8 +124,12 @@ def match_patterns_to_transactions(trans: pd.DataFrame, patterns: pd.DataFrame) 
     laund_matched = laund.merge(pattern_keys, on=key, how="left")["_in_pattern"].notna()
 
     n_patterns = len(patterns)
+    matched = n_matches >= 1
     return {
         "pattern_rows": n_patterns,
+        "pattern_rows_matching_0": int((n_matches == 0).sum()),
+        "pattern_rows_matching_1": int((n_matches == 1).sum()),
+        "pattern_rows_matching_gt1": int((n_matches > 1).sum()),
         "matched_pattern_rows": int(matched.sum()),
         "pattern_to_transaction_match_rate": (float(matched.mean()) if n_patterns else None),
         "laundering_txns_total": int(len(laund)),

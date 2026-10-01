@@ -2,6 +2,11 @@
 # Becomes FROZEN at git tag `prereg-v1`. After that, do not edit — record changes in
 # PREREGISTRATION.md §9 Deviations and DECISIONS.md.
 
+data:
+  # PREREGISTRATION.md §3: "Cleaning: drop exact duplicate rows; nothing else."
+  # DuplicateStats is always computed and logged regardless of this flag.
+  drop_exact_duplicates: true
+
 dataset:
   name: HI-Small
   kaggle_slug: ealtman2019/ibm-transactions-for-anti-money-laundering-aml

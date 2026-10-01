@@ -1,8 +1,8 @@
 """Load the AMLworld transaction CSV into a typed DataFrame.
 
-Does NOT drop duplicate rows. PREREGISTRATION.md §3 currently says to drop exact
-duplicates, but nothing is dropped here until that is confirmed against the real data —
-see DuplicateStats and DECISIONS.md.
+Exact-duplicate rows are always counted (DuplicateStats) regardless of whether they are
+dropped. Dropping is controlled by configs/experiment.yaml: data.drop_exact_duplicates
+(default true, per PREREGISTRATION.md §3: "drop exact duplicate rows; nothing else").
 """
 
 from __future__ import annotations
@@ -53,13 +53,15 @@ class DuplicateStats:
 
 
 def read_transactions(
-    path: Path, timestamp_format: str
+    path: Path, timestamp_format: str, drop_exact_duplicates: bool = True
 ) -> tuple[pd.DataFrame, int, DuplicateStats]:
-    """Read the raw CSV and rename/type columns. Does not drop anything.
+    """Read the raw CSV and rename/type columns.
 
-    Returns the frame, the raw row count, and exact-duplicate-row stats computed but not
-    acted on (see module docstring). `row_id` is the 0-based row position in the raw CSV;
-    it is the transaction's stable identity (and the protocol's `edge_ref`).
+    DuplicateStats is always computed before `drop_exact_duplicates` is applied, so the
+    counts are the same whichever way the flag is set. `row_id` is the 0-based row
+    position in the raw CSV; it is the transaction's stable identity (and the protocol's
+    `edge_ref`) and is assigned before any drop, so it is stable whether or not rows are
+    later dropped.
     """
     df = pd.read_csv(
         path,
@@ -85,11 +87,14 @@ def read_transactions(
         duplicate_rows_is_laund=int(df.loc[dup_mask, "is_laund"].eq(1).sum()),
     )
     logger.info(
-        "rows raw=%d exact_duplicates=%d (is_laund=1: %d) — NOT dropped",
+        "rows raw=%d exact_duplicates=%d (is_laund=1: %d) drop_exact_duplicates=%s",
         n_raw,
         dup_stats.duplicate_rows,
         dup_stats.duplicate_rows_is_laund,
+        drop_exact_duplicates,
     )
+    if drop_exact_duplicates:
+        df = df.loc[~dup_mask].copy()
 
     df["ts"] = pd.to_datetime(df["ts"], format=timestamp_format, utc=True).astype("int64") // 10**9
     for col in CATEGORY_COLUMNS:

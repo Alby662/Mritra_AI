@@ -1,0 +1,292 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mritra Linkage Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (~70ch) with one wide diagram band; boundaries drawn as dashed trust lines, the only accent is the shared enclave. */
+:root {
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --ink: #16202b;
+  --muted: #56636f;
+  --line: #cfd7de;
+  --bank: #e9eef2;
+  --accent: #0f6e6a;
+  --accent-soft: #dcefed;
+  --warn: #9a5b00;
+  --font-display: "IBM Plex Serif", Georgia, serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151b; --surface: #151d25; --ink: #e3e9ee; --muted: #9aa7b3;
+    --line: #2c3945; --bank: #1b2530; --accent: #4fb8b0; --accent-soft: #163331;
+    --warn: #e0a54a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151b; --surface: #151d25; --ink: #e3e9ee; --muted: #9aa7b3;
+  --line: #2c3945; --bank: #1b2530; --accent: #4fb8b0; --accent-soft: #163331;
+  --warn: #e0a54a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+  padding: 0 20px; padding-block: 48px 80px;
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: grid; gap: 56px; }
+.col { max-width: 70ch; min-width: 0; }
+header { display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(30px, 5vw, 44px); line-height: 1.12; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 24px; line-height: 1.25; margin: 0 0 14px; text-wrap: balance; }
+h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+p { margin: 0 0 12px; }
+.lede { font-size: 18px; color: var(--muted); max-width: 64ch; }
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+code { background: var(--bank); padding: 1px 5px; border-radius: 3px; }
+
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; overflow-x: auto; }
+.diagram svg { display: block; min-width: 860px; width: 100%; height: auto; }
+.cap { font-size: 13px; color: var(--muted); margin-top: 10px; }
+svg text { font-family: var(--font-body); fill: var(--ink); }
+svg .t-title { font-weight: 600; font-size: 15px; }
+svg .t-sub { font-size: 12px; fill: var(--muted); }
+svg .t-mono { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+svg .t-chip { font-size: 12px; font-weight: 500; }
+svg .bank { fill: var(--bank); stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; }
+svg .enclave { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 7 4; }
+svg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+svg .chip { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+svg .chip-acc { fill: var(--surface); stroke: var(--accent); stroke-width: 1; }
+svg .arrow { fill: none; stroke: var(--ink); stroke-width: 1.4; }
+svg .arrow-ret { fill: none; stroke: var(--accent); stroke-width: 1.3; stroke-dasharray: 4 4; }
+svg .head { fill: var(--ink); }
+svg .head-acc { fill: var(--accent); }
+svg .t-acc { fill: var(--accent); font-weight: 600; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 620px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td:first-child { font-weight: 500; white-space: nowrap; }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.keep { border-color: var(--accent); color: var(--accent); }
+.pill.change { border-color: var(--warn); color: var(--warn); }
+
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.mode { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; min-width: 0; }
+.mode.pick { border-color: var(--accent); }
+.mode .tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.mode.pick .tag { color: var(--accent); }
+.mode dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 12px 0 0; font-size: 14.5px; }
+.mode dt { color: var(--muted); }
+.mode dd { margin: 0; }
+
+.changes { display: grid; gap: 18px; }
+.change { display: grid; grid-template-columns: 170px 1fr; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.change:last-child { border-bottom: 0; padding-bottom: 0; }
+.change .what { font-weight: 600; }
+.change .what span { display: block; font-family: var(--font-mono); font-size: 11.5px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.change p { margin: 0; min-width: 0; }
+@media (max-width: 620px) { .change { grid-template-columns: 1fr; gap: 4px; } }
+
+ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; display: grid; gap: 16px; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 12px; }
+ol.steps li::before { content: counter(s); font-family: var(--font-mono); font-size: 13px; color: var(--accent); border: 1px solid var(--accent); border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; margin-top: 1px; }
+ol.steps li div { min-width: 0; }
+
+.demo { background: var(--accent-soft); border-radius: 6px; padding: 22px 24px; }
+.demo h2 { color: var(--ink); }
+ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+</style>
+
+<div class="wrap">
+  <header class="col">
+    <div class="eyebrow">Mritra · architecture draft · Oct 2026</div>
+    <h1>Mritra Linkage Layer</h1>
+    <p class="lede">Cross-bank AML detection only works if every bank's record of the same business resolves to one node. This layer does that without raw customer names leaving any bank, and reuses most of the Amazon ML Challenge entity-resolution pipeline to do it.</p>
+  </header>
+
+  <section class="col">
+    <h2>Why the graph needs it</h2>
+    <p>A layering cycle that moves money A → B → C → A across three banks looks like three unrelated one-way transfers unless the system knows the endpoints are the same entities. Banks share no common customer ID, and most business names differ across systems through abbreviations, legal suffixes, transliteration and typos. Federated AML papers usually assume a shared ID and move on. Mritra's claim is that it resolves the entities first, under privacy constraints, and then runs detection on the resolved graph.</p>
+  </section>
+
+  <section>
+    <div class="diagram" role="img" aria-label="Three banks canonicalize and encode their records locally, send only encodings to a linkage enclave that blocks, scores and clusters them into pseudonymous global entity IDs, which feed the cross-bank transaction graph and are mapped back to each bank.">
+      <svg viewBox="0 0 980 510" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-acc" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+
+        <!-- return mapping -->
+        <path class="arrow-ret" d="M830,200 V16 H170 V42" marker-end="url(#ahA)"/>
+        <text class="t-mono" x="500" y="34" text-anchor="middle" style="fill:var(--accent)">local ID → global ID mapping returned to each bank</text>
+
+        <!-- banks -->
+        <g>
+          <rect class="bank" x="20" y="46" width="300" height="130" rx="6"/>
+          <text class="t-title" x="36" y="72">Bank A</text>
+          <rect class="chip" x="32" y="88" width="88" height="34" rx="4"/><text class="t-chip" x="76" y="110" text-anchor="middle">Canonicalize</text>
+          <rect class="chip" x="126" y="88" width="88" height="34" rx="4"/><text class="t-chip" x="170" y="110" text-anchor="middle">Extract keys</text>
+          <rect class="chip-acc" x="220" y="88" width="88" height="34" rx="4"/><text class="t-chip" x="264" y="110" text-anchor="middle">Encode</text>
+          <text class="t-mono" x="36" y="154">raw names stay inside this line</text>
+        </g>
+        <g>
+          <rect class="bank" x="20" y="196" width="300" height="130" rx="6"/>
+          <text class="t-title" x="36" y="222">Bank B</text>
+          <rect class="chip" x="32" y="238" width="88" height="34" rx="4"/><text class="t-chip" x="76" y="260" text-anchor="middle">Canonicalize</text>
+          <rect class="chip" x="126" y="238" width="88" height="34" rx="4"/><text class="t-chip" x="170" y="260" text-anchor="middle">Extract keys</text>
+          <rect class="chip-acc" x="220" y="238" width="88" height="34" rx="4"/><text class="t-chip" x="264" y="260" text-anchor="middle">Encode</text>
+          <text class="t-mono" x="36" y="304">same canon.py + dictionary version</text>
+        </g>
+        <g>
+          <rect class="bank" x="20" y="346" width="300" height="130" rx="6"/>
+          <text class="t-title" x="36" y="372">Bank C</text>
+          <rect class="chip" x="32" y="388" width="88" height="34" rx="4"/><text class="t-chip" x="76" y="410" text-anchor="middle">Canonicalize</text>
+          <rect class="chip" x="126" y="388" width="88" height="34" rx="4"/><text class="t-chip" x="170" y="410" text-anchor="middle">Extract keys</text>
+          <rect class="chip-acc" x="220" y="388" width="88" height="34" rx="4"/><text class="t-chip" x="264" y="410" text-anchor="middle">Encode</text>
+          <text class="t-mono" x="36" y="454">keyed with a shared secret</text>
+        </g>
+
+        <!-- converge -->
+        <path class="arrow" d="M320,111 C360,111 360,236 398,236" marker-end="url(#ah)"/>
+        <path class="arrow" d="M320,261 L398,261" marker-end="url(#ah)"/>
+        <path class="arrow" d="M320,411 C360,411 360,286 398,286" marker-end="url(#ah)"/>
+        <text class="t-mono" x="359" y="186" text-anchor="middle">encodings</text>
+        <text class="t-mono" x="359" y="200" text-anchor="middle">only</text>
+
+        <!-- enclave -->
+        <rect class="enclave" x="400" y="140" width="250" height="240" rx="8"/>
+        <text class="t-title" x="416" y="166">Linkage enclave</text>
+        <text class="t-sub" x="416" y="184">LinuxONE Secure Execution</text>
+        <rect class="chip" x="416" y="200" width="218" height="46" rx="4"/>
+        <text class="t-chip" x="428" y="219">Block</text><text class="t-mono" x="428" y="236">sparse matmul, keyed tokens</text>
+        <rect class="chip" x="416" y="254" width="218" height="46" rx="4"/>
+        <text class="t-chip" x="428" y="273">Score</text><text class="t-mono" x="428" y="290">LightGBM + isotonic calibration</text>
+        <rect class="chip" x="416" y="308" width="218" height="46" rx="4"/>
+        <text class="t-chip" x="428" y="327">Cluster</text><text class="t-mono" x="428" y="344">confidence-weighted, not 1:1</text>
+
+        <!-- outputs -->
+        <path class="arrow" d="M650,260 L698,260" marker-end="url(#ah)"/>
+        <rect class="box" x="700" y="200" width="260" height="120" rx="6"/>
+        <text class="t-title" x="716" y="230">Global entity IDs</text>
+        <text class="t-sub" x="716" y="250">pseudonymous, one per real business</text>
+        <text class="t-mono" x="716" y="276">GE-7f3a… ← A:1042, B:88</text>
+        <text class="t-mono" x="716" y="294">match confidence per link</text>
+
+        <path class="arrow" d="M830,320 L830,358" marker-end="url(#ah)"/>
+        <rect class="box" x="700" y="360" width="260" height="116" rx="6"/>
+        <text class="t-title" x="716" y="390">Cross-bank graph</text>
+        <text class="t-sub" x="716" y="410">transactions keyed by global IDs</text>
+        <text class="t-sub" x="716" y="428">identity links as weighted edges</text>
+        <text class="t-acc" x="716" y="456" font-size="12">→ graph detection / federated GNN</text>
+      </svg>
+    </div>
+    <p class="cap">Dashed outlines are trust boundaries. Everything inside a bank's line runs on that bank's hardware; only the enclave sees encodings from more than one bank.</p>
+  </section>
+
+  <section class="col" style="max-width:none">
+    <h2>What runs where</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Runs at</th><th>From the AMLC pipeline</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><code>canon.py</code></td><td>Each bank</td><td>Operator-inverting canonicalizer, Unicode-safe for Indic scripts</td><td><span class="pill change">retrain dictionaries</span></td></tr>
+          <tr><td><code>record_keys</code></td><td>Each bank</td><td>N / A / G / D / X key families</td><td><span class="pill keep">reuse</span></td></tr>
+          <tr><td>Encode</td><td>Each bank</td><td>New: HMAC each key with a shared secret; Bloom-encode name and address n-grams</td><td><span class="pill change">new</span></td></tr>
+          <tr><td>Block</td><td>Enclave</td><td>Streaming Pass A/B, DF-capped sparse matmul, proven at 10M records in 14 GB</td><td><span class="pill keep">reuse</span></td></tr>
+          <tr><td>Score</td><td>Enclave</td><td>LightGBM + isotonic; feature set depends on the protection mode below</td><td><span class="pill change">adapt features</span></td></tr>
+          <tr><td>Cluster</td><td>Enclave</td><td>Replaces numpy exclusivity; one entity can hold accounts at every bank</td><td><span class="pill change">redesign</span></td></tr>
+          <tr><td>Graph detection</td><td>Enclave or federated</td><td>None; this is the rest of Mritra</td><td><span class="pill">separate</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="col"><h2>Two ways to protect the records</h2>
+    <p>Both keep raw data inside each bank's boundary in transit. They differ in what the linkage step can see and who you have to trust.</p></div>
+    <div class="modes">
+      <div class="mode">
+        <div class="tag">Mode A · cryptographic encoding</div>
+        <h3>Privacy-preserving record linkage</h3>
+        <p>Banks send keyed-hash tokens and Bloom-filter encodings. The linkage node matches on token overlap and Bloom Dice similarity and never sees a name.</p>
+        <dl>
+          <dt>Trust</dt><dd>The math, plus the secrecy of the shared key</dd>
+          <dt>Accuracy</dt><dd>Lower. Features that need raw text, such as edit distance and token order, become Bloom approximations</dd>
+          <dt>Risk</dt><dd>Published frequency attacks can re-identify common names from Bloom filters. Salting, record-level encoding and balancing reduce that risk but do not remove it</dd>
+        </dl>
+      </div>
+      <div class="mode pick">
+        <div class="tag">Mode B · trusted execution · build this first</div>
+        <h3>Canonical records into a secure enclave</h3>
+        <p>Banks encrypt canonical records to an attested LinuxONE Secure Execution guest. The existing pipeline runs inside it unchanged, with all 31 features.</p>
+        <dl>
+          <dt>Trust</dt><dd>IBM Z hardware attestation; the host operator cannot read guest memory</dd>
+          <dt>Accuracy</dt><dd>Same as the competition pipeline</dd>
+          <dt>Fit</dt><dd>It maps directly onto the Z Datathon stack, and nothing in the ER code has to change to run it</dd>
+        </dl>
+      </div>
+    </div>
+    <p class="col" style="margin-top:16px">Build Mode B for the datathon. Treat Mode A as the research extension, and measure how much F-score is lost moving from B to A. That number is a result in itself.</p>
+  </section>
+
+  <section class="col">
+    <h2>What has to change from the competition pipeline</h2>
+    <div class="changes">
+      <div class="change">
+        <div class="what">Exclusivity<span>decide.py</span></div>
+        <p>The competition guaranteed each S2/S3 record was a copy of exactly one S1 record, so one-to-one assignment was correct. Across banks, one business can have accounts at every bank and duplicates within a bank. Replace exclusivity with clustering over scored pairs, such as thresholded connected components with a split check on oversized clusters.</p>
+      </div>
+      <div class="change">
+        <div class="what">Hard merges<span>threshold → edges</span></div>
+        <p>Keep the calibrated match probability and write it into the graph as a weighted identity edge instead of merging nodes. Detection can then ask how confident a cross-bank cycle is, and an investigator can see which link it depends on.</p>
+      </div>
+      <div class="change">
+        <div class="what">Metric<span>F0.5 → cost-weighted</span></div>
+        <p>F0.5 weighted precision because the competition said so. In AML a missed link hides a laundering path, and a false merge creates a false alert that a human reviews. Pick the operating point from those two costs, which likely favours recall more than F0.5 does.</p>
+      </div>
+      <div class="change">
+        <div class="what">Canonicalizer<span>fitted to a generator</span></div>
+        <p>The canonicalizer undoes one synthetic generator's corruptions. Re-mine the dictionaries and retrain on real names; GLEIF's public LEI records are a candidate, since they carry real legal names and addresses across many countries. Check whether their alternate and transliterated name fields give usable labeled pairs.</p>
+      </div>
+      <div class="change">
+        <div class="what">Adversaries<span>benign noise → deliberate</span></div>
+        <p>Generator noise was accidental. Launderers choose names on purpose: shell companies that look almost alike, and related entities that look unrelated. Add an adversarial test set and report on it separately.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="col">
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li><div><h3>Retrain ER on real names</h3><p>Re-mine the dictionaries and refit LightGBM on public registry data. Report F-score on real noise, not the competition number.</p></div></li>
+      <li><div><h3>Simulate three banks</h3><p>The IBM AML transaction dataset has bank and account IDs but no customer names. Attach real registry entities to its accounts and apply different realistic noise per bank. Say plainly in the pitch that this name-to-account join is synthetic.</p></div></li>
+      <li><div><h3>Stand up the enclave</h3><p>Run canonicalization at each simulated bank, ship encrypted canonical records into a Secure Execution guest, and run block, score and cluster there.</p></div></li>
+      <li><div><h3>Wire global IDs into detection</h3><p>Rekey transactions by global entity ID with confidence-weighted identity edges, then run graph detection.</p></div></li>
+      <li><div><h3>Add Mode A if time allows</h3><p>Swap the enclave input for keyed-hash and Bloom encodings and measure the accuracy cost.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="col demo">
+    <h2>The result that sells it</h2>
+    <p>Run the same detector three ways on the same transactions: each bank alone, all banks joined by exact name match, and all banks joined through the linkage layer. Report how many known cross-bank laundering patterns each one finds. If per-bank and exact-match detection miss cycles that the linked graph catches, that gap is Mritra's case in one chart.</p>
+  </section>
+
+  <section class="col">
+    <h2>Open questions</h2>
+    <ul class="plain">
+      <li>Who holds the shared encoding key, and how it rotates without re-encoding every bank's history.</li>
+      <li>Whether corpus-wide IDF can be computed without exposing name frequencies, since frequency is what the Bloom attacks exploit.</li>
+      <li>Scope for individuals. The pipeline is business-only, and personal names carry heavier obligations under India's DPDP Act.</li>
+      <li>Whether the competition's data terms allow reusing its trained model. Retraining on public data avoids the question.</li>
+    </ul>
+  </section>
+</div>
+
+</body></html>

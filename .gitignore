@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Data — never commit (CLAUDE.md §8)
+data/raw/*
+!data/raw/CHECKSUMS
+data/parquet/
+data/*.json
+
+# Secrets — keys, certs, tokens
+secrets/
+kaggle.json
+*.key
+*.pem
+
+# Generated models
+results/models/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

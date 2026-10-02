@@ -25,6 +25,8 @@ class BootstrapCI:
     ci_upper: float
     ci_level: float
     n_resamples: int
+    n_undefined: int = 0
+    undefined_share: float = 0.0
 
 
 def bootstrap_metric_diff(
@@ -96,6 +98,12 @@ def bootstrap_metric_diff(
     )
 
 
+def _default_gap_eps() -> float:
+    from mritra.config import load_config
+
+    return float(load_config()["gates"]["min_gap_f1"])
+
+
 def bootstrap_gap_recovered(
     y_true: np.ndarray,
     y_prob_c1: np.ndarray,
@@ -107,47 +115,102 @@ def bootstrap_gap_recovered(
     n_resamples: int = 1000,
     ci_level: float = 0.95,
     seed: int = 42,
+    eps: float | None = None,
 ) -> BootstrapCI:
-    """Bootstrap CI for G = (F1_C3 - F1_C1) / (F1_C4 - F1_C1)."""
-    rng = np.random.default_rng(seed)
-    n = len(y_true)
-    gaps = np.empty(n_resamples, dtype=np.float64)
+    """Bootstrap CI for G = (F1_C3 - F1_C1) / (F1_C4 - F1_C1).
 
+    A resample (or the original sample) is "undefined" when
+    ``|F1_C4 - F1_C1| < eps`` -- the oracle has no meaningful advantage over
+    the siloed model there, so the ratio is not a meaningful gap, just a
+    division by a near-zero number (PREREGISTRATION.md §6.2: "If F1_C4 -
+    F1_C1 <= 0.01, G is reported as 'undefined (no gap)'"). ``eps`` defaults
+    to that same ``configs/experiment.yaml: gates.min_gap_f1``.
+
+    If the *original* (non-resampled) sample is undefined, the whole result
+    is undefined: ``point_estimate``, ``ci_lower`` and ``ci_upper`` are all
+    NaN, rather than reporting a CI built only from the lucky minority of
+    resamples that happened not to be degenerate. ``n_undefined`` /
+    ``undefined_share`` always report how many of the ``n_resamples`` were
+    individually undefined, which can be nonzero even when the original
+    sample is well-defined (resampling can land on a degenerate draw by
+    chance, especially with few positives).
+    """
+    if eps is None:
+        eps = _default_gap_eps()
+
+    def resample_f1s(idx: np.ndarray) -> tuple[float, float, float] | None:
+        yt = y_true[idx]
+        if yt.sum() == 0 or yt.sum() == len(yt):
+            return None
+        f1_c1 = f1_score(
+            yt, (y_prob_c1[idx] >= threshold_c1).astype(int), pos_label=1, zero_division=0.0
+        )
+        f1_c3 = f1_score(
+            yt, (y_prob_c3[idx] >= threshold_c3).astype(int), pos_label=1, zero_division=0.0
+        )
+        f1_c4 = f1_score(
+            yt, (y_prob_c4[idx] >= threshold_c4).astype(int), pos_label=1, zero_division=0.0
+        )
+        return f1_c1, f1_c3, f1_c4
+
+    n = len(y_true)
+    orig_f1s = resample_f1s(np.arange(n))
+    orig_gap = None
+    if orig_f1s is not None:
+        f1_c1, f1_c3, f1_c4 = orig_f1s
+        orig_gap = (f1_c3 - f1_c1) / (f1_c4 - f1_c1) if abs(f1_c4 - f1_c1) >= eps else None
+
+    rng = np.random.default_rng(seed)
+    gaps = np.empty(n_resamples, dtype=np.float64)
     for i in range(n_resamples):
         idx = rng.integers(0, n, size=n)
-        yt = y_true[idx]
-
-        if yt.sum() == 0 or yt.sum() == len(yt):
+        f1s = resample_f1s(idx)
+        if f1s is None:
             gaps[i] = np.nan
             continue
-
-        f1_c1 = f1_score(yt, (y_prob_c1[idx] >= threshold_c1).astype(int), pos_label=1, zero_division=0.0)
-        f1_c3 = f1_score(yt, (y_prob_c3[idx] >= threshold_c3).astype(int), pos_label=1, zero_division=0.0)
-        f1_c4 = f1_score(yt, (y_prob_c4[idx] >= threshold_c4).astype(int), pos_label=1, zero_division=0.0)
-
+        f1_c1, f1_c3, f1_c4 = f1s
         denom = f1_c4 - f1_c1
-        if abs(denom) < 1e-10:
-            gaps[i] = np.nan
-        else:
-            gaps[i] = (f1_c3 - f1_c1) / denom
+        gaps[i] = (f1_c3 - f1_c1) / denom if abs(denom) >= eps else np.nan
 
+    n_undefined = int(np.isnan(gaps).sum())
+    undefined_share = n_undefined / n_resamples
     valid = gaps[~np.isnan(gaps)]
-    if len(valid) == 0:
+
+    if orig_gap is None:
         return BootstrapCI(
             metric="gap_recovered",
-            point_estimate=0.0,
-            ci_lower=0.0,
-            ci_upper=0.0,
+            point_estimate=float("nan"),
+            ci_lower=float("nan"),
+            ci_upper=float("nan"),
             ci_level=ci_level,
             n_resamples=n_resamples,
+            n_undefined=n_undefined,
+            undefined_share=undefined_share,
+        )
+
+    if len(valid) == 0:
+        # Original sample is defined but every single resample was degenerate (possible
+        # with very few positives). The point estimate is still the original statistic;
+        # there just isn't bootstrap data to bound a CI around it.
+        return BootstrapCI(
+            metric="gap_recovered",
+            point_estimate=float(orig_gap),
+            ci_lower=float("nan"),
+            ci_upper=float("nan"),
+            ci_level=ci_level,
+            n_resamples=n_resamples,
+            n_undefined=n_undefined,
+            undefined_share=undefined_share,
         )
 
     alpha = (1 - ci_level) / 2
     return BootstrapCI(
         metric="gap_recovered",
-        point_estimate=float(np.mean(valid)),
+        point_estimate=float(orig_gap),
         ci_lower=float(np.percentile(valid, 100 * alpha)),
         ci_upper=float(np.percentile(valid, 100 * (1 - alpha))),
         ci_level=ci_level,
         n_resamples=n_resamples,
+        n_undefined=n_undefined,
+        undefined_share=undefined_share,
     )

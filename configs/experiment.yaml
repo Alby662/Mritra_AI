@@ -21,6 +21,14 @@ paths:
   parquet: data/parquet
   results: results
 
+protocol:
+  round_window_sec: 3600   # one simulated hour (PROTOCOL.md §6); batch width for streaming
+                           # graph features (mritra/features/graph_gfp.py) and enclave rounds
+
+demo:
+  default_replay_split: val   # scripts/replay_stream.py default; CLAUDE.md §8: don't
+                               # evaluate on the test period during development
+
 institutions:
   k: 5
 
@@ -60,6 +68,13 @@ evaluation:
   bootstrap_resamples: 1000
   ci_level: 0.95
   subsets: [all, cross_bank, within_bank]
+
+eval:
+  # Pre-declared sensitivity analysis (PREREGISTRATION.md §9 Deviations, 2026-10-02): an
+  # EVALUATION-side mask only, test rows on days whose total txn count meets this
+  # threshold. Features and graph history still use the full, untruncated dataset --
+  # this only decides which test rows the sensitivity metrics are scored on.
+  dense_min_daily_txns: 10000
 
 reconciliation_injection:
   lying_institution: 4

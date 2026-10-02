@@ -10,11 +10,8 @@ Each bank:
 
 from __future__ import annotations
 
-import hashlib
 import logging
-from typing import Any
 
-import numpy as np
 import pandas as pd
 from nacl.public import PrivateKey, PublicKey
 
@@ -44,24 +41,16 @@ class BankService:
         self.public_key = private_key.public_key
         self.enclave_public_key = enclave_public_key
 
-    def identify_boundary_accounts(
-        self, df: pd.DataFrame
-    ) -> set[str]:
+    def identify_boundary_accounts(self, df: pd.DataFrame) -> set[str]:
         """Accounts at this institution with ≥1 cross-institution transaction."""
         cross = df[df["cross"]]
         # Accounts that send cross-institution
-        senders = set(
-            cross[cross["from_inst"] == self.bank_id]["from_acct"].astype(str)
-        )
+        senders = set(cross[cross["from_inst"] == self.bank_id]["from_acct"].astype(str))
         # Accounts that receive cross-institution
-        receivers = set(
-            cross[cross["to_inst"] == self.bank_id]["to_acct"].astype(str)
-        )
+        receivers = set(cross[cross["to_inst"] == self.bank_id]["to_acct"].astype(str))
         return senders | receivers
 
-    def prepare_cross_bank_txns(
-        self, df: pd.DataFrame
-    ) -> list[CrossBankTxn]:
+    def prepare_cross_bank_txns(self, df: pd.DataFrame) -> list[CrossBankTxn]:
         """Extract cross-bank transactions involving this bank."""
         cross = df[df["cross"]].copy()
         txns: list[CrossBankTxn] = []
@@ -111,19 +100,16 @@ class BankService:
         summaries: list[BoundarySummary] = []
         for acct in boundary_accounts:
             # Aggregate local features for this account (mean across its txns)
-            acct_feats = local_features[
-                local_features.index.get_level_values("from_acct") == acct
-            ] if "from_acct" in local_features.index.names else pd.DataFrame()
-
-            if acct_feats.empty:
-                # Use zeros if no features available yet
-                vec = [0.0] * 6
-            else:
-                vec = acct_feats.mean().tolist()
-
-            summaries.append(
-                BoundarySummary(account=acct, features=vec)
+            acct_feats = (
+                local_features[local_features.index.get_level_values("from_acct") == acct]
+                if "from_acct" in local_features.index.names
+                else pd.DataFrame()
             )
+
+            # Use zeros if no features available yet
+            vec = [0.0] * 6 if acct_feats.empty else acct_feats.mean().tolist()
+
+            summaries.append(BoundarySummary(account=acct, features=vec))
         return summaries
 
     def create_submission(
@@ -147,13 +133,9 @@ class BankService:
             summaries=summaries,
         )
 
-        return encrypt_submission(
-            submission, self.private_key, self.enclave_public_key
-        )
+        return encrypt_submission(submission, self.private_key, self.enclave_public_key)
 
-    def receive_features(
-        self, features: list[NetworkFeatures]
-    ) -> pd.DataFrame:
+    def receive_features(self, features: list[NetworkFeatures]) -> pd.DataFrame:
         """Convert received network features to a DataFrame."""
         if not features:
             return pd.DataFrame()

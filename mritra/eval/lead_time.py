@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -59,25 +58,29 @@ def compute_lead_time(
         # Find first flagged transaction in this pattern
         flagged = group[group["flagged"]]
         if flagged.empty:
-            results.append({
-                "pattern_id": pid,
-                "t_exit": int(t_exit),
-                "t_first_flag": None,
-                "lead_time_sec": None,
-                "flagged_before_exit": False,
-            })
+            results.append(
+                {
+                    "pattern_id": pid,
+                    "t_exit": int(t_exit),
+                    "t_first_flag": None,
+                    "lead_time_sec": None,
+                    "flagged_before_exit": False,
+                }
+            )
             continue
 
         t_first_flag = flagged["ts"].min()
         lead = int(t_exit - t_first_flag)
 
-        results.append({
-            "pattern_id": pid,
-            "t_exit": int(t_exit),
-            "t_first_flag": int(t_first_flag),
-            "lead_time_sec": lead,
-            "flagged_before_exit": t_first_flag < t_exit,
-        })
+        results.append(
+            {
+                "pattern_id": pid,
+                "t_exit": int(t_exit),
+                "t_first_flag": int(t_first_flag),
+                "lead_time_sec": lead,
+                "flagged_before_exit": t_first_flag < t_exit,
+            }
+        )
 
     if not results:
         return {

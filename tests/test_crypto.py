@@ -12,7 +12,6 @@ import base64
 
 import pytest
 from nacl.exceptions import CryptoError
-from nacl.public import PrivateKey
 
 from mritra.protocol.crypto import (
     KeyPair,
@@ -58,9 +57,7 @@ def sample_submission() -> RoundSubmission:
 class TestEncryptDecrypt:
     """Round-trip encryption and decryption."""
 
-    def test_roundtrip(
-        self, bank_keypair, enclave_keypair, sample_submission
-    ):
+    def test_roundtrip(self, bank_keypair, enclave_keypair, sample_submission):
         envelope = encrypt_submission(
             sample_submission,
             bank_keypair.private_key,
@@ -76,9 +73,7 @@ class TestEncryptDecrypt:
         assert len(result.txns) == 1
         assert result.txns[0].edge_ref == 42
 
-    def test_only_enclave_key_decrypts(
-        self, bank_keypair, enclave_keypair, sample_submission
-    ):
+    def test_only_enclave_key_decrypts(self, bank_keypair, enclave_keypair, sample_submission):
         """A different key pair cannot decrypt the envelope."""
         wrong_keypair = KeyPair.generate()
         envelope = encrypt_submission(
@@ -93,9 +88,7 @@ class TestEncryptDecrypt:
                 bank_keypair.public_key,
             )
 
-    def test_wrong_sender_key_fails(
-        self, bank_keypair, enclave_keypair, sample_submission
-    ):
+    def test_wrong_sender_key_fails(self, bank_keypair, enclave_keypair, sample_submission):
         """Decrypting with wrong sender public key fails."""
         wrong_sender = KeyPair.generate()
         envelope = encrypt_submission(
@@ -114,9 +107,7 @@ class TestEncryptDecrypt:
 class TestTamperDetection:
     """Tampered ciphertext must fail."""
 
-    def test_tampered_ciphertext_fails(
-        self, bank_keypair, enclave_keypair, sample_submission
-    ):
+    def test_tampered_ciphertext_fails(self, bank_keypair, enclave_keypair, sample_submission):
         envelope = encrypt_submission(
             sample_submission,
             bank_keypair.private_key,
@@ -134,9 +125,7 @@ class TestTamperDetection:
                 bank_keypair.public_key,
             )
 
-    def test_tampered_nonce_fails(
-        self, bank_keypair, enclave_keypair, sample_submission
-    ):
+    def test_tampered_nonce_fails(self, bank_keypair, enclave_keypair, sample_submission):
         envelope = encrypt_submission(
             sample_submission,
             bank_keypair.private_key,
@@ -157,9 +146,7 @@ class TestTamperDetection:
 class TestPayloadHash:
     """SHA-256 of plaintext is verified."""
 
-    def test_payload_hash_matches(
-        self, bank_keypair, enclave_keypair, sample_submission
-    ):
+    def test_payload_hash_matches(self, bank_keypair, enclave_keypair, sample_submission):
         envelope = encrypt_submission(
             sample_submission,
             bank_keypair.private_key,
@@ -168,9 +155,7 @@ class TestPayloadHash:
         plaintext = sample_submission.model_dump_json().encode("utf-8")
         assert verify_payload_hash(envelope, plaintext) is True
 
-    def test_wrong_payload_hash_detected(
-        self, bank_keypair, enclave_keypair, sample_submission
-    ):
+    def test_wrong_payload_hash_detected(self, bank_keypair, enclave_keypair, sample_submission):
         envelope = encrypt_submission(
             sample_submission,
             bank_keypair.private_key,
@@ -179,9 +164,8 @@ class TestPayloadHash:
         # Tamper with the hash
         envelope.payload_sha256 = "0" * 64
 
-        # Decryption succeeds but hash verification should fail
-        result = decrypt_submission.__wrapped__ if hasattr(decrypt_submission, '__wrapped__') else None
-        # The decrypt_submission function checks the hash internally
+        # Decryption succeeds but hash verification should fail;
+        # the decrypt_submission function checks the hash internally
         with pytest.raises(ValueError, match="SHA-256 mismatch"):
             decrypt_submission(
                 envelope,

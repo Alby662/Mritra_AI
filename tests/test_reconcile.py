@@ -5,8 +5,6 @@ Asserts: injected mismatches are detected.
 
 from __future__ import annotations
 
-import pytest
-
 from mritra.protocol.messages import CrossBankTxn
 from mritra.protocol.reconcile import reconcile_round
 
@@ -89,9 +87,7 @@ class TestReconciliation:
         """Amount within tolerance should match."""
         bank_0_txn = _make_txn(edge_ref=1, amount=500.0)
         bank_1_txn = _make_txn(edge_ref=1, amount=500.005)
-        result = reconcile_round(
-            {0: [bank_0_txn], 1: [bank_1_txn]}, amount_tolerance=0.01
-        )
+        result = reconcile_round({0: [bank_0_txn], 1: [bank_1_txn]}, amount_tolerance=0.01)
         assert not any(m.field == "amount" for m in result.mismatches)
 
     def test_mixed_batch(self):

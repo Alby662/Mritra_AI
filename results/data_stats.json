@@ -1,0 +1,203 @@
+{
+  "rows_raw": 5078345,
+  "rows_loaded": 5078336,
+  "drop_exact_duplicates": true,
+  "duplicate_rows": 9,
+  "duplicate_rows_is_laund": 0,
+  "distinct_banks": 30470,
+  "distinct_accounts": 515088,
+  "laundering_txns": 5177,
+  "laundering_rate": 0.0010194284111961084,
+  "first_ts": "2022-09-01T00:00:00+00:00",
+  "last_ts": "2022-09-18T16:18:00+00:00",
+  "splits": {
+    "train": {
+      "rows": 3047214,
+      "first_ts": "2022-09-01T00:00:00+00:00",
+      "last_ts": "2022-09-06T13:36:00+00:00",
+      "laundering_txns": 2299,
+      "laundering_rate": 0.0007544596474025126
+    },
+    "val": {
+      "rows": 1015564,
+      "first_ts": "2022-09-06T13:37:00+00:00",
+      "last_ts": "2022-09-08T16:12:00+00:00",
+      "laundering_txns": 1081,
+      "laundering_rate": 0.0010644331622625457
+    },
+    "test": {
+      "rows": 1015558,
+      "first_ts": "2022-09-08T16:13:00+00:00",
+      "last_ts": "2022-09-18T16:18:00+00:00",
+      "laundering_txns": 1797,
+      "laundering_rate": 0.0017694705767666641
+    }
+  },
+  "txns_per_day": {
+    "2022-09-01": {
+      "total": 1114919,
+      "laundering": 322,
+      "non_laundering": 1114597
+    },
+    "2022-09-02": {
+      "total": 754449,
+      "laundering": 408,
+      "non_laundering": 754041
+    },
+    "2022-09-03": {
+      "total": 207382,
+      "laundering": 391,
+      "non_laundering": 206991
+    },
+    "2022-09-04": {
+      "total": 207430,
+      "laundering": 407,
+      "non_laundering": 207023
+    },
+    "2022-09-05": {
+      "total": 482650,
+      "laundering": 471,
+      "non_laundering": 482179
+    },
+    "2022-09-06": {
+      "total": 482089,
+      "laundering": 531,
+      "non_laundering": 481558
+    },
+    "2022-09-07": {
+      "total": 482750,
+      "laundering": 497,
+      "non_laundering": 482253
+    },
+    "2022-09-08": {
+      "total": 482771,
+      "laundering": 539,
+      "non_laundering": 482232
+    },
+    "2022-09-09": {
+      "total": 654463,
+      "laundering": 514,
+      "non_laundering": 653949
+    },
+    "2022-09-10": {
+      "total": 208325,
+      "laundering": 442,
+      "non_laundering": 207883
+    },
+    "2022-09-11": {
+      "total": 396,
+      "laundering": 232,
+      "non_laundering": 164
+    },
+    "2022-09-12": {
+      "total": 281,
+      "laundering": 170,
+      "non_laundering": 111
+    },
+    "2022-09-13": {
+      "total": 184,
+      "laundering": 106,
+      "non_laundering": 78
+    },
+    "2022-09-14": {
+      "total": 121,
+      "laundering": 70,
+      "non_laundering": 51
+    },
+    "2022-09-15": {
+      "total": 46,
+      "laundering": 28,
+      "non_laundering": 18
+    },
+    "2022-09-16": {
+      "total": 46,
+      "laundering": 26,
+      "non_laundering": 20
+    },
+    "2022-09-17": {
+      "total": 23,
+      "laundering": 15,
+      "non_laundering": 8
+    },
+    "2022-09-18": {
+      "total": 11,
+      "laundering": 8,
+      "non_laundering": 3
+    }
+  },
+  "tail_truncation_check": {
+    "min_daily_txns_threshold": 10000,
+    "last_dense_day": "2022-09-10",
+    "rows_kept": 5077228,
+    "rows_dropped": 1108,
+    "splits": {
+      "train": {
+        "rows": 3046522,
+        "laundering_txns": 2297,
+        "laundering_rate": 0.0007539745322699131
+      },
+      "val": {
+        "rows": 1015294,
+        "laundering_txns": 1082,
+        "laundering_rate": 0.0010657011663616647
+      },
+      "test": {
+        "rows": 1015412,
+        "laundering_txns": 1143,
+        "laundering_rate": 0.0011256514597030565
+      }
+    }
+  },
+  "patterns_straddling_split": 155,
+  "sparse_day_tail_impact": {
+    "sparse_day_definition": "< 10000 total (all-split) txns that day",
+    "laundering_txns_on_sparse_days": 655,
+    "patterns_touching_a_sparse_day": 109,
+    "patterns_whose_last_txn_is_on_a_sparse_day": 109,
+    "test_laundering_txns_on_sparse_days": 655,
+    "test_laundering_txns_total": 1797,
+    "test_laundering_share_on_sparse_days": 0.36449638286032277,
+    "test_cross_bank_laundering_txns_on_sparse_days": 497,
+    "test_cross_bank_laundering_txns_total": 1393,
+    "test_cross_bank_laundering_share_on_sparse_days": 0.35678391959798994
+  },
+  "payment_formats": {
+    "Cheque": 1864331,
+    "Credit Card": 1323324,
+    "ACH": 600793,
+    "Cash": 490891,
+    "Reinvestment": 481056,
+    "Wire": 171855,
+    "Bitcoin": 146086
+  },
+  "currencies_paid": {
+    "US Dollar": 1895169,
+    "Euro": 1168296,
+    "Swiss Franc": 234860,
+    "Yuan": 213752,
+    "Shekel": 192184,
+    "Rupee": 190202,
+    "UK Pound": 180738,
+    "Yen": 155209,
+    "Ruble": 155178,
+    "Bitcoin": 146061,
+    "Canadian Dollar": 140042,
+    "Australian Dollar": 136769,
+    "Mexican Peso": 110159,
+    "Saudi Riyal": 89014,
+    "Brazil Real": 70703
+  },
+  "patterns": 370,
+  "pattern_txns": 3209,
+  "pattern_types": {
+    "BIPARTITE": 49,
+    "CYCLE": 54,
+    "FAN-IN": 40,
+    "FAN-OUT": 48,
+    "GATHER-SCATTER": 51,
+    "RANDOM": 41,
+    "SCATTER-GATHER": 44,
+    "STACK": 43
+  },
+  "config_sha256": "c91ea5b2e57e08862cd0875ae2d99d67d868768432de46c4794ac63023c7aaeb"
+}

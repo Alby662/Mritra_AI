@@ -1,6 +1,9 @@
-.PHONY: setup data h1 features train eval demo test lint format verify-log inject dashboard
+.PHONY: setup data h1 features train eval config-audit demo inject verify-log dashboard test lint format
 
 RUN := uv run
+RUN_ID_FILE := results/runs/.last_run_id
+# Override with: make train RUN_ID=20261002T120000Z
+RUN_ID = $(shell cat $(RUN_ID_FILE) 2>/dev/null)
 
 setup:
 	uv sync
@@ -13,16 +16,16 @@ h1:
 	$(RUN) python scripts/h1_cross_bank.py
 
 features:
-	@echo "Feature engineering — run after data + h1 gate passes"
-	@echo "TODO: wire feature pipeline script"
+	$(RUN) python scripts/build_features.py
 
 train:
-	@echo "Training C1, C3, C4 — run after features"
-	@echo "TODO: wire training pipeline script"
+	$(RUN) python scripts/train_models.py --run-id $(RUN_ID)
 
 eval:
-	@echo "Evaluation — run after train"
-	@echo "TODO: wire evaluation pipeline script"
+	$(RUN) python scripts/run_eval.py --run-id $(RUN_ID)
+
+config-audit:
+	$(RUN) python scripts/config_audit.py
 
 demo:
 	$(RUN) python scripts/replay_stream.py --max-rounds 10

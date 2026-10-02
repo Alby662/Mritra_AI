@@ -54,9 +54,7 @@ def assign_roles(
     from_keys = df[["from_inst", "from_acct"]].rename(
         columns={"from_inst": "inst", "from_acct": "acct"}
     )
-    to_keys = df[["to_inst", "to_acct"]].rename(
-        columns={"to_inst": "inst", "to_acct": "acct"}
-    )
+    to_keys = df[["to_inst", "to_acct"]].rename(columns={"to_inst": "inst", "to_acct": "acct"})
     all_accounts = pd.concat([from_keys, to_keys]).drop_duplicates().reset_index(drop=True)
 
     # Inflow totals per receiver account

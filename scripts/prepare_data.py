@@ -6,14 +6,21 @@ import json
 import logging
 from datetime import UTC, datetime
 
+import numpy as np
 import pandas as pd
 
 from mritra.config import config_sha256, load_config, repo_path
 from mritra.data.load import DuplicateStats, read_transactions
+from mritra.data.partition import add_institutions, make_partition
 from mritra.data.patterns import parse_patterns
 from mritra.data.split import SPLITS, temporal_split
 
 logger = logging.getLogger("prepare_data")
+
+# Diagnostic only (§A of the 2026-10-02 session report): the daily volume collapses after
+# roughly the 10th day (DECISIONS.md). 10,000 txns/day is an arbitrary round-number
+# threshold picked to locate that collapse, not a PREREGISTRATION.md definition.
+TAIL_CHECK_MIN_DAILY_TXNS = 10_000
 
 
 def iso(ts: int) -> str:
@@ -26,6 +33,10 @@ def data_stats(
     dup_stats: DuplicateStats,
     drop_exact_duplicates: bool,
     patterns: pd.DataFrame,
+    cfg_split_train: float,
+    cfg_split_val: float,
+    cfg_institutions_k: int,
+    cfg_p1_method: str,
 ) -> dict:
     accounts = pd.concat(
         [
@@ -34,14 +45,138 @@ def data_stats(
         ]
     ).astype({"acct": "string"})
     splits = {}
+    split_max_ts = {}
     for name in SPLITS:
         part = df[df["split"] == name]
         splits[name] = {
             "rows": len(part),
             "first_ts": iso(part["ts"].min()),
             "last_ts": iso(part["ts"].max()),
+            "laundering_txns": int(part["is_laund"].sum()),
             "laundering_rate": float(part["is_laund"].mean()),
         }
+        split_max_ts[name] = int(part["ts"].max())
+
+    day = pd.to_datetime(df["ts"], unit="s", utc=True).dt.floor("D")
+    day_group = df.groupby(day, observed=True)["is_laund"]
+    daily_total = day_group.size()
+    daily_laund = day_group.sum()
+    txns_per_day = {
+        d.date().isoformat(): {
+            "total": int(daily_total[d]),
+            "laundering": int(daily_laund[d]),
+            "non_laundering": int(daily_total[d] - daily_laund[d]),
+        }
+        for d in sorted(daily_total.index)
+    }
+
+    # Tail-truncation check (diagnostic; does not truncate the data used anywhere else):
+    # if the dataset were cut off at the last day with >= TAIL_CHECK_MIN_DAILY_TXNS
+    # transactions, and the standard 60/20/20 temporal split re-applied to that shorter
+    # table, what would the per-split laundering rate be? The long sparse tail (very low
+    # daily volume, see txns_per_day) could be inflating the test-split laundering rate
+    # reported above.
+    dense_days = [
+        d for d in sorted(daily_total.index) if daily_total[d] >= TAIL_CHECK_MIN_DAILY_TXNS
+    ]
+    tail_check: dict[str, object]
+    if dense_days:
+        last_dense_day = max(dense_days)
+        cutoff_ts = int((last_dense_day + pd.Timedelta(days=1)).timestamp()) - 1
+        truncated = df[df["ts"] <= cutoff_ts]
+        trunc_split = temporal_split(truncated["ts"], cfg_split_train, cfg_split_val)
+        trunc_stats = {}
+        for name in SPLITS:
+            part = truncated[trunc_split == name]
+            trunc_stats[name] = {
+                "rows": len(part),
+                "laundering_txns": int(part["is_laund"].sum()),
+                "laundering_rate": (float(part["is_laund"].mean()) if len(part) else None),
+            }
+        tail_check = {
+            "min_daily_txns_threshold": TAIL_CHECK_MIN_DAILY_TXNS,
+            "last_dense_day": last_dense_day.date().isoformat(),
+            "rows_kept": int(len(truncated)),
+            "rows_dropped": int(len(df) - len(truncated)),
+            "splits": trunc_stats,
+        }
+    else:
+        tail_check = {
+            "min_daily_txns_threshold": TAIL_CHECK_MIN_DAILY_TXNS,
+            "last_dense_day": None,
+        }
+
+    # A pattern straddles a split boundary if its earliest and latest transaction fall in
+    # different splits. Split membership for any timestamp is determined the same way
+    # temporal_split assigns it (<=  train's last ts -> train, <= val's last ts -> val,
+    # else test), so this does not require joining patterns to the trans table by row_id.
+    def ts_to_split(ts: int) -> str:
+        if ts <= split_max_ts["train"]:
+            return "train"
+        if ts <= split_max_ts["val"]:
+            return "val"
+        return "test"
+
+    pattern_span = patterns.groupby("pattern_id", observed=True)["ts"].agg(["min", "max"])
+    pattern_span["first_split"] = pattern_span["min"].map(ts_to_split)
+    pattern_span["last_split"] = pattern_span["max"].map(ts_to_split)
+    patterns_straddling_split = int(
+        (pattern_span["first_split"] != pattern_span["last_split"]).sum()
+    )
+
+    # Sparse-day tail impact (session report item 8, 2026-10-02): for the record, not a
+    # truncation -- the dense/sparse boundary is the same TAIL_CHECK_MIN_DAILY_TXNS used
+    # above, inverted (sparse = below threshold).
+    sparse_days = {
+        d.date().isoformat()
+        for d in sorted(daily_total.index)
+        if daily_total[d] < TAIL_CHECK_MIN_DAILY_TXNS
+    }
+    day_str = day.dt.date.astype(str)
+    is_sparse_day = day_str.isin(sparse_days)
+    laund_mask = df["is_laund"] == 1
+
+    pattern_day_str = pd.to_datetime(patterns["ts"], unit="s", utc=True).dt.date.astype(str)
+    patterns_touching_sparse_day = int(
+        patterns.loc[pattern_day_str.isin(sparse_days), "pattern_id"].nunique()
+    )
+    pattern_last_day_str = pd.to_datetime(pattern_span["max"], unit="s", utc=True).dt.date.astype(
+        str
+    )
+    patterns_last_txn_on_sparse_day = int(pattern_last_day_str.isin(sparse_days).sum())
+
+    inst_of = make_partition(df, cfg_p1_method, cfg_institutions_k)
+    tagged = add_institutions(df, inst_of)
+    test_mask = (df["split"] == "test").to_numpy()
+    test_laund_mask = test_mask & laund_mask.to_numpy()
+    test_cross_laund_mask = test_laund_mask & tagged["cross"].to_numpy()
+    sparse_np = is_sparse_day.to_numpy()
+
+    def _share(numer_mask: np.ndarray, denom_mask: np.ndarray) -> tuple[int, int, float | None]:
+        denom = int(denom_mask.sum())
+        numer = int((numer_mask & sparse_np).sum())
+        return numer, denom, (numer / denom if denom else None)
+
+    test_laund_sparse, test_laund_total, test_laund_sparse_share = _share(
+        test_laund_mask, test_laund_mask
+    )
+    test_cross_laund_sparse, test_cross_laund_total, test_cross_laund_sparse_share = _share(
+        test_cross_laund_mask, test_cross_laund_mask
+    )
+
+    sparse_day_tail_impact = {
+        "sparse_day_definition": f"< {TAIL_CHECK_MIN_DAILY_TXNS} total (all-split) txns that day",
+        "laundering_txns_on_sparse_days": int((laund_mask.to_numpy() & sparse_np).sum()),
+        "patterns_touching_a_sparse_day": patterns_touching_sparse_day,
+        "patterns_whose_last_txn_is_on_a_sparse_day": patterns_last_txn_on_sparse_day,
+        "test_laundering_txns_on_sparse_days": test_laund_sparse,
+        "test_laundering_txns_total": test_laund_total,
+        "test_laundering_share_on_sparse_days": test_laund_sparse_share,
+        "test_cross_bank_laundering_txns_on_sparse_days": test_cross_laund_sparse,
+        "test_cross_bank_laundering_txns_total": test_cross_laund_total,
+        "test_cross_bank_laundering_share_on_sparse_days": test_cross_laund_sparse_share,
+    }
+
     return {
         "rows_raw": n_raw,
         "rows_loaded": len(df),  # after the drop below, if any
@@ -55,6 +190,10 @@ def data_stats(
         "first_ts": iso(df["ts"].min()),
         "last_ts": iso(df["ts"].max()),
         "splits": splits,
+        "txns_per_day": txns_per_day,
+        "tail_truncation_check": tail_check,
+        "patterns_straddling_split": patterns_straddling_split,
+        "sparse_day_tail_impact": sparse_day_tail_impact,
         "payment_formats": {str(k): int(v) for k, v in df["fmt"].value_counts().items()},
         "currencies_paid": {str(k): int(v) for k, v in df["cur_paid"].value_counts().items()},
         "patterns": int(patterns["pattern_id"].nunique()),
@@ -88,7 +227,17 @@ def main() -> None:
     patterns = parse_patterns(raw / files["patterns"], fmt)
     patterns.to_parquet(out / "patterns.parquet", index=False)
 
-    stats = data_stats(df, n_raw, dup_stats, drop_exact_duplicates, patterns)
+    stats = data_stats(
+        df,
+        n_raw,
+        dup_stats,
+        drop_exact_duplicates,
+        patterns,
+        cfg["split"]["train"],
+        cfg["split"]["val"],
+        cfg["institutions"]["k"],
+        cfg["partitions"]["P1"]["method"],
+    )
     (results / "data_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     logger.info("wrote %s and %s", out, results / "data_stats.json")
     if dup_stats.duplicate_rows:

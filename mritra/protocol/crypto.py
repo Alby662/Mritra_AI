@@ -53,7 +53,7 @@ def encrypt_submission(
     nonce = nacl_random(Box.NONCE_SIZE)
     ciphertext = box.encrypt(plaintext, nonce)
     # box.encrypt returns nonce + ciphertext; extract just the ciphertext
-    ct_only = ciphertext[Box.NONCE_SIZE:]
+    ct_only = ciphertext[Box.NONCE_SIZE :]
 
     return SealedEnvelope(
         bank_id=submission.bank_id,
@@ -82,8 +82,7 @@ def decrypt_submission(
     payload_hash = hashlib.sha256(plaintext).hexdigest()
     if payload_hash != envelope.payload_sha256:
         raise ValueError(
-            f"Payload SHA-256 mismatch: expected {envelope.payload_sha256}, "
-            f"got {payload_hash}"
+            f"Payload SHA-256 mismatch: expected {envelope.payload_sha256}, got {payload_hash}"
         )
 
     data = json.loads(plaintext)

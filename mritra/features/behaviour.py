@@ -26,6 +26,19 @@ logger = logging.getLogger(__name__)
 WINDOWS = {"1h": 3600, "24h": 86400, "7d": 604800}
 BASELINE_WINDOW = 30 * 86400  # 30 days
 
+# Stable, verified names for compute_behavioural_features' output columns (own source,
+# not a third-party library) -- in the order they are added to `feats` below.
+FEATURE_COLUMNS = [
+    "sender_velocity_1h",
+    "sender_velocity_24h",
+    "sender_velocity_7d",
+    "pass_through_ratio",
+    "cross_inst_share",
+    "format_diversity",
+    "currency_diversity",
+    "baseline_deviation",
+]
+
 
 def _rolling_agg(
     group: pd.DataFrame, ts_col: str, val_col: str, window_sec: int, agg: str
@@ -37,7 +50,7 @@ def _rolling_agg(
     out = np.full(n, np.nan, dtype=np.float64)
     for i in range(n):
         start = ts[i] - window_sec
-        mask = (ts[:i] >= start)  # exclude current row, past only
+        mask = ts[:i] >= start  # exclude current row, past only
         window_vals = vals[:i][mask]
         if len(window_vals) == 0:
             continue
@@ -97,9 +110,7 @@ def compute_behavioural_features(df: pd.DataFrame) -> pd.DataFrame:
 
     for i in range(n):
         s_key = sender_key.iloc[i]
-        r_key = (
-            str(df.iloc[i]["to_inst"]) + "_" + str(df.iloc[i]["to_acct"])
-        )
+        r_key = str(df.iloc[i]["to_inst"]) + "_" + str(df.iloc[i]["to_acct"])
         amt_paid = float(df.iloc[i]["amt_paid"])
         amt_recv = float(df.iloc[i]["amt_recv"])
 
@@ -111,9 +122,7 @@ def compute_behavioural_features(df: pd.DataFrame) -> pd.DataFrame:
         cum_recv[i] = total_recv
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        feats["pass_through_ratio"] = np.where(
-            cum_recv > 0, cum_sent / cum_recv, 0.0
-        )
+        feats["pass_through_ratio"] = np.where(cum_recv > 0, cum_sent / cum_recv, 0.0)
 
     # --- Cross-institution share (sender) ---
     cross_count = np.zeros(n, dtype=np.float64)
@@ -131,9 +140,7 @@ def compute_behavioural_features(df: pd.DataFrame) -> pd.DataFrame:
         total_count[i] = acct_total[s_key]
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        feats["cross_inst_share"] = np.where(
-            total_count > 0, cross_count / total_count, 0.0
-        )
+        feats["cross_inst_share"] = np.where(total_count > 0, cross_count / total_count, 0.0)
 
     # --- Format diversity (cumulative distinct formats per sender) ---
     acct_fmts: dict[str, set[str]] = {}

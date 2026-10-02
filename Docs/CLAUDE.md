@@ -26,7 +26,7 @@ These are the invariants the whole project rests on. Violating one invalidates r
 1. **No internal edges leave a bank.** A bank service may send only (a) its cross-bank transactions and (b) summary vectors of its boundary accounts, as defined in `PROTOCOL.md`. Never send within-bank transactions, non-boundary accounts, labels (`is_laund`), or balances.
 2. **No plaintext identifiers leave a bank.** Account IDs cross the boundary only inside the encrypted envelope. Never send hashed-only IDs as a privacy measure.
 3. **A bank never receives another bank's identifiers or features.** The enclave returns only the requesting bank's own accounts.
-4. **No future data in features.** Every feature for a transaction at time *t* uses only transactions with timestamp ≤ *t* (strictly past for labels). Graph features are computed streaming in timestamp order.
+4. **No future data in features.** Features and scores for a transaction are produced at the end of its round, using only data up to that round's end. Rounds are fixed windows of `protocol.round_window_sec` (3600s, `configs/experiment.yaml`). No data from any later round is used. Labels are always strictly past. The same `round_window_sec` must drive every configuration's (C1, C3, C4) feature computation — see `tests/test_protocol.py` for the test that enforces this.
 5. **Temporal split only.** 60/20/20 by timestamp as defined in `PREREGISTRATION.md`. Never shuffle-split transactions.
 6. **Never report accuracy.** Report minority-class F1 and PR-AUC only, on the subsets defined in `PREREGISTRATION.md`.
 7. **Frozen config is frozen.** Do not edit `configs/experiment.yaml` or the definitions in `PREREGISTRATION.md`. If a change seems necessary, stop and ask; if approved, record it in the Deviations section of `PREREGISTRATION.md` and in `DECISIONS.md`.
@@ -76,7 +76,7 @@ Put code in the module that owns it. Don't create new top-level folders without 
 
 - **Python 3.11**, type hints on all public functions, `from __future__ import annotations`.
 - **Formatting/linting:** `ruff format`, `ruff check`. Line length 100.
-- **Data:** `pandas` 2.x or `polars`; store intermediate data as Parquet; use `category`/`float32` dtypes to stay within 16 GB RAM.
+- **Data:** `pandas` 2.x or `polars`; store intermediate data as Parquet; use `category` dtypes for categoricals to stay within 16 GB RAM. Amounts are `float64`, not `float32` — `float32` loses cents above ~$170k, which would break exact-amount double-entry reconciliation (`mritra/data/load.py`, DECISIONS.md 2026-10-01).
 - **Messages:** `pydantic` v2 models in `mritra/protocol/messages.py` only. Services import from there; never define ad-hoc dicts for wire messages.
 - **Config:** read everything from `configs/*.yaml` via one loader; no magic numbers in code (thresholds, K, seeds, windows).
 - **Randomness:** every random operation takes a seed from config.

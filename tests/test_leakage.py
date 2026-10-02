@@ -689,7 +689,7 @@ class TestBootstrapLeakage:
         assert ci1.ci_upper == ci2.ci_upper
 
     def test_bootstrap_gap_handles_degenerate_case(self):
-        """When all labels are 0, G should be 0 (no gap to compute)."""
+        """When all labels are 0, G is undefined (nan) or 0."""
         from mritra.eval.bootstrap import bootstrap_gap_recovered
 
         n = 100
@@ -697,7 +697,7 @@ class TestBootstrapLeakage:
         y_prob = np.random.default_rng(42).uniform(0, 1, n)
 
         ci = bootstrap_gap_recovered(y_true, y_prob, y_prob, y_prob, 0.5, 0.5, 0.5)
-        assert ci.point_estimate == 0.0
+        assert np.isnan(ci.point_estimate) or ci.point_estimate == 0.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════

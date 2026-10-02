@@ -169,6 +169,108 @@ def test_enclave_two_round_toy_run_round1_unaffected_by_round2() -> None:
     assert only1 == with_round2
 
 
+def _two_round_persistence_scenario() -> tuple:
+    """Same cross-bank pair (bank0's x1 -> bank1's y1) sends once in round 1 and again in
+    round 2, so a correctly persistent enclave's round-2 features for y1 should reflect
+    BOTH edges (fan-in 2), not just round 2's single edge (fan-in 1)."""
+    from mritra.protocol.crypto import KeyPair
+    from mritra.services.bank_service import BankService
+    from mritra.services.enclave_service import EnclaveService
+
+    k = 2
+    bank_keypairs = {i: KeyPair.generate() for i in range(k)}
+    bank_public_keys = {i: kp.public_key for i, kp in bank_keypairs.items()}
+
+    def txn_row(row_id: int, ts: int) -> pd.DataFrame:
+        return pd.DataFrame(
+            [
+                {
+                    "row_id": row_id,
+                    "from_bank": 0,
+                    "from_acct": "x1",
+                    "to_bank": 1,
+                    "to_acct": "y1",
+                    "ts": ts,
+                    "amt_paid": 100.0 + row_id,
+                    "amt_recv": 100.0 + row_id,
+                    "cur_paid": "USD",
+                    "cur_recv": "USD",
+                    "fmt": "ACH",
+                    "from_inst": 0,
+                    "to_inst": 1,
+                    "cross": True,
+                }
+            ]
+        )
+
+    round1_df = txn_row(0, 1_000)
+    round2_df = txn_row(1, 5_000)
+    return k, bank_keypairs, bank_public_keys, round1_df, round2_df, EnclaveService, BankService
+
+
+def test_enclave_round2_features_reflect_round1_edges(tmp_path: Path) -> None:
+    (
+        k,
+        bank_keypairs,
+        bank_public_keys,
+        round1_df,
+        round2_df,
+        EnclaveService,
+        BankService,
+    ) = _two_round_persistence_scenario()
+
+    enclave = EnclaveService(tmp_path / "t.db", bank_public_keys)
+    banks = {i: BankService(i, bank_keypairs[i].private_key, enclave.public_key) for i in range(k)}
+
+    envelopes1 = [b.create_submission(1, round1_df) for b in banks.values()]
+    enclave.process_round(1, envelopes1, as_of=2_000)
+
+    envelopes2 = [b.create_submission(2, round2_df) for b in banks.values()]
+    responses2 = enclave.process_round(2, envelopes2, as_of=6_000)
+    enclave.close()
+
+    # Bank 1's account y1: feature index 1 is fan-in (mritra/features/network.py).
+    # Two cumulative edges (round 1 + round 2) -> fan-in must be 2, not 1.
+    y1_features = next(f for f in responses2[1].features if f.account == "y1")
+    assert y1_features.features[1] == 2.0
+
+
+def test_enclave_accumulated_state_equals_one_shot_batch_build(tmp_path: Path) -> None:
+    from mritra.features.network import compute_network_features
+
+    (
+        k,
+        bank_keypairs,
+        bank_public_keys,
+        round1_df,
+        round2_df,
+        EnclaveService,
+        BankService,
+    ) = _two_round_persistence_scenario()
+
+    enclave = EnclaveService(tmp_path / "t.db", bank_public_keys)
+    banks = {i: BankService(i, bank_keypairs[i].private_key, enclave.public_key) for i in range(k)}
+
+    envelopes1 = [b.create_submission(1, round1_df) for b in banks.values()]
+    enclave.process_round(1, envelopes1, as_of=2_000)
+    envelopes2 = [b.create_submission(2, round2_df) for b in banks.values()]
+    responses2 = enclave.process_round(2, envelopes2, as_of=6_000)
+    enclave.close()
+
+    # One-shot: build the same two edges directly and call compute_network_features once,
+    # bypassing the enclave's round-by-round accumulation entirely.
+    one_shot_edges = pd.DataFrame(
+        [
+            {"edge_ref": 0, "from_acct": "0_x1", "to_acct": "1_y1", "ts": 1_000, "amount": 100.0},
+            {"edge_ref": 1, "from_acct": "0_x1", "to_acct": "1_y1", "ts": 5_000, "amount": 101.0},
+        ]
+    )
+    one_shot = compute_network_features(one_shot_edges, {}, as_of=6_000)
+
+    y1_from_rounds = next(f for f in responses2[1].features if f.account == "y1")
+    np.testing.assert_array_equal(np.array(y1_from_rounds.features), one_shot["1_y1"])
+
+
 def _toy_graph_edges(n: int, seed: int) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     accounts = ["A", "B", "C", "D", "E"]

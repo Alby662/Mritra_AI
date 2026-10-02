@@ -127,7 +127,12 @@ def main() -> None:
             time.sleep(args.speed)
 
     enclave.close()
-    logger.info("Replay complete: split=%s last_round_id=%d", split, last_round_id)
+    logger.info(
+        "Replay complete: split=%s last_round_id=%d accumulated_boundary_edges=%d",
+        split,
+        last_round_id,
+        enclave.boundary_edge_count,
+    )
 
 
 if __name__ == "__main__":

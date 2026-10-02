@@ -3,9 +3,13 @@
 The enclave:
   1. Decrypts submissions from all banks (key generated inside at boot)
   2. Reconciles cross-bank transactions (double-entry)
-  3. Builds the boundary graph
-  4. Computes network features (GFP on boundary graph + neighbour aggregation)
-  5. Returns each bank's own accounts' network features only (rounded, logged)
+  3. Accumulates this round's edges into the persistent boundary graph
+     (PROTOCOL.md §6 step 4: "persistent across rounds, inside the enclave")
+     and updates each account's latest summary vector
+  4. Computes network features from the accumulated graph, restricted to
+     ts < as_of (CLAUDE.md §4 / PREREGISTRATION.md §4: round-granularity
+     causality) -- never from only this round's edges in isolation
+  5. Returns each bank's own accounts that appeared this round (rounded, logged)
   6. Logs the round in the transparency log
 
 Labelled: "Enclave boundary simulated — production target: IBM Secure Execution"
@@ -20,6 +24,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from nacl.public import PublicKey
 
 from mritra.features.network import compute_network_features
@@ -59,6 +64,8 @@ class EnclaveService:
 
     SIMULATION_LABEL = "Enclave boundary simulated — production target: IBM Secure Execution"
 
+    _EDGE_COLUMNS = ["edge_ref", "from_acct", "to_acct", "ts", "amount"]
+
     def __init__(
         self,
         tlog_path: Path,
@@ -68,6 +75,12 @@ class EnclaveService:
         self.keypair = KeyPair.generate()
         self.bank_public_keys = bank_public_keys
         self.tlog = TransparencyLog(tlog_path)
+
+        # Persistent boundary graph state (PROTOCOL.md §6 step 4), accumulated across
+        # every process_round() call on this instance for as long as it lives.
+        self._boundary_edges = pd.DataFrame(columns=self._EDGE_COLUMNS)
+        self._latest_summaries: dict[str, np.ndarray] = {}
+
         logger.info(
             "Enclave booted. Public key: %s. %s",
             self.keypair.public_key.encode().hex()[:16] + "...",
@@ -77,6 +90,11 @@ class EnclaveService:
     @property
     def public_key(self) -> PublicKey:
         return self.keypair.public_key
+
+    @property
+    def boundary_edge_count(self) -> int:
+        """Total edges accumulated in the persistent boundary graph so far."""
+        return len(self._boundary_edges)
 
     def process_round(
         self,
@@ -112,48 +130,63 @@ class EnclaveService:
             all_txns[bank_id] = sub.txns
         recon = reconcile_round(all_txns)
 
-        # Step 3: Build boundary graph
-        # Collect all reconciled cross-bank edges
-        import pandas as pd
-
+        # Step 3: This round's edges, appended to the persistent boundary graph
+        # (PROTOCOL.md §6 step 4). edge_rows are this round's edges only; accounts_this_round
+        # is used in step 6 to limit the response to accounts that appeared this round, per
+        # the same step's output-minimisation rule -- the FEATURES in step 4 are computed
+        # from the full accumulated graph, but what's released is round-scoped.
         edge_rows = []
+        accounts_this_round: set[str] = set()
         for bank_id, sub in submissions.items():
             for txn in sub.txns:
+                from_key = f"{bank_id}_{txn.own_account}"
+                to_key = f"{txn.counterparty_bank}_{txn.counterparty_account}"
+                accounts_this_round.add(from_key)
+                accounts_this_round.add(to_key)
                 if txn.direction == "out":
                     edge_rows.append(
                         {
                             "edge_ref": txn.edge_ref,
-                            "from_acct": f"{bank_id}_{txn.own_account}",
-                            "to_acct": f"{txn.counterparty_bank}_{txn.counterparty_account}",
+                            "from_acct": from_key,
+                            "to_acct": to_key,
                             "ts": txn.ts,
                             "amount": txn.amount,
                         }
                     )
-        boundary_edges = (
-            pd.DataFrame(edge_rows)
-            if edge_rows
-            else pd.DataFrame(columns=["edge_ref", "from_acct", "to_acct", "ts", "amount"])
-        )
+        if edge_rows:
+            new_edges = pd.DataFrame(edge_rows)
+            self._boundary_edges = (
+                new_edges
+                if self._boundary_edges.empty
+                else pd.concat([self._boundary_edges, new_edges], ignore_index=True)
+            )
 
-        # Step 4: Collect boundary summaries
-        boundary_summaries: dict[str, np.ndarray] = {}
+        # Step 4: latest per-account summary (PROTOCOL.md §6 step 4: "latest summary
+        # vector"); a bank's new submission for an account replaces its previous one.
         for bank_id, sub in submissions.items():
             for s in sub.summaries:
                 key = f"{bank_id}_{s.account}"
-                boundary_summaries[key] = np.array(s.features, dtype=np.float64)
+                self._latest_summaries[key] = np.array(s.features, dtype=np.float64)
 
-        # Step 5: Compute network features
+        # Step 5: compute network features from the ACCUMULATED graph, restricted to
+        # ts < as_of. compute_network_features's own ValueError guard still enforces this
+        # even though self._boundary_edges should never itself hold a ts >= as_of (every
+        # round's edges satisfy ts < that round's own as_of, and as_of is non-decreasing
+        # across rounds in normal use).
+        edges_up_to_as_of = self._boundary_edges[self._boundary_edges["ts"] < as_of]
         net_features = compute_network_features(
-            boundary_edges, boundary_summaries, as_of=as_of, precision=feature_precision
+            edges_up_to_as_of, self._latest_summaries, as_of=as_of, precision=feature_precision
         )
 
-        # Step 6: Build responses — each bank gets only its own accounts
+        # Step 6: Build responses — each bank gets only its own accounts that appeared
+        # this round (PROTOCOL.md §6 step 6), even though their features reflect the full
+        # accumulated graph.
         responses: dict[int, RoundResponse] = {}
         for bank_id in submissions:
             prefix = f"{bank_id}_"
             bank_features = []
             for acct_key, feat_vec in net_features.items():
-                if acct_key.startswith(prefix):
+                if acct_key.startswith(prefix) and acct_key in accounts_this_round:
                     raw_acct = acct_key[len(prefix) :]
                     bank_features.append(
                         NetworkFeatures(
@@ -192,11 +225,12 @@ class EnclaveService:
         )
 
         logger.info(
-            "Round %d: %d banks, %d boundary edges, %d net features computed, "
+            "Round %d: %d banks, %d new edges (%d accumulated), %d net features computed, "
             "%d reconciliation issues",
             round_id,
             len(submissions),
-            len(boundary_edges),
+            len(edge_rows),
+            len(self._boundary_edges),
             len(net_features),
             recon.total_issues,
         )

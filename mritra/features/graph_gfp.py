@@ -53,13 +53,17 @@ def _prepare_edge_array(df: pd.DataFrame) -> np.ndarray:
             df[["from_bank", "from_acct"]].rename(
                 columns={"from_bank": "bank", "from_acct": "acct"}
             ),
-            df[["to_bank", "to_acct"]].rename(
-                columns={"to_bank": "bank", "to_acct": "acct"}
-            ),
+            df[["to_bank", "to_acct"]].rename(columns={"to_bank": "bank", "to_acct": "acct"}),
         ]
     ).drop_duplicates()
     all_nodes["node_id"] = np.arange(len(all_nodes), dtype=np.int64)
-    node_map = dict(zip(zip(all_nodes["bank"], all_nodes["acct"], strict=True), all_nodes["node_id"]))
+    node_map = dict(
+        zip(
+            zip(all_nodes["bank"], all_nodes["acct"], strict=True),
+            all_nodes["node_id"],
+            strict=True,
+        )
+    )
 
     src = np.array(
         [node_map[(b, a)] for b, a in zip(df["from_bank"], df["from_acct"], strict=True)],

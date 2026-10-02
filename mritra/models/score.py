@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import time
-from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
@@ -26,10 +25,7 @@ def score_transactions(
 
     Returns DataFrame with columns: row_id, prob, pred.
     """
-    if isinstance(model, lgb.Booster):
-        probs = model.predict(X)
-    else:
-        probs = model.predict_proba(X)[:, 1]
+    probs = model.predict(X) if isinstance(model, lgb.Booster) else model.predict_proba(X)[:, 1]
 
     return pd.DataFrame(
         {

@@ -121,9 +121,15 @@ def bootstrap_gap_recovered(
             gaps[i] = np.nan
             continue
 
-        f1_c1 = f1_score(yt, (y_prob_c1[idx] >= threshold_c1).astype(int), pos_label=1, zero_division=0.0)
-        f1_c3 = f1_score(yt, (y_prob_c3[idx] >= threshold_c3).astype(int), pos_label=1, zero_division=0.0)
-        f1_c4 = f1_score(yt, (y_prob_c4[idx] >= threshold_c4).astype(int), pos_label=1, zero_division=0.0)
+        f1_c1 = f1_score(
+            yt, (y_prob_c1[idx] >= threshold_c1).astype(int), pos_label=1, zero_division=0.0
+        )
+        f1_c3 = f1_score(
+            yt, (y_prob_c3[idx] >= threshold_c3).astype(int), pos_label=1, zero_division=0.0
+        )
+        f1_c4 = f1_score(
+            yt, (y_prob_c4[idx] >= threshold_c4).astype(int), pos_label=1, zero_division=0.0
+        )
 
         denom = f1_c4 - f1_c1
         if abs(denom) < 1e-10:

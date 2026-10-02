@@ -8,7 +8,6 @@ minority-class F1 on validation.
 
 from __future__ import annotations
 
-import json
 import logging
 from itertools import product
 from pathlib import Path

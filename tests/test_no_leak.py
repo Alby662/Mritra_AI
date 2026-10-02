@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 
 import pytest
-from nacl.public import PrivateKey
 
 from mritra.protocol.crypto import KeyPair, encrypt_submission
 from mritra.protocol.messages import (
@@ -35,9 +34,7 @@ def enclave_keypair() -> KeyPair:
 class TestNoLeak:
     """Ensure no sensitive data leaks in outbound messages."""
 
-    def test_envelope_contains_no_plaintext_account(
-        self, bank_keypair, enclave_keypair
-    ):
+    def test_envelope_contains_no_plaintext_account(self, bank_keypair, enclave_keypair):
         """The SealedEnvelope's serialised form must not contain plaintext account IDs."""
         submission = RoundSubmission(
             bank_id=0,
@@ -71,9 +68,7 @@ class TestNoLeak:
         assert "SECRET_ACCOUNT_001" not in wire
         assert "OTHER_BANK_ACCT_999" not in wire
 
-    def test_envelope_contains_no_labels(
-        self, bank_keypair, enclave_keypair
-    ):
+    def test_envelope_contains_no_labels(self, bank_keypair, enclave_keypair):
         """Labels (is_laund) must never be in outbound messages."""
         submission = RoundSubmission(
             bank_id=0,
@@ -113,9 +108,7 @@ class TestNoLeak:
         assert "internal_txns" not in fields
         assert "within_bank_txns" not in fields
 
-    def test_envelope_only_has_expected_fields(
-        self, bank_keypair, enclave_keypair
-    ):
+    def test_envelope_only_has_expected_fields(self, bank_keypair, enclave_keypair):
         """SealedEnvelope should only expose bank_id, round_id, ciphertext, nonce, hash."""
         expected_fields = {
             "bank_id",
@@ -133,9 +126,7 @@ class TestNoLeak:
         forbidden = {"balance", "raw_balance", "total_balance"}
         assert not fields.keys() & forbidden
 
-    def test_encrypted_payload_is_not_plaintext_json(
-        self, bank_keypair, enclave_keypair
-    ):
+    def test_encrypted_payload_is_not_plaintext_json(self, bank_keypair, enclave_keypair):
         """The ciphertext should not be valid JSON (proving it's actually encrypted)."""
         import base64
 

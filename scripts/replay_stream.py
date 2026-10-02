@@ -7,13 +7,10 @@ services and enclave through the boundary protocol.
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import time
-from pathlib import Path
 
 import pandas as pd
-from nacl.public import PrivateKey
 
 from mritra.config import load_config, repo_path
 from mritra.data.partition import add_institutions, make_partition
@@ -58,8 +55,7 @@ def main() -> None:
     enclave = EnclaveService(tlog_path, bank_public_keys)
 
     bank_services = {
-        i: BankService(i, bank_keypairs[i].private_key, enclave.public_key)
-        for i in range(k)
+        i: BankService(i, bank_keypairs[i].private_key, enclave.public_key) for i in range(k)
     }
 
     # Replay by hour
@@ -81,9 +77,7 @@ def main() -> None:
         # Each bank creates and encrypts its submission
         envelopes = []
         for inst_id, bank in bank_services.items():
-            inst_window = window[
-                (window["from_inst"] == inst_id) | (window["to_inst"] == inst_id)
-            ]
+            inst_window = window[(window["from_inst"] == inst_id) | (window["to_inst"] == inst_id)]
             if inst_window.empty:
                 continue
             envelope = bank.create_submission(round_id, inst_window)
@@ -93,11 +87,15 @@ def main() -> None:
         if envelopes:
             responses = enclave.process_round(round_id, envelopes)
             for bank_id, resp in responses.items():
-                feat_df = bank_services[bank_id].receive_features(resp.features)
+                bank_services[bank_id].receive_features(resp.features)
 
         logger.info(
             "Round %d: t=[%d, %d) txns=%d envelopes=%d",
-            round_id, t_start, t_end, len(window), len(envelopes),
+            round_id,
+            t_start,
+            t_end,
+            len(window),
+            len(envelopes),
         )
 
         if args.speed > 0:

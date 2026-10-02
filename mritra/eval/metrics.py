@@ -126,9 +126,7 @@ def innocent_money_flagged(
     acct_laund = df.groupby(["from_inst", "from_acct"], observed=True)[label_col].max()
     clean_accts = set(acct_laund[acct_laund == 0].index)
 
-    flagged_accts = set(
-        zip(flagged["from_inst"], flagged["from_acct"], strict=True)
-    )
+    flagged_accts = set(zip(flagged["from_inst"], flagged["from_acct"], strict=True))
     innocent_flagged = flagged_accts & clean_accts
 
     return {

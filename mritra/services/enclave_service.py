@@ -20,7 +20,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from nacl.public import PrivateKey, PublicKey
+from nacl.public import PublicKey
 
 from mritra.features.network import compute_network_features
 from mritra.protocol.crypto import KeyPair, decrypt_submission
@@ -30,7 +30,7 @@ from mritra.protocol.messages import (
     RoundResponse,
     SealedEnvelope,
 )
-from mritra.protocol.reconcile import ReconciliationResult, reconcile_round
+from mritra.protocol.reconcile import reconcile_round
 from mritra.protocol.tlog import TransparencyLog
 
 logger = logging.getLogger(__name__)
@@ -57,9 +57,7 @@ class EnclaveService:
     inside IBM Secure Execution on LinuxONE with attestation.
     """
 
-    SIMULATION_LABEL = (
-        "Enclave boundary simulated — production target: IBM Secure Execution"
-    )
+    SIMULATION_LABEL = "Enclave boundary simulated — production target: IBM Secure Execution"
 
     def __init__(
         self,
@@ -114,15 +112,19 @@ class EnclaveService:
         for bank_id, sub in submissions.items():
             for txn in sub.txns:
                 if txn.direction == "out":
-                    edge_rows.append({
-                        "edge_ref": txn.edge_ref,
-                        "from_acct": f"{bank_id}_{txn.own_account}",
-                        "to_acct": f"{txn.counterparty_bank}_{txn.counterparty_account}",
-                        "ts": txn.ts,
-                        "amount": txn.amount,
-                    })
-        boundary_edges = pd.DataFrame(edge_rows) if edge_rows else pd.DataFrame(
-            columns=["edge_ref", "from_acct", "to_acct", "ts", "amount"]
+                    edge_rows.append(
+                        {
+                            "edge_ref": txn.edge_ref,
+                            "from_acct": f"{bank_id}_{txn.own_account}",
+                            "to_acct": f"{txn.counterparty_bank}_{txn.counterparty_account}",
+                            "ts": txn.ts,
+                            "amount": txn.amount,
+                        }
+                    )
+        boundary_edges = (
+            pd.DataFrame(edge_rows)
+            if edge_rows
+            else pd.DataFrame(columns=["edge_ref", "from_acct", "to_acct", "ts", "amount"])
         )
 
         # Step 4: Collect boundary summaries
@@ -144,7 +146,7 @@ class EnclaveService:
             bank_features = []
             for acct_key, feat_vec in net_features.items():
                 if acct_key.startswith(prefix):
-                    raw_acct = acct_key[len(prefix):]
+                    raw_acct = acct_key[len(prefix) :]
                     bank_features.append(
                         NetworkFeatures(
                             round_id=round_id,

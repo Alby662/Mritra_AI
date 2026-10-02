@@ -77,11 +77,7 @@ def compute_network_features(
 
         # 1-hop neighbour summary aggregation (mean, max, sum)
         neighbours = set(out_edges.get(acct, [])) | set(in_edges.get(acct, []))
-        neighbour_vecs = [
-            boundary_summaries[n]
-            for n in neighbours
-            if n in boundary_summaries
-        ]
+        neighbour_vecs = [boundary_summaries[n] for n in neighbours if n in boundary_summaries]
         if neighbour_vecs:
             stack = np.stack(neighbour_vecs)
             feats.extend(np.mean(stack, axis=0).tolist())
@@ -94,7 +90,5 @@ def compute_network_features(
 
         result[acct] = np.round(np.array(feats, dtype=np.float64), precision)
 
-    logger.info(
-        "Computed network features for %d boundary accounts", len(result)
-    )
+    logger.info("Computed network features for %d boundary accounts", len(result))
     return result

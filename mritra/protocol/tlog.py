@@ -74,9 +74,7 @@ class TransparencyLog:
 
     def _last_hash(self) -> str:
         """Fetch the entry_hash of the last entry, or GENESIS_HASH."""
-        row = self._conn.execute(
-            "SELECT entry_hash FROM tlog ORDER BY seq DESC LIMIT 1"
-        ).fetchone()
+        row = self._conn.execute("SELECT entry_hash FROM tlog ORDER BY seq DESC LIMIT 1").fetchone()
         return row[0] if row else GENESIS_HASH
 
     def append(

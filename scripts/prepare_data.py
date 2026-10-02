@@ -34,14 +34,41 @@ def data_stats(
         ]
     ).astype({"acct": "string"})
     splits = {}
+    split_max_ts = {}
     for name in SPLITS:
         part = df[df["split"] == name]
         splits[name] = {
             "rows": len(part),
             "first_ts": iso(part["ts"].min()),
             "last_ts": iso(part["ts"].max()),
+            "laundering_txns": int(part["is_laund"].sum()),
             "laundering_rate": float(part["is_laund"].mean()),
         }
+        split_max_ts[name] = int(part["ts"].max())
+
+    day = pd.to_datetime(df["ts"], unit="s", utc=True).dt.floor("D")
+    txns_per_day = {
+        d.date().isoformat(): int(c) for d, c in day.value_counts().sort_index().items()
+    }
+
+    # A pattern straddles a split boundary if its earliest and latest transaction fall in
+    # different splits. Split membership for any timestamp is determined the same way
+    # temporal_split assigns it (<=  train's last ts -> train, <= val's last ts -> val,
+    # else test), so this does not require joining patterns to the trans table by row_id.
+    def ts_to_split(ts: int) -> str:
+        if ts <= split_max_ts["train"]:
+            return "train"
+        if ts <= split_max_ts["val"]:
+            return "val"
+        return "test"
+
+    pattern_span = patterns.groupby("pattern_id", observed=True)["ts"].agg(["min", "max"])
+    pattern_span["first_split"] = pattern_span["min"].map(ts_to_split)
+    pattern_span["last_split"] = pattern_span["max"].map(ts_to_split)
+    patterns_straddling_split = int(
+        (pattern_span["first_split"] != pattern_span["last_split"]).sum()
+    )
+
     return {
         "rows_raw": n_raw,
         "rows_loaded": len(df),  # after the drop below, if any
@@ -55,6 +82,8 @@ def data_stats(
         "first_ts": iso(df["ts"].min()),
         "last_ts": iso(df["ts"].max()),
         "splits": splits,
+        "txns_per_day": txns_per_day,
+        "patterns_straddling_split": patterns_straddling_split,
         "payment_formats": {str(k): int(v) for k, v in df["fmt"].value_counts().items()},
         "currencies_paid": {str(k): int(v) for k, v in df["cur_paid"].value_counts().items()},
         "patterns": int(patterns["pattern_id"].nunique()),

@@ -1,0 +1,72 @@
+{
+  "rows_raw": 5078345,
+  "rows_loaded": 5078336,
+  "drop_exact_duplicates": true,
+  "duplicate_rows": 9,
+  "duplicate_rows_is_laund": 0,
+  "distinct_banks": 30470,
+  "distinct_accounts": 515088,
+  "laundering_txns": 5177,
+  "laundering_rate": 0.0010194284111961084,
+  "first_ts": "2022-09-01T00:00:00+00:00",
+  "last_ts": "2022-09-18T16:18:00+00:00",
+  "splits": {
+    "train": {
+      "rows": 3047214,
+      "first_ts": "2022-09-01T00:00:00+00:00",
+      "last_ts": "2022-09-06T13:36:00+00:00",
+      "laundering_rate": 0.0007544596474025126
+    },
+    "val": {
+      "rows": 1015564,
+      "first_ts": "2022-09-06T13:37:00+00:00",
+      "last_ts": "2022-09-08T16:12:00+00:00",
+      "laundering_rate": 0.0010644331622625457
+    },
+    "test": {
+      "rows": 1015558,
+      "first_ts": "2022-09-08T16:13:00+00:00",
+      "last_ts": "2022-09-18T16:18:00+00:00",
+      "laundering_rate": 0.0017694705767666641
+    }
+  },
+  "payment_formats": {
+    "Cheque": 1864331,
+    "Credit Card": 1323324,
+    "ACH": 600793,
+    "Cash": 490891,
+    "Reinvestment": 481056,
+    "Wire": 171855,
+    "Bitcoin": 146086
+  },
+  "currencies_paid": {
+    "US Dollar": 1895169,
+    "Euro": 1168296,
+    "Swiss Franc": 234860,
+    "Yuan": 213752,
+    "Shekel": 192184,
+    "Rupee": 190202,
+    "UK Pound": 180738,
+    "Yen": 155209,
+    "Ruble": 155178,
+    "Bitcoin": 146061,
+    "Canadian Dollar": 140042,
+    "Australian Dollar": 136769,
+    "Mexican Peso": 110159,
+    "Saudi Riyal": 89014,
+    "Brazil Real": 70703
+  },
+  "patterns": 370,
+  "pattern_txns": 3209,
+  "pattern_types": {
+    "BIPARTITE": 49,
+    "CYCLE": 54,
+    "FAN-IN": 40,
+    "FAN-OUT": 48,
+    "GATHER-SCATTER": 51,
+    "RANDOM": 41,
+    "SCATTER-GATHER": 44,
+    "STACK": 43
+  },
+  "config_sha256": "088eec12a872fd49c67c9abcd97dc21795bbc983eafb7bbf7e29684257ef8dd2"
+}

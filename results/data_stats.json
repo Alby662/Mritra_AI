@@ -34,24 +34,119 @@
     }
   },
   "txns_per_day": {
-    "2022-09-01": 1114919,
-    "2022-09-02": 754449,
-    "2022-09-03": 207382,
-    "2022-09-04": 207430,
-    "2022-09-05": 482650,
-    "2022-09-06": 482089,
-    "2022-09-07": 482750,
-    "2022-09-08": 482771,
-    "2022-09-09": 654463,
-    "2022-09-10": 208325,
-    "2022-09-11": 396,
-    "2022-09-12": 281,
-    "2022-09-13": 184,
-    "2022-09-14": 121,
-    "2022-09-15": 46,
-    "2022-09-16": 46,
-    "2022-09-17": 23,
-    "2022-09-18": 11
+    "2022-09-01": {
+      "total": 1114919,
+      "laundering": 322,
+      "non_laundering": 1114597
+    },
+    "2022-09-02": {
+      "total": 754449,
+      "laundering": 408,
+      "non_laundering": 754041
+    },
+    "2022-09-03": {
+      "total": 207382,
+      "laundering": 391,
+      "non_laundering": 206991
+    },
+    "2022-09-04": {
+      "total": 207430,
+      "laundering": 407,
+      "non_laundering": 207023
+    },
+    "2022-09-05": {
+      "total": 482650,
+      "laundering": 471,
+      "non_laundering": 482179
+    },
+    "2022-09-06": {
+      "total": 482089,
+      "laundering": 531,
+      "non_laundering": 481558
+    },
+    "2022-09-07": {
+      "total": 482750,
+      "laundering": 497,
+      "non_laundering": 482253
+    },
+    "2022-09-08": {
+      "total": 482771,
+      "laundering": 539,
+      "non_laundering": 482232
+    },
+    "2022-09-09": {
+      "total": 654463,
+      "laundering": 514,
+      "non_laundering": 653949
+    },
+    "2022-09-10": {
+      "total": 208325,
+      "laundering": 442,
+      "non_laundering": 207883
+    },
+    "2022-09-11": {
+      "total": 396,
+      "laundering": 232,
+      "non_laundering": 164
+    },
+    "2022-09-12": {
+      "total": 281,
+      "laundering": 170,
+      "non_laundering": 111
+    },
+    "2022-09-13": {
+      "total": 184,
+      "laundering": 106,
+      "non_laundering": 78
+    },
+    "2022-09-14": {
+      "total": 121,
+      "laundering": 70,
+      "non_laundering": 51
+    },
+    "2022-09-15": {
+      "total": 46,
+      "laundering": 28,
+      "non_laundering": 18
+    },
+    "2022-09-16": {
+      "total": 46,
+      "laundering": 26,
+      "non_laundering": 20
+    },
+    "2022-09-17": {
+      "total": 23,
+      "laundering": 15,
+      "non_laundering": 8
+    },
+    "2022-09-18": {
+      "total": 11,
+      "laundering": 8,
+      "non_laundering": 3
+    }
+  },
+  "tail_truncation_check": {
+    "min_daily_txns_threshold": 10000,
+    "last_dense_day": "2022-09-10",
+    "rows_kept": 5077228,
+    "rows_dropped": 1108,
+    "splits": {
+      "train": {
+        "rows": 3046522,
+        "laundering_txns": 2297,
+        "laundering_rate": 0.0007539745322699131
+      },
+      "val": {
+        "rows": 1015294,
+        "laundering_txns": 1082,
+        "laundering_rate": 0.0010657011663616647
+      },
+      "test": {
+        "rows": 1015412,
+        "laundering_txns": 1143,
+        "laundering_rate": 0.0011256514597030565
+      }
+    }
   },
   "patterns_straddling_split": 155,
   "payment_formats": {

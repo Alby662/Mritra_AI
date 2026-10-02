@@ -109,9 +109,10 @@ def test_bootstrap_identical_predictions_ci_is_zero() -> None:
     assert result.ci_upper == 0.0
 
 
-def test_bootstrap_gap_recovered_identical_configs_is_zero() -> None:
-    # C1 == C3 == C4: every resample has a non-zero denominator (unless degenerate) and
-    # the gap must be exactly 0 every time -> CI is a point mass at 0.
+def test_bootstrap_gap_recovered_identical_configs_is_nan_not_zero() -> None:
+    # C1 == C3 == C4: F1_C4 - F1_C1 == 0 < eps on the original sample AND on every
+    # resample -> the gap is undefined everywhere, not a genuine "G=0, tight CI" result.
+    # Reporting 0.0 here would be indistinguishable from a real zero-gap finding.
     rng = np.random.default_rng(2)
     n = 300
     y_true = rng.integers(0, 2, size=n)
@@ -120,6 +121,30 @@ def test_bootstrap_gap_recovered_identical_configs_is_zero() -> None:
     result = bootstrap_gap_recovered(
         y_true, y_prob, y_prob, y_prob, 0.5, 0.5, 0.5, n_resamples=100, seed=5
     )
-    assert result.point_estimate == 0.0
-    assert result.ci_lower == 0.0
-    assert result.ci_upper == 0.0
+    assert np.isnan(result.point_estimate)
+    assert np.isnan(result.ci_lower)
+    assert np.isnan(result.ci_upper)
+    assert result.n_undefined == 100
+    assert result.undefined_share == 1.0
+
+
+def test_bootstrap_gap_recovered_point_estimate_is_original_sample_not_resample_mean() -> None:
+    # point_estimate must be G computed on the *original* (non-resampled) data, via the
+    # same gap_recovered() formula used elsewhere -- not np.mean() of the bootstrap
+    # resamples, which is a different (and potentially biased) quantity.
+    y_true = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+    y_prob_c1 = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
+    y_prob_c3 = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0], dtype=float)
+    y_prob_c4 = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0], dtype=float)
+
+    result = bootstrap_gap_recovered(
+        y_true, y_prob_c1, y_prob_c3, y_prob_c4, 0.5, 0.5, 0.5, n_resamples=50, seed=1
+    )
+
+    f1_c1 = compute_subset_metrics(y_true, y_prob_c1, y_prob_c1, "x").f1_minority
+    f1_c3 = compute_subset_metrics(y_true, y_prob_c3, y_prob_c3, "x").f1_minority
+    f1_c4 = compute_subset_metrics(y_true, y_prob_c4, y_prob_c4, "x").f1_minority
+    expected = gap_recovered(f1_c1=f1_c1, f1_c3=f1_c3, f1_c4=f1_c4)
+
+    assert expected is not None
+    assert abs(result.point_estimate - expected) < 1e-9

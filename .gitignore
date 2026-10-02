@@ -35,3 +35,7 @@ results/demo_tlog.db*
 Thumbs.db
 .vscode/
 .idea/
+
+# Dashboard build
+dashboard/node_modules/
+dashboard/dist/

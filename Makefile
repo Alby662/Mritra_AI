@@ -37,7 +37,7 @@ verify-log:
 	$(RUN) python scripts/verify_log.py
 
 dashboard:
-	$(RUN) streamlit run dashboard/app.py
+	cd dashboard && npm run dev
 
 test:
 	$(RUN) pytest -q

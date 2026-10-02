@@ -6,10 +6,12 @@ import json
 import logging
 from datetime import UTC, datetime
 
+import numpy as np
 import pandas as pd
 
 from mritra.config import config_sha256, load_config, repo_path
 from mritra.data.load import DuplicateStats, read_transactions
+from mritra.data.partition import add_institutions, make_partition
 from mritra.data.patterns import parse_patterns
 from mritra.data.split import SPLITS, temporal_split
 
@@ -33,6 +35,8 @@ def data_stats(
     patterns: pd.DataFrame,
     cfg_split_train: float,
     cfg_split_val: float,
+    cfg_institutions_k: int,
+    cfg_p1_method: str,
 ) -> dict:
     accounts = pd.concat(
         [
@@ -120,6 +124,59 @@ def data_stats(
         (pattern_span["first_split"] != pattern_span["last_split"]).sum()
     )
 
+    # Sparse-day tail impact (session report item 8, 2026-10-02): for the record, not a
+    # truncation -- the dense/sparse boundary is the same TAIL_CHECK_MIN_DAILY_TXNS used
+    # above, inverted (sparse = below threshold).
+    sparse_days = {
+        d.date().isoformat()
+        for d in sorted(daily_total.index)
+        if daily_total[d] < TAIL_CHECK_MIN_DAILY_TXNS
+    }
+    day_str = day.dt.date.astype(str)
+    is_sparse_day = day_str.isin(sparse_days)
+    laund_mask = df["is_laund"] == 1
+
+    pattern_day_str = pd.to_datetime(patterns["ts"], unit="s", utc=True).dt.date.astype(str)
+    patterns_touching_sparse_day = int(
+        patterns.loc[pattern_day_str.isin(sparse_days), "pattern_id"].nunique()
+    )
+    pattern_last_day_str = pd.to_datetime(pattern_span["max"], unit="s", utc=True).dt.date.astype(
+        str
+    )
+    patterns_last_txn_on_sparse_day = int(pattern_last_day_str.isin(sparse_days).sum())
+
+    inst_of = make_partition(df, cfg_p1_method, cfg_institutions_k)
+    tagged = add_institutions(df, inst_of)
+    test_mask = (df["split"] == "test").to_numpy()
+    test_laund_mask = test_mask & laund_mask.to_numpy()
+    test_cross_laund_mask = test_laund_mask & tagged["cross"].to_numpy()
+    sparse_np = is_sparse_day.to_numpy()
+
+    def _share(numer_mask: np.ndarray, denom_mask: np.ndarray) -> tuple[int, int, float | None]:
+        denom = int(denom_mask.sum())
+        numer = int((numer_mask & sparse_np).sum())
+        return numer, denom, (numer / denom if denom else None)
+
+    test_laund_sparse, test_laund_total, test_laund_sparse_share = _share(
+        test_laund_mask, test_laund_mask
+    )
+    test_cross_laund_sparse, test_cross_laund_total, test_cross_laund_sparse_share = _share(
+        test_cross_laund_mask, test_cross_laund_mask
+    )
+
+    sparse_day_tail_impact = {
+        "sparse_day_definition": f"< {TAIL_CHECK_MIN_DAILY_TXNS} total (all-split) txns that day",
+        "laundering_txns_on_sparse_days": int((laund_mask.to_numpy() & sparse_np).sum()),
+        "patterns_touching_a_sparse_day": patterns_touching_sparse_day,
+        "patterns_whose_last_txn_is_on_a_sparse_day": patterns_last_txn_on_sparse_day,
+        "test_laundering_txns_on_sparse_days": test_laund_sparse,
+        "test_laundering_txns_total": test_laund_total,
+        "test_laundering_share_on_sparse_days": test_laund_sparse_share,
+        "test_cross_bank_laundering_txns_on_sparse_days": test_cross_laund_sparse,
+        "test_cross_bank_laundering_txns_total": test_cross_laund_total,
+        "test_cross_bank_laundering_share_on_sparse_days": test_cross_laund_sparse_share,
+    }
+
     return {
         "rows_raw": n_raw,
         "rows_loaded": len(df),  # after the drop below, if any
@@ -136,6 +193,7 @@ def data_stats(
         "txns_per_day": txns_per_day,
         "tail_truncation_check": tail_check,
         "patterns_straddling_split": patterns_straddling_split,
+        "sparse_day_tail_impact": sparse_day_tail_impact,
         "payment_formats": {str(k): int(v) for k, v in df["fmt"].value_counts().items()},
         "currencies_paid": {str(k): int(v) for k, v in df["cur_paid"].value_counts().items()},
         "patterns": int(patterns["pattern_id"].nunique()),
@@ -177,6 +235,8 @@ def main() -> None:
         patterns,
         cfg["split"]["train"],
         cfg["split"]["val"],
+        cfg["institutions"]["k"],
+        cfg["partitions"]["P1"]["method"],
     )
     (results / "data_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     logger.info("wrote %s and %s", out, results / "data_stats.json")

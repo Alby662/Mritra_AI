@@ -61,9 +61,10 @@ def _gfp_n_feat() -> int:
 def build_config_audit() -> dict:
     cfg = load_config()
     model_cfg = cfg["model"]
+    gfp_cfg = load_gfp_config()
 
     gfp_n_feat = _gfp_n_feat()
-    gfp_cols = gfp_feature_names(gfp_n_feat)
+    gfp_cols = gfp_feature_names(gfp_n_feat, gfp_cfg)
     behaviour_cols = list(BEHAVIOUR_FEATURE_COLUMNS)
     net_cols = network_feature_names(_NETWORK_SUMMARY_DIM_PLACEHOLDER)
 

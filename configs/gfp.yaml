@@ -1,26 +1,56 @@
-# Graph Feature Preprocessor settings (from IBM snapml-examples).
-# See: https://github.com/IBM/snapml-examples
-# See: https://github.com/IBM/snapml-docs/blob/main/docs/source/graph_preprocessor.rst
+# Graph Feature Preprocessor settings for snapml 1.17.2's REAL GraphFeaturePreprocessor
+# schema (confirmed via GraphFeaturePreprocessor.get_params() and the class docstring on
+# the installed package -- see Docs/DECISIONS.md 2026-10-02 for how the previous version
+# of this file was found to not match that schema at all, and
+# mritra/features/graph_gfp.py's module docstring for the fix).
+#
+# Mapping from this project's original intent to snapml's real keys (old -> new):
+#   fan_in + fan_out  -> fan             ("fan in/out" is ONE pattern in snapml, not two;
+#                                          docstring: "graph pattern names: fan, degree,
+#                                          scatter-gather, temp-cycle, and lc-cycle...
+#                                          correspond to fan in/out, degree in/out,
+#                                          scatter-gather, temporal cycle, and
+#                                          length-constrained simple cycle patterns")
+#   degree            -> degree          (name already matched; only the application
+#                                          mechanism was broken -- see graph_gfp.py)
+#   scatter_gather    -> scatter-gather  (hyphenated key; same docstring line as above)
+#   temporal_cycle    -> temp-cycle      (same docstring line as above)
+#   simple_cycle      -> lc-cycle        ("length-constrained simple cycle"; see also
+#                                          lc-cycle_len: "Length constraint used when
+#                                          searching for length-constrained simple cycles")
+#   vertex_stats      -> vertex_stats    (name already matched; mechanism only)
+#
+# Intents with NO equivalent in snapml 1.17.2 -- removed rather than guessed at (per
+# instruction: stop and list, don't invent a mapping). Needs a decision, not a config fix:
+#   gather_scatter    -- no such pattern exists. snapml's docstring lists exactly five
+#                        pattern names (fan, degree, scatter-gather, temp-cycle, lc-cycle);
+#                        "gather-scatter" as a distinct pattern is not one of them.
+#   time_windows (list [3600, 86400, 604800], our "1h/24h/7d" intent)
+#                     -- snapml has no single multi-window parameter. Each pattern has
+#                        exactly ONE <pattern>_tw value (e.g. fan_tw, degree_tw); getting
+#                        features at three granularities would mean three separate
+#                        preprocessor passes with different _tw values, not one config.
+#                        Left at snapml's own per-pattern defaults below (NOT our original
+#                        1h/24h/7d intent) until this is decided.
+#   num_non_features  -- not a snapml parameter at all (absent from get_params() and the
+#                        docstring). mritra/features/graph_gfp.py already hardcodes the
+#                        equivalent assumption directly (n_input_cols = 5); this config key
+#                        was never read by anything and duplicated that constant.
+#   num_threads: -1   -- NOT valid for this parameter (unlike the separate `time_window`
+#                        param, where -1 has a documented special meaning). Verified
+#                        empirically: set_params({"num_threads": -1}) raises
+#                        "Number of threads must be greater than zero." Our "-1 = all
+#                        available" intent has no snapml equivalent and would crash if
+#                        applied; left unset (snapml default: 12) rather than guessing a
+#                        hardware-specific positive number.
 
 params:
-  # Number of columns before features start (edge_id, src, dst, ts, amount)
-  num_non_features: 5
-
-  # Which features to compute (all enabled by default per IBM example)
-  fan_in: true
-  fan_out: true
+  fan: true
   degree: true
-  scatter_gather: true
-  gather_scatter: true
-  temporal_cycle: true
-  simple_cycle: true
-
-  # Time windows for temporal features (seconds)
-  # 1h, 24h, 7d per plan §7.1
-  time_windows: [3600, 86400, 604800]
-
-  # Vertex statistics
+  scatter-gather: true
+  temp-cycle: true
+  lc-cycle: true
   vertex_stats: true
-
-  # Number of threads for parallel computation
-  num_threads: -1  # all available
+  # time_window, vertex_stats_cols, vertex_stats_feats, and every <pattern>_tw /
+  # <pattern>_bins value are left at snapml's own defaults (see get_params()) -- none of
+  # our original intents mapped onto them without guessing (see above).

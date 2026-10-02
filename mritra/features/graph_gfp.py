@@ -32,29 +32,42 @@ same-batch exclusion. ``t0`` must be the same for every configuration
 computing features in one experiment -- see ``compute_gfp_features``'s
 docstring.
 
-Column semantics: UNVERIFIED, and ``configs/gfp.yaml`` is very likely not
-doing what it looks like it's doing
-------------------------------------------------------------------------
-``GraphFeaturePreprocessor().get_params()`` on this installed snapml (1.17.2)
-returns keys ``fan``, ``degree``, ``scatter-gather`` (hyphenated), ``temp-cycle``,
-``lc-cycle``, ``vertex_stats``, ``vertex_stats_cols``, ``vertex_stats_feats``,
-``time_window`` (singular), ``num_threads``, ``max_no_edges`` -- not the names
-``configs/gfp.yaml`` uses (``fan_in``, ``fan_out``, ``scatter_gather``,
-``gather_scatter``, ``temporal_cycle``, ``simple_cycle``, ``time_windows``,
-``num_non_features``). ``setattr(gfp, key, val)`` on an unrecognised name
-just creates an unused Python attribute; it does not raise, and does not
-reach the compiled backend. Checked directly: ``gfp.get_params()`` is
-byte-for-byte identical before and after applying every key in
-``configs/gfp.yaml: params`` via ``setattr`` -- confirming none of it takes
-effect. The preprocessor is actually running entirely on snapml's own
-defaults (notably ``fan=True``, ``degree=False``, ``scatter-gather=False``,
-``temp-cycle=False``, ``lc-cycle=False``), not the fuller feature set
-``configs/gfp.yaml`` intends to enable. This was found while trying to
-verify column semantics for naming, not fixed (out of scope here; see the
-session report) -- ``gfp_feature_names`` below is deliberately unverified
-rather than guessed from either ``configs/gfp.yaml``'s intent or
-``transform()``'s docstring, since neither is confirmed to describe what is
-actually being computed.
+Column semantics (fixed 2026-10-02 -- see Docs/DECISIONS.md)
+--------------------------------------------------------------
+``configs/gfp.yaml`` previously used parameter names (``fan_in``, ``fan_out``,
+``scatter_gather``, ``gather_scatter``, ``temporal_cycle``, ``simple_cycle``,
+``time_windows``, ``num_non_features``) that do not exist in snapml 1.17.2's
+real ``GraphFeaturePreprocessor`` schema (``fan``, ``degree``, ``scatter-gather``,
+``temp-cycle``, ``lc-cycle``, ``vertex_stats``, ...), and applied them with
+``setattr(gfp, key, val)``, which silently creates an unused Python attribute
+on an unrecognised name rather than raising. Confirmed with a proper
+(deep-copied) ``get_params()`` before/after comparison that none of it took
+effect -- GFP had been running entirely on snapml's own defaults. Fixed: the
+corrected key names are applied via ``gfp.set_params({...})`` (the library's
+real setter; confirmed empirically to actually change ``get_params()``), and
+``load_gfp_config()`` now raises on any key that is not a real
+``get_params()`` key. See ``configs/gfp.yaml`` for the full old-key -> new-key
+mapping and the intents (``gather_scatter``, the multi-window ``time_windows``
+list, ``num_non_features``, ``num_threads: -1``) that had no equivalent and
+were dropped rather than guessed at.
+
+With the corrected config (fan, degree, scatter-gather, temp-cycle, lc-cycle,
+vertex_stats all enabled), the real output is 215 feature columns, not the
+90 produced by snapml's un-configured defaults (fan + vertex_stats only) that
+every GFP number in this project used before this fix. Per-pattern column
+counts, verified empirically by toggling each pattern off from the full set
+and measuring the width delta: fan 58 (29 bins x in/out), degree 58 (29 bins
+x in/out), scatter-gather 29, temp-cycle 29, lc-cycle 9 (its own
+``lc-cycle_bins`` default has 9 entries), vertex_stats 32 (4 roles --
+source/target x outgoing/incoming -- x 8 stats, matching this config's
+default ``vertex_stats_feats=[0,1,2,3,4,8,9,10]`` = fan, degree, ratio,
+average, sum, var, skew, kurtosis of column index 3, i.e. ``ts``, the only
+entry in the default ``vertex_stats_cols=[3]``). ``gfp_feature_names()``
+below assigns names from this verified structure, and only uses it when the
+computed name count matches ``n_feat`` exactly -- it falls back to
+``gfp_unverified_i`` otherwise, so a future config change that alters bin
+counts or ``vertex_stats_cols``/``vertex_stats_feats`` can't silently
+mislabel columns.
 """
 
 from __future__ import annotations
@@ -71,14 +84,37 @@ import yaml
 # ---------------------------------------------------------------------------
 
 
+def valid_gfp_param_keys() -> set[str]:
+    """The real parameter keys snapml's GraphFeaturePreprocessor recognises right now."""
+    from snapml import GraphFeaturePreprocessor
+
+    return set(GraphFeaturePreprocessor().get_params().keys())
+
+
 def load_gfp_config(path: Path | None = None) -> dict[str, Any]:
-    """Load GFP settings from ``configs/gfp.yaml``."""
+    """Load GFP settings from ``configs/gfp.yaml``.
+
+    Raises
+    ------
+    ValueError
+        If ``params`` contains any key snapml's ``GraphFeaturePreprocessor`` does not
+        recognise (``get_params()``) -- the exact bug this strict check exists to catch,
+        see this module's docstring.
+    """
     if path is None:
         from mritra.config import CONFIG_DIR
 
         path = CONFIG_DIR / "gfp.yaml"
     with path.open(encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+
+    unknown = set(cfg.get("params", {})) - valid_gfp_param_keys()
+    if unknown:
+        raise ValueError(
+            f"{path} has unknown GraphFeaturePreprocessor param(s) {sorted(unknown)}; "
+            "valid keys come from GraphFeaturePreprocessor().get_params()"
+        )
+    return cfg
 
 
 # ---------------------------------------------------------------------------
@@ -134,18 +170,62 @@ def _prepare_edge_array(df: pd.DataFrame) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def gfp_feature_names(n_feat: int) -> list[str]:
+# Verified against this config's defaults (not overridden): snapml's default bin-array
+# lengths for each pattern (module docstring has the empirical per-pattern column counts).
+_GFP_DEFAULT_BIN_COUNTS = {
+    "fan": 29,
+    "degree": 29,
+    "scatter-gather": 29,
+    "temp-cycle": 29,
+    "lc-cycle": 9,
+}
+# Matches this config's default vertex_stats_feats=[0,1,2,3,4,8,9,10]: fan, degree, ratio
+# (structural, not per-raw-column), then average/sum/var/skew/kurtosis of the one raw
+# column in the default vertex_stats_cols=[3] (ts).
+_GFP_VERTEX_STAT_NAMES = ["fan", "degree", "ratio", "avg", "sum", "var", "skew", "kurtosis"]
+_GFP_VERTEX_ROLES = ["src_out", "src_in", "dst_out", "dst_in"]
+
+
+def gfp_feature_names(n_feat: int, gfp_cfg: dict[str, Any] | None = None) -> list[str]:
     """Column names for ``compute_gfp_features``'s output.
 
-    Deliberately unverified (see this module's docstring): the per-column semantics
-    documented by ``GraphFeaturePreprocessor.transform()`` (fan-in, fan-out, degree-in,
-    degree-out, scatter-gather, temporal cycle, simple cycles, then vertex statistics, in
-    that concatenation order) cannot be reliably mapped onto specific column indices
-    without confirming which patterns are actually enabled -- and ``configs/gfp.yaml``'s
-    parameter names do not match this snapml version's real ``get_params()`` schema, so
-    what is actually enabled is not what the config file implies.
+    With ``gfp_cfg``, assigns verified semantic names (module docstring) built from which
+    patterns are enabled, in snapml's documented concatenation order (fan-in, fan-out,
+    degree-in, degree-out, scatter-gather, temp-cycle, lc-cycle, then vertex stats).
+    Falls back to ``gfp_unverified_i`` if ``gfp_cfg`` is omitted, or if the computed name
+    count doesn't match ``n_feat`` exactly (e.g. ``_bins``, ``vertex_stats_cols`` or
+    ``vertex_stats_feats`` were overridden from this config's defaults) -- so a future
+    config change can't silently mislabel columns.
     """
-    return [f"gfp_unverified_{i}" for i in range(n_feat)]
+    if gfp_cfg is None:
+        return [f"gfp_unverified_{i}" for i in range(n_feat)]
+
+    params = gfp_cfg.get("params", {})
+    names: list[str] = []
+    for pattern, directional in (
+        ("fan", True),
+        ("degree", True),
+        ("scatter-gather", False),
+        ("temp-cycle", False),
+        ("lc-cycle", False),
+    ):
+        if not params.get(pattern, False):
+            continue
+        bins = _GFP_DEFAULT_BIN_COUNTS[pattern]
+        key = pattern.replace("-", "_")
+        if directional:
+            names += [f"gfp_{key}_in_bin_{i}" for i in range(bins)]
+            names += [f"gfp_{key}_out_bin_{i}" for i in range(bins)]
+        else:
+            names += [f"gfp_{key}_bin_{i}" for i in range(bins)]
+
+    if params.get("vertex_stats", False):
+        for role in _GFP_VERTEX_ROLES:
+            names += [f"gfp_vstat_{role}_{stat}" for stat in _GFP_VERTEX_STAT_NAMES]
+
+    if len(names) != n_feat:
+        return [f"gfp_unverified_{i}" for i in range(n_feat)]
+    return names
 
 
 def compute_gfp_features(
@@ -194,8 +274,7 @@ def compute_gfp_features(
     batch_id = round_id_for_ts(edge_arr[:, 3], t0, round_window_sec).astype(np.int64)
 
     gfp = GraphFeaturePreprocessor()
-    for key, val in gfp_cfg.get("params", {}).items():
-        setattr(gfp, key, val)
+    gfp.set_params(dict(gfp_cfg.get("params", {})))
 
     outputs = []
     for b in np.unique(batch_id):  # ascending; edge_arr is ts-sorted so this is time order
@@ -205,7 +284,7 @@ def compute_gfp_features(
     # First 5 columns are the input (edge_id, src, dst, ts, amount); rest are features
     n_input_cols = 5
     n_feat = result.shape[1] - n_input_cols
-    feat_names = gfp_feature_names(n_feat)
+    feat_names = gfp_feature_names(n_feat, gfp_cfg)
     row_ids = result[:, 0].astype(np.int64)
     features = result[:, n_input_cols:]
 

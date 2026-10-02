@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 def compute_network_features(
     boundary_edges: pd.DataFrame,
     boundary_summaries: dict[str, np.ndarray],
+    as_of: int,
     precision: int = 4,
 ) -> dict[str, np.ndarray]:
     """Compute network features on the boundary graph.
@@ -25,19 +26,36 @@ def compute_network_features(
     ----------
     boundary_edges : DataFrame
         Reconciled cross-bank transactions.  Columns: edge_ref, from_acct,
-        to_acct, ts, amount.
+        to_acct, ts, amount. Every edge must have ``ts < as_of`` -- this
+        function has no sense of "now" of its own, so the caller's cutoff is
+        enforced rather than trusted (CLAUDE.md §4: "No future data in
+        features").
     boundary_summaries : dict
         Mapping of ``acct_key`` -> feature vector (locally computed GFP +
         behavioural features) from each bank.
+    as_of : int
+        Exclusive timestamp cutoff (unix seconds); typically a round's
+        ``window_end`` (PROTOCOL.md §6 step 5: "graph state at window_end").
     precision : int
         Rounding precision for output features (output minimisation, §9.2).
 
     Returns
     -------
     dict mapping ``acct_key`` to the network feature vector.
+
+    Raises
+    ------
+    ValueError
+        If any edge has ``ts >= as_of``.
     """
     if boundary_edges.empty:
         return {}
+    if (boundary_edges["ts"] >= as_of).any():
+        bad = int(boundary_edges["ts"].max())
+        raise ValueError(
+            f"boundary_edges contains a transaction at ts={bad} >= as_of={as_of}; "
+            "compute_network_features must only ever see edges strictly before as_of"
+        )
 
     # Build adjacency from boundary edges
     out_edges: dict[str, list[str]] = {}

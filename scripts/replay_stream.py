@@ -85,7 +85,7 @@ def main() -> None:
 
         # Enclave processes
         if envelopes:
-            responses = enclave.process_round(round_id, envelopes)
+            responses = enclave.process_round(round_id, envelopes, as_of=t_end)
             for bank_id, resp in responses.items():
                 bank_services[bank_id].receive_features(resp.features)
 

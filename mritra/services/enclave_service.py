@@ -82,9 +82,17 @@ class EnclaveService:
         self,
         round_id: int,
         envelopes: list[SealedEnvelope],
+        as_of: int,
         feature_precision: int = 4,
     ) -> dict[int, RoundResponse]:
         """Process one round of submissions from all banks.
+
+        Parameters
+        ----------
+        as_of : int
+            This round's exclusive timestamp cutoff (its ``window_end``,
+            PROTOCOL.md §6); forwarded to ``compute_network_features`` so a
+            round can never be computed from a transaction at or after it.
 
         Returns a dict mapping bank_id -> RoundResponse.
         """
@@ -136,7 +144,7 @@ class EnclaveService:
 
         # Step 5: Compute network features
         net_features = compute_network_features(
-            boundary_edges, boundary_summaries, precision=feature_precision
+            boundary_edges, boundary_summaries, as_of=as_of, precision=feature_precision
         )
 
         # Step 6: Build responses — each bank gets only its own accounts

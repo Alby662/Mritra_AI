@@ -3,13 +3,14 @@ name = "mritra"
 version = "0.1.0"
 description = "Privacy-preserving cross-bank money-mule detection on IBM LinuxONE (IBM Z Datathon 2026)"
 readme = "Docs/README.md"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",
     "pandas>=2.2,<3",
     "pyarrow>=15",
     "pyyaml>=6",
     "pydantic>=2",
+    "PyNaCl>=1.5",
 ]
 
 [dependency-groups]

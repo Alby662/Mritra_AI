@@ -1,0 +1,26 @@
+# Graph Feature Preprocessor settings (from IBM snapml-examples).
+# See: https://github.com/IBM/snapml-examples
+# See: https://github.com/IBM/snapml-docs/blob/main/docs/source/graph_preprocessor.rst
+
+params:
+  # Number of columns before features start (edge_id, src, dst, ts, amount)
+  num_non_features: 5
+
+  # Which features to compute (all enabled by default per IBM example)
+  fan_in: true
+  fan_out: true
+  degree: true
+  scatter_gather: true
+  gather_scatter: true
+  temporal_cycle: true
+  simple_cycle: true
+
+  # Time windows for temporal features (seconds)
+  # 1h, 24h, 7d per plan §7.1
+  time_windows: [3600, 86400, 604800]
+
+  # Vertex statistics
+  vertex_stats: true
+
+  # Number of threads for parallel computation
+  num_threads: -1  # all available

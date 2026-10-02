@@ -130,12 +130,16 @@ class EnclaveService:
             all_txns[bank_id] = sub.txns
         recon = reconcile_round(all_txns)
 
-        # Step 3: This round's edges, appended to the persistent boundary graph
-        # (PROTOCOL.md §6 step 4). edge_rows are this round's edges only; accounts_this_round
-        # is used in step 6 to limit the response to accounts that appeared this round, per
-        # the same step's output-minimisation rule -- the FEATURES in step 4 are computed
-        # from the full accumulated graph, but what's released is round-scoped.
+        # Step 3: This round's MATCHED edges only, appended to the persistent boundary
+        # graph (PROTOCOL.md §6 step 3: "Only matched transactions enter the boundary
+        # graph by default"; step 4: persistent across rounds). accounts_this_round is
+        # used in step 6 to limit the response to accounts that appeared this round
+        # (whether or not their txns matched -- a bank's own accounts aren't sensitive to
+        # itself), per that step's output-minimisation rule; the FEATURES in step 5 are
+        # computed from the full accumulated (matched-only) graph.
+        matched_refs = set(recon.matched_refs)
         edge_rows = []
+        skipped_unmatched = 0
         accounts_this_round: set[str] = set()
         for bank_id, sub in submissions.items():
             for txn in sub.txns:
@@ -143,16 +147,20 @@ class EnclaveService:
                 to_key = f"{txn.counterparty_bank}_{txn.counterparty_account}"
                 accounts_this_round.add(from_key)
                 accounts_this_round.add(to_key)
-                if txn.direction == "out":
-                    edge_rows.append(
-                        {
-                            "edge_ref": txn.edge_ref,
-                            "from_acct": from_key,
-                            "to_acct": to_key,
-                            "ts": txn.ts,
-                            "amount": txn.amount,
-                        }
-                    )
+                if txn.direction != "out":
+                    continue
+                if txn.edge_ref not in matched_refs:
+                    skipped_unmatched += 1
+                    continue
+                edge_rows.append(
+                    {
+                        "edge_ref": txn.edge_ref,
+                        "from_acct": from_key,
+                        "to_acct": to_key,
+                        "ts": txn.ts,
+                        "amount": txn.amount,
+                    }
+                )
         if edge_rows:
             new_edges = pd.DataFrame(edge_rows)
             self._boundary_edges = (
@@ -222,17 +230,26 @@ class EnclaveService:
             input_sha256=input_hash,
             output_sha256=output_hash,
             enclave_code_sha256=_get_code_hash(),
+            detail={
+                "round_id": round_id,
+                "banks": len(submissions),
+                "matched_edges_added": len(edge_rows),
+                "unmatched_refs": len(recon.unmatched_refs),
+                "mismatched_refs": len(recon.mismatched_refs),
+                "skipped_unmatched_txn_reports": skipped_unmatched,
+            },
         )
 
         logger.info(
-            "Round %d: %d banks, %d new edges (%d accumulated), %d net features computed, "
-            "%d reconciliation issues",
+            "Round %d: %d banks, %d matched edges added (%d accumulated), %d unmatched, "
+            "%d mismatched, %d net features computed",
             round_id,
             len(submissions),
             len(edge_rows),
             len(self._boundary_edges),
+            len(recon.unmatched_refs),
+            len(recon.mismatched_refs),
             len(net_features),
-            recon.total_issues,
         )
 
         return responses

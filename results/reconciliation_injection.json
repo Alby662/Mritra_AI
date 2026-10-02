@@ -1,0 +1,17 @@
+{
+  "lying_institution": 4,
+  "injection_stats": {
+    "n_original": 662115,
+    "n_dropped": 198634,
+    "n_perturbed": 46348,
+    "n_remaining": 463481
+  },
+  "reconciliation": {
+    "matched": 3299155,
+    "mismatches": 46348,
+    "unmatched_refs": 198634
+  },
+  "injected_issues": 244982,
+  "caught_issues": 244982,
+  "catch_rate": 1.0
+}

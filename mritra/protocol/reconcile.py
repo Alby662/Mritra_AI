@@ -20,12 +20,19 @@ class ReconciliationResult:
     """Outcome of reconciling one round of cross-bank transactions."""
 
     matched: int = 0
+    matched_refs: list[int] = field(default_factory=list)
     mismatches: list[ReconciliationMismatch] = field(default_factory=list)
     unmatched_refs: list[int] = field(default_factory=list)
 
     @property
     def total_issues(self) -> int:
         return len(self.mismatches) + len(self.unmatched_refs)
+
+    @property
+    def mismatched_refs(self) -> set[int]:
+        """edge_refs with >=1 field mismatch -- NOT matched, even though both sides
+        reported them (PROTOCOL.md §6 step 3: matched requires identical fields)."""
+        return {m.edge_ref for m in self.mismatches}
 
 
 def reconcile_round(
@@ -115,6 +122,7 @@ def reconcile_round(
 
         if matched:
             result.matched += 1
+            result.matched_refs.append(edge_ref)
 
     logger.info(
         "Reconciliation: matched=%d mismatches=%d unmatched=%d",

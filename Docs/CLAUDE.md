@@ -76,7 +76,7 @@ Put code in the module that owns it. Don't create new top-level folders without 
 
 - **Python 3.11**, type hints on all public functions, `from __future__ import annotations`.
 - **Formatting/linting:** `ruff format`, `ruff check`. Line length 100.
-- **Data:** `pandas` 2.x or `polars`; store intermediate data as Parquet; use `category`/`float32` dtypes to stay within 16 GB RAM.
+- **Data:** `pandas` 2.x or `polars`; store intermediate data as Parquet; use `category` dtypes for categoricals to stay within 16 GB RAM. Amounts are `float64`, not `float32` — `float32` loses cents above ~$170k, which would break exact-amount double-entry reconciliation (`mritra/data/load.py`, DECISIONS.md 2026-10-01).
 - **Messages:** `pydantic` v2 models in `mritra/protocol/messages.py` only. Services import from there; never define ad-hoc dicts for wire messages.
 - **Config:** read everything from `configs/*.yaml` via one loader; no magic numbers in code (thresholds, K, seeds, windows).
 - **Randomness:** every random operation takes a seed from config.

@@ -1,7 +1,10 @@
 """Replay transactions as a stream for the live demo (plan §5 / §16).
 
-Replays the test period one simulated hour at a time, driving the bank
-services and enclave through the boundary protocol.
+Replays one split, one simulated hour at a time, driving the bank services
+and enclave through the boundary protocol. Defaults to the split named in
+configs/experiment.yaml: demo.default_replay_split ("val"); the test split
+can only be replayed with an explicit --split test --confirm-test-split,
+since CLAUDE.md §8 says not to touch it during development.
 """
 
 from __future__ import annotations
@@ -25,9 +28,21 @@ HOUR_SEC = 3600
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Replay test-period transactions as a stream.")
+    parser = argparse.ArgumentParser(description="Replay one split's transactions as a stream.")
     parser.add_argument("--speed", type=float, default=0.0, help="Delay between rounds (seconds)")
     parser.add_argument("--max-rounds", type=int, default=None, help="Limit number of rounds")
+    parser.add_argument(
+        "--split",
+        choices=["train", "val", "test"],
+        default=None,
+        help="Split to replay. Defaults to configs/experiment.yaml: demo.default_replay_split.",
+    )
+    parser.add_argument(
+        "--confirm-test-split",
+        action="store_true",
+        help="Required in addition to --split test; replaying the test split during "
+        "development is against CLAUDE.md §8.",
+    )
     args = parser.parse_args()
 
     cfg = load_config()
@@ -35,16 +50,20 @@ def main() -> None:
     parquet = repo_path(cfg["paths"]["parquet"])
     results = repo_path(cfg["paths"]["results"])
 
+    split = args.split or cfg["demo"]["default_replay_split"]
+    if split == "test" and not args.confirm_test_split:
+        parser.error("replaying the test split requires --split test --confirm-test-split")
+
     df = pd.read_parquet(parquet / "trans.parquet")
     inst_of = make_partition(df, cfg["partitions"]["P1"]["method"], k)
     df = add_institutions(df, inst_of)
 
     split_cfg = cfg["split"]
     df["split"] = temporal_split(df["ts"], split_cfg["train"], split_cfg["val"])
-    test_df = df[df["split"] == "test"].copy()
+    replay_df = df[df["split"] == split].copy()
 
-    if test_df.empty:
-        logger.error("No test-period transactions found")
+    if replay_df.empty:
+        logger.error("No %s-split transactions found", split)
         return
 
     # Generate keys
@@ -59,13 +78,13 @@ def main() -> None:
     }
 
     # Replay by hour
-    ts_min = int(test_df["ts"].min())
-    ts_max = int(test_df["ts"].max())
+    ts_min = int(replay_df["ts"].min())
+    ts_max = int(replay_df["ts"].max())
     round_id = 0
 
     for t_start in range(ts_min, ts_max + 1, HOUR_SEC):
         t_end = t_start + HOUR_SEC
-        window = test_df[(test_df["ts"] >= t_start) & (test_df["ts"] < t_end)]
+        window = replay_df[(replay_df["ts"] >= t_start) & (replay_df["ts"] < t_end)]
 
         if window.empty:
             continue
@@ -102,7 +121,7 @@ def main() -> None:
             time.sleep(args.speed)
 
     enclave.close()
-    logger.info("Replay complete: %d rounds", round_id)
+    logger.info("Replay complete: split=%s rounds=%d", split, round_id)
 
 
 if __name__ == "__main__":

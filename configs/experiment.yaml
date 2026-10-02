@@ -25,6 +25,10 @@ protocol:
   round_window_sec: 3600   # one simulated hour (PROTOCOL.md §6); batch width for streaming
                            # graph features (mritra/features/graph_gfp.py) and enclave rounds
 
+demo:
+  default_replay_split: val   # scripts/replay_stream.py default; CLAUDE.md §8: don't
+                               # evaluate on the test period during development
+
 institutions:
   k: 5
 

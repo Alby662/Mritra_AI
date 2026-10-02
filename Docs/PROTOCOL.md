@@ -220,8 +220,9 @@ Every rejection is logged as `SUBMISSION_REJECTED` with the reason code and no p
 
 ## 10. Rounds
 
-- **Round length:** one simulated hour of transaction time (`configs/protocol.yaml`).
-- `round_id = floor((window_start − t0) / 3600)`, `t0` = first test-period timestamp for the demo, first train timestamp for offline runs.
+- **Round length:** one simulated hour of transaction time (`configs/experiment.yaml: protocol.round_window_sec`, 3600s).
+- `round_id = floor((window_start − t0) / round_window_sec)`, `t0` = first test-period timestamp for the demo, first train timestamp for offline runs. `t0` must be the same single value for every configuration (C1, C3, C4) in one experiment — round *N* has to mean the identical wall-clock window everywhere, not a window relative to whatever subset of data a particular call happens to see.
+- **Causality (CLAUDE.md rule 4, PREREGISTRATION.md §4):** features and scores for a transaction are produced at the end of its round, using only data up to that round's end; no data from any later round is used. This is round-granularity causality, not continuous-time "≤ t" causality — forced by `GraphFeaturePreprocessor.transform()` inserting its whole input batch before computing features on it (snapml docstring; no insert-free method exists), so a round's internal transactions can see each other but never a later round's.
 - Offline experiments call the same `enclave` computation functions directly (no HTTP) so results and demo share one code path.
 - **Missing bank:** the round is computed with the banks that submitted; `banks_included` records who; missing banks are logged.
 

@@ -19,12 +19,12 @@ from mritra.config import load_config, repo_path
 from mritra.data.partition import add_institutions, make_partition
 from mritra.data.split import temporal_split
 from mritra.protocol.crypto import KeyPair
+from mritra.protocol.rounds import round_id_for_ts
+from mritra.protocol.rounds import round_window_sec as get_round_window_sec
 from mritra.services.bank_service import BankService
 from mritra.services.enclave_service import EnclaveService
 
 logger = logging.getLogger("replay_stream")
-
-HOUR_SEC = 3600
 
 
 def main() -> None:
@@ -77,21 +77,27 @@ def main() -> None:
         i: BankService(i, bank_keypairs[i].private_key, enclave.public_key) for i in range(k)
     }
 
-    # Replay by hour
-    ts_min = int(replay_df["ts"].min())
+    # Replay by round (PROTOCOL.md §10): round_id = floor((window_start - t0) / round_window_sec),
+    # t0 = this split's first timestamp (the demo's t0, per PROTOCOL.md §10). Every round in
+    # [ts_min, ts_max] is counted, including empty ones, so round_id here matches the
+    # same-named quantity computed anywhere else in the pipeline for the same t0.
+    round_window_sec = get_round_window_sec()
+    t0 = int(replay_df["ts"].min())
     ts_max = int(replay_df["ts"].max())
-    round_id = 0
+    n_rounds = int(round_id_for_ts(ts_max, t0, round_window_sec)) + 1
 
-    for t_start in range(ts_min, ts_max + 1, HOUR_SEC):
-        t_end = t_start + HOUR_SEC
+    last_round_id = -1
+    for round_id in range(n_rounds):
+        t_start = t0 + round_id * round_window_sec
+        t_end = t_start + round_window_sec
         window = replay_df[(replay_df["ts"] >= t_start) & (replay_df["ts"] < t_end)]
 
         if window.empty:
             continue
 
-        round_id += 1
-        if args.max_rounds and round_id > args.max_rounds:
+        if args.max_rounds and round_id >= args.max_rounds:
             break
+        last_round_id = round_id
 
         # Each bank creates and encrypts its submission
         envelopes = []
@@ -121,7 +127,7 @@ def main() -> None:
             time.sleep(args.speed)
 
     enclave.close()
-    logger.info("Replay complete: split=%s rounds=%d", split, round_id)
+    logger.info("Replay complete: split=%s last_round_id=%d", split, last_round_id)
 
 
 if __name__ == "__main__":

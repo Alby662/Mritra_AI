@@ -47,7 +47,7 @@ On bank-partitioned synthetic transaction data, does exchanging encrypted bounda
 | Cross-bank pattern | A laundering attempt in the Patterns file whose transactions touch > 1 institution |
 | Boundary account of institution *i* at time *t* | An account at *i* with ≥ 1 cross-bank transaction at time ≤ *t* |
 | **Temporal split** | Sort all transactions by timestamp (stable). Train = first 60%, validation = next 20%, test = last 20%, by row count; transactions sharing the boundary timestamp go to the earlier split |
-| Leakage rule | A feature for a transaction at time *t* uses only transactions with timestamp ≤ *t*; labels are never features |
+| Leakage rule | Features and scores for a transaction are produced at the end of its round, using only data up to that round's end. Rounds are fixed windows of `protocol.round_window_sec` (3600s). No data from any later round is used. Labels are never features. |
 | Exit transaction | `Payment Format` ∈ {cash, bitcoin categories as spelled in the data — recorded in `DATA.md`} |
 | Role: mule (proxy) | Account that both receives and sends ≥ 1 laundering transaction |
 | Role: source (proxy) | Sends ≥ 1 laundering transaction, receives none |
@@ -95,7 +95,7 @@ G = (F1_C3 − F1_C1) / (F1_C4 − F1_C1)     on the cross-bank subset
 
 For each laundering pattern with ≥ 1 transaction in the test period and ≥ 1 exit transaction:
 - `t_exit` = timestamp of its first exit transaction
-- `t_flag` = earliest timestamp at which any of its transactions scores ≥ threshold (streaming scores)
+- `t_flag` = the **end of the round** in which any of its transactions first scores ≥ threshold (round granularity, `protocol.round_window_sec`; matches the leakage rule in §4 — a score is only available once its round has ended)
 - flagged-before-exit if `t_flag < t_exit`; lead = `t_exit − t_flag`
 
 Report the share flagged before exit and the median lead (hours) among those, per configuration.
@@ -140,4 +140,4 @@ All primary metrics for every configuration, seed and partition; G with CIs; eve
 
 | Date | Change | Reason | Approved by | Affects |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 2026-10-02 | §4 leakage rule and §6.3 lead-time `t_flag` restated at round granularity ("produced at the end of its round... Rounds are fixed windows of `protocol.round_window_sec`"), replacing the continuous-time "timestamp ≤ t" wording | Snap ML's `GraphFeaturePreprocessor.transform()` inserts its whole input batch before computing features ("...and computes the graph-based features using the updated graph", snapml 1.17.2 docstring) -- there is no insert-free method, so continuous-time "≤ t" causality isn't achievable at dataset scale; round-batched causality is what the implementation (and the real enclave protocol, PROTOCOL.md §10) actually provides. Clarification made before any C1/C3/C4 model results. | Rehan | §4, §6.3; CLAUDE.md rule 4; PROTOCOL.md §10 |

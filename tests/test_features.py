@@ -16,6 +16,7 @@ import pytest
 from mritra.features.behaviour import compute_behavioural_features
 from mritra.features.graph_gfp import compute_gfp_features, load_gfp_config
 from mritra.features.network import compute_network_features
+from mritra.protocol.rounds import round_id_for_ts
 
 
 def _toy_transactions(n: int, seed: int) -> pd.DataFrame:
@@ -192,6 +193,7 @@ def test_graph_gfp_features_unchanged_for_earlier_batches_real_snapml() -> None:
     pytest.importorskip("snapml")
     df = _toy_graph_edges(n=60, seed=0)
     round_window_sec = 3600
+    t0 = 0
 
     # Cut at a round-window BOUNDARY, not an arbitrary row count: transform() computes a
     # batch's features from the graph *after* that whole batch is inserted (snapml
@@ -199,13 +201,13 @@ def test_graph_gfp_features_unchanged_for_earlier_batches_real_snapml() -> None:
     # mid-batch would make the last partial batch differ for a reason that has nothing to
     # do with future leakage -- see the session report for the exploratory version of this
     # test that did that and was misleading.
-    batch_id = df["ts"] // round_window_sec
-    b_cut = batch_id.iloc[40]
+    batch_id = round_id_for_ts(df["ts"].to_numpy(), t0, round_window_sec)
+    b_cut = batch_id[40]
     earlier_batches = df[batch_id <= b_cut].copy()
 
     cfg = load_gfp_config()
-    before = compute_gfp_features(earlier_batches, cfg, round_window_sec=round_window_sec)
-    after = compute_gfp_features(df.copy(), cfg, round_window_sec=round_window_sec)
+    before = compute_gfp_features(earlier_batches, t0, cfg, round_window_sec=round_window_sec)
+    after = compute_gfp_features(df.copy(), t0, cfg, round_window_sec=round_window_sec)
 
     shared_ids = before.index
     pd.testing.assert_frame_equal(

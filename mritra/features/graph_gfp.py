@@ -15,17 +15,20 @@ including edges that happen later in time. There is no "compute without
 inserting" method in the public API (``fit``, ``partial_fit``, ``transform``,
 ``fit_transform`` all insert).
 
-The fix used here: batch edges into round windows (``round_window_sec``, one
-simulated hour by default, from ``configs/experiment.yaml: protocol``) and
-call ``transform()`` once per batch, in timestamp order, on one persistent
-``GraphFeaturePreprocessor`` instance. Each call only ever has batches
-``<= b`` inserted into the graph, so a batch's features can never depend on a
-*later* batch -- this is what ``test_graph_gfp_leakage.py`` checks, with real
-snapml. Edges within the *same* batch can still see each other (that is
-inherent to ``transform()``'s insert-then-compute behaviour and unavoidable
-without calling it edge-by-edge, which is not practical at dataset scale);
-this matches PREREGISTRATION's literal leakage rule ("timestamp <= t"), not a
-stricter same-batch exclusion.
+The fix used here: batch edges into round windows via
+``mritra.protocol.rounds.round_id_for_ts(ts, t0, round_window_sec)``
+(PROTOCOL.md §10) and call ``transform()`` once per batch, in round order, on
+one persistent ``GraphFeaturePreprocessor`` instance. Each call only ever has
+batches ``<= b`` inserted into the graph, so a batch's features can never
+depend on a *later* batch -- this is what the leakage test in
+``tests/test_features.py`` checks, with real snapml. Edges within the *same*
+batch (round) can still see each other (that is inherent to
+``transform()``'s insert-then-compute behaviour and unavoidable without
+calling it edge-by-edge, which is not practical at dataset scale); this
+matches PREREGISTRATION §4's round-granularity leakage rule, not a stricter
+same-batch exclusion. ``t0`` must be the same for every configuration
+computing features in one experiment -- see ``compute_gfp_features``'s
+docstring.
 """
 
 from __future__ import annotations
@@ -108,14 +111,9 @@ def _prepare_edge_array(df: pd.DataFrame) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def _default_round_window_sec() -> int:
-    from mritra.config import load_config
-
-    return int(load_config()["protocol"]["round_window_sec"])
-
-
 def compute_gfp_features(
     df: pd.DataFrame,
+    t0: int,
     gfp_cfg: dict[str, Any] | None = None,
     round_window_sec: int | None = None,
 ) -> pd.DataFrame:
@@ -127,19 +125,26 @@ def compute_gfp_features(
         Transaction table (must have row_id, from_bank, from_acct, to_bank,
         to_acct, ts, amt_paid). Sorted by ``ts`` internally; need not be
         pre-sorted by the caller.
+    t0 : int
+        Round-zero anchor (PROTOCOL.md §10): the same value must be passed by
+        every configuration (C1, C3, C4) computing features for one
+        experiment, so round *N* means the identical wall-clock window
+        everywhere, regardless of what slice of the timeline a particular
+        call happens to see. No default -- see ``mritra.protocol.rounds``.
     gfp_cfg : dict, optional
         Overrides from ``configs/gfp.yaml``.
     round_window_sec : int, optional
         Batch width in seconds. Defaults to ``configs/experiment.yaml:
-        protocol.round_window_sec`` (one simulated hour). Edges are bucketed
-        by absolute epoch time (``ts // round_window_sec``), not relative to
-        the first row of ``df``, so batch membership is stable regardless of
-        what slice of the timeline is passed in.
+        protocol.round_window_sec`` (one simulated hour) via
+        ``mritra.protocol.rounds.round_window_sec()``.
 
     Returns
     -------
     DataFrame with ``row_id`` as index and one column per GFP feature.
     """
+    from mritra.protocol.rounds import round_id_for_ts
+    from mritra.protocol.rounds import round_window_sec as _default_round_window_sec
+
     if gfp_cfg is None:
         gfp_cfg = load_gfp_config()
     if round_window_sec is None:
@@ -147,7 +152,7 @@ def compute_gfp_features(
 
     df = df.sort_values("ts", kind="stable").reset_index(drop=True)
     edge_arr = _prepare_edge_array(df)
-    batch_id = (edge_arr[:, 3] // round_window_sec).astype(np.int64)
+    batch_id = round_id_for_ts(edge_arr[:, 3], t0, round_window_sec).astype(np.int64)
 
     try:
         from snapml import GraphFeaturePreprocessor  # type: ignore[import-untyped]

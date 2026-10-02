@@ -94,6 +94,13 @@ def main() -> None:
     parser.add_argument("--partition", choices=["P1", "P2"], default="P1")
     parser.add_argument("--configs", default="C1,C3,C4")
     parser.add_argument("--run-id", default=None)
+    parser.add_argument(
+        "--splits",
+        default="train,val,test",
+        help="Comma-separated splits to include in the input data. Default includes test; "
+        "pass --splits train,val to build features only (CLAUDE.md §8: don't touch the "
+        "test split during development).",
+    )
     args = parser.parse_args()
 
     cfg = load_config()
@@ -101,6 +108,8 @@ def main() -> None:
     parquet = repo_path(cfg["paths"]["parquet"])
 
     df = pd.read_parquet(parquet / "trans.parquet")
+    wanted_splits = set(args.splits.split(","))
+    df = df[df["split"].isin(wanted_splits)].copy()
     part_cfg = cfg["partitions"][args.partition]
     inst_of = make_partition(df, part_cfg["method"], k, seed=part_cfg.get("seed"))
     df = add_institutions(df, inst_of)
@@ -125,6 +134,7 @@ def main() -> None:
             "config_sha256": config_sha256(),
             "snapml_version": snapml_version(),
             "partition": args.partition,
+            "splits": sorted(wanted_splits),
             "round_window_sec": window_sec,
             "t0": t0,
             "feature_columns": feature_columns_per_config,

@@ -26,6 +26,19 @@ logger = logging.getLogger(__name__)
 WINDOWS = {"1h": 3600, "24h": 86400, "7d": 604800}
 BASELINE_WINDOW = 30 * 86400  # 30 days
 
+# Stable, verified names for compute_behavioural_features' output columns (own source,
+# not a third-party library) -- in the order they are added to `feats` below.
+FEATURE_COLUMNS = [
+    "sender_velocity_1h",
+    "sender_velocity_24h",
+    "sender_velocity_7d",
+    "pass_through_ratio",
+    "cross_inst_share",
+    "format_diversity",
+    "currency_diversity",
+    "baseline_deviation",
+]
+
 
 def _rolling_agg(
     group: pd.DataFrame, ts_col: str, val_col: str, window_sec: int, agg: str

@@ -14,6 +14,20 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
+def network_feature_names(summary_dim: int) -> list[str]:
+    """Stable, verified column names for ``compute_network_features``'s output vector.
+
+    Fully verified from this module's own source (not a third-party library): the fixed
+    5-element header (fan-out, fan-in, amount-out, amount-in, pass-through ratio) followed
+    by three ``summary_dim``-wide blocks (mean, max, sum of 1-hop neighbours' boundary
+    summary vectors), in exactly that order -- see the loop body above.
+    """
+    names = ["net_fan_out", "net_fan_in", "net_amt_out", "net_amt_in", "net_pass_through_ratio"]
+    for agg in ("mean", "max", "sum"):
+        names.extend(f"net_nbr_{agg}_{i}" for i in range(summary_dim))
+    return names
+
+
 def compute_network_features(
     boundary_edges: pd.DataFrame,
     boundary_summaries: dict[str, np.ndarray],

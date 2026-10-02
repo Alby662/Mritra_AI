@@ -31,6 +31,30 @@ matches PREREGISTRATION §4's round-granularity leakage rule, not a stricter
 same-batch exclusion. ``t0`` must be the same for every configuration
 computing features in one experiment -- see ``compute_gfp_features``'s
 docstring.
+
+Column semantics: UNVERIFIED, and ``configs/gfp.yaml`` is very likely not
+doing what it looks like it's doing
+------------------------------------------------------------------------
+``GraphFeaturePreprocessor().get_params()`` on this installed snapml (1.17.2)
+returns keys ``fan``, ``degree``, ``scatter-gather`` (hyphenated), ``temp-cycle``,
+``lc-cycle``, ``vertex_stats``, ``vertex_stats_cols``, ``vertex_stats_feats``,
+``time_window`` (singular), ``num_threads``, ``max_no_edges`` -- not the names
+``configs/gfp.yaml`` uses (``fan_in``, ``fan_out``, ``scatter_gather``,
+``gather_scatter``, ``temporal_cycle``, ``simple_cycle``, ``time_windows``,
+``num_non_features``). ``setattr(gfp, key, val)`` on an unrecognised name
+just creates an unused Python attribute; it does not raise, and does not
+reach the compiled backend. Checked directly: ``gfp.get_params()`` is
+byte-for-byte identical before and after applying every key in
+``configs/gfp.yaml: params`` via ``setattr`` -- confirming none of it takes
+effect. The preprocessor is actually running entirely on snapml's own
+defaults (notably ``fan=True``, ``degree=False``, ``scatter-gather=False``,
+``temp-cycle=False``, ``lc-cycle=False``), not the fuller feature set
+``configs/gfp.yaml`` intends to enable. This was found while trying to
+verify column semantics for naming, not fixed (out of scope here; see the
+session report) -- ``gfp_feature_names`` below is deliberately unverified
+rather than guessed from either ``configs/gfp.yaml``'s intent or
+``transform()``'s docstring, since neither is confirmed to describe what is
+actually being computed.
 """
 
 from __future__ import annotations
@@ -110,6 +134,20 @@ def _prepare_edge_array(df: pd.DataFrame) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
+def gfp_feature_names(n_feat: int) -> list[str]:
+    """Column names for ``compute_gfp_features``'s output.
+
+    Deliberately unverified (see this module's docstring): the per-column semantics
+    documented by ``GraphFeaturePreprocessor.transform()`` (fan-in, fan-out, degree-in,
+    degree-out, scatter-gather, temporal cycle, simple cycles, then vertex statistics, in
+    that concatenation order) cannot be reliably mapped onto specific column indices
+    without confirming which patterns are actually enabled -- and ``configs/gfp.yaml``'s
+    parameter names do not match this snapml version's real ``get_params()`` schema, so
+    what is actually enabled is not what the config file implies.
+    """
+    return [f"gfp_unverified_{i}" for i in range(n_feat)]
+
+
 def compute_gfp_features(
     df: pd.DataFrame,
     t0: int,
@@ -167,7 +205,7 @@ def compute_gfp_features(
     # First 5 columns are the input (edge_id, src, dst, ts, amount); rest are features
     n_input_cols = 5
     n_feat = result.shape[1] - n_input_cols
-    feat_names = [f"gfp_{i}" for i in range(n_feat)]
+    feat_names = gfp_feature_names(n_feat)
     row_ids = result[:, 0].astype(np.int64)
     features = result[:, n_input_cols:]
 

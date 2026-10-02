@@ -21,6 +21,10 @@ paths:
   parquet: data/parquet
   results: results
 
+protocol:
+  round_window_sec: 3600   # one simulated hour (PROTOCOL.md §6); batch width for streaming
+                           # graph features (mritra/features/graph_gfp.py) and enclave rounds
+
 institutions:
   k: 5
 

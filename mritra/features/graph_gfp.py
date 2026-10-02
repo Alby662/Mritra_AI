@@ -2,8 +2,10 @@
 
 Wraps ``snapml.GraphFeaturePreprocessor`` to produce edge-level graph features
 (fan-in/out, degree, scatter-gather, temporal-cycle, etc.) from the AMLworld
-transaction table.  Falls back to a minimal NetworkX stub when snapml is not
-installed (e.g. on macOS or Windows) so the rest of the pipeline can still run.
+transaction table. snapml is a required dependency (``pyproject.toml``) --
+there is no fallback; a missing install is a setup error, not a degraded
+mode to run in (a prior NetworkX-based stand-in computed different, weaker
+features than production and was removed rather than kept in parallel).
 
 Streaming / no-future-leakage (CLAUDE.md §4, §6)
 -------------------------------------------------
@@ -33,15 +35,12 @@ docstring.
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 import yaml
-
-logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Config
@@ -142,6 +141,8 @@ def compute_gfp_features(
     -------
     DataFrame with ``row_id`` as index and one column per GFP feature.
     """
+    from snapml import GraphFeaturePreprocessor
+
     from mritra.protocol.rounds import round_id_for_ts
     from mritra.protocol.rounds import round_window_sec as _default_round_window_sec
 
@@ -154,23 +155,14 @@ def compute_gfp_features(
     edge_arr = _prepare_edge_array(df)
     batch_id = round_id_for_ts(edge_arr[:, 3], t0, round_window_sec).astype(np.int64)
 
-    try:
-        from snapml import GraphFeaturePreprocessor  # type: ignore[import-untyped]
+    gfp = GraphFeaturePreprocessor()
+    for key, val in gfp_cfg.get("params", {}).items():
+        setattr(gfp, key, val)
 
-        gfp = GraphFeaturePreprocessor()
-        for key, val in gfp_cfg.get("params", {}).items():
-            setattr(gfp, key, val)
-
-        outputs = []
-        for b in np.unique(batch_id):  # ascending; edge_arr is ts-sorted so this is time order
-            outputs.append(gfp.transform(edge_arr[batch_id == b]))
-        result = np.concatenate(outputs, axis=0)
-    except ImportError:
-        logger.warning(
-            "snapml not available — falling back to NetworkX stub features.  "
-            "Install snapml on Linux for production graph features."
-        )
-        result = _networkx_stub_features(edge_arr, batch_id)
+    outputs = []
+    for b in np.unique(batch_id):  # ascending; edge_arr is ts-sorted so this is time order
+        outputs.append(gfp.transform(edge_arr[batch_id == b]))
+    result = np.concatenate(outputs, axis=0)
 
     # First 5 columns are the input (edge_id, src, dst, ts, amount); rest are features
     n_input_cols = 5
@@ -182,44 +174,3 @@ def compute_gfp_features(
     feat_df = pd.DataFrame(features, columns=feat_names)
     feat_df.insert(0, "row_id", row_ids)
     return feat_df.set_index("row_id")
-
-
-# ---------------------------------------------------------------------------
-# NetworkX stub for environments without snapml
-# ---------------------------------------------------------------------------
-
-
-def _networkx_stub_features(edge_arr: np.ndarray, batch_id: np.ndarray) -> np.ndarray:
-    """Compute basic graph stats via NetworkX as a stand-in for GFP.
-
-    Builds the graph incrementally batch by batch (same round-window causality
-    as the snapml path above): a batch's degree features reflect the graph
-    after that batch is inserted, never a later one.
-
-    Returns the original 5-column edge array with 6 appended stub features:
-        src_out_degree, src_in_degree, dst_out_degree, dst_in_degree,
-        src_total_degree, dst_total_degree
-    """
-    import networkx as nx
-
-    G = nx.DiGraph()
-    n = edge_arr.shape[0]
-    feats = np.zeros((n, 6), dtype=np.float64)
-
-    for b in np.unique(batch_id):
-        idx = np.flatnonzero(batch_id == b)
-        for i in idx:
-            G.add_edge(int(edge_arr[i, 1]), int(edge_arr[i, 2]))
-
-        out_deg = dict(G.out_degree())
-        in_deg = dict(G.in_degree())
-        for i in idx:
-            s, d = int(edge_arr[i, 1]), int(edge_arr[i, 2])
-            feats[i, 0] = out_deg.get(s, 0)
-            feats[i, 1] = in_deg.get(s, 0)
-            feats[i, 2] = out_deg.get(d, 0)
-            feats[i, 3] = in_deg.get(d, 0)
-            feats[i, 4] = feats[i, 0] + feats[i, 1]
-            feats[i, 5] = feats[i, 2] + feats[i, 3]
-
-    return np.hstack([edge_arr, feats])

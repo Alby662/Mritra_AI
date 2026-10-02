@@ -21,6 +21,12 @@ kaggle.json
 # Generated models
 results/models/
 
+# Per-run feature tables and models (large, reproducible from the manifest) -- the
+# manifest.json and eval.json themselves are small and kept.
+results/runs/*/features/
+results/runs/*/models/
+results/runs/.last_run_id
+
 # Demo transparency log (scripts/replay_stream.py, dashboard)
 results/demo_tlog.db*
 

@@ -317,3 +317,19 @@ def test_graph_gfp_features_unchanged_for_earlier_batches_real_snapml() -> None:
         after.loc[shared_ids].sort_index(),
         check_like=False,
     )
+
+
+def test_network_features_rejects_future_data():
+    import pytest
+
+    from mritra.features.network import compute_network_features
+
+    edges = pd.DataFrame(
+        [
+            {"edge_ref": 0, "from_acct": "0_x1", "to_acct": "1_y1", "ts": 1_000, "amount": 100.0},
+            {"edge_ref": 1, "from_acct": "0_x1", "to_acct": "1_y1", "ts": 5_000, "amount": 101.0},
+        ]
+    )
+    # as_of = 5000 means the edge at ts=5000 is NOT strictly before as_of.
+    with pytest.raises(ValueError, match="contains a transaction at ts=5000 >= as_of=5000"):
+        compute_network_features(edges, {}, as_of=5000)

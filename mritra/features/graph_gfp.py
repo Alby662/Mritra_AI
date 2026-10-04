@@ -278,79 +278,39 @@ def compute_gfp_features(
     if gfp_cfg is None:
         gfp_cfg = load_gfp_config()
 
-    try:
-        from snapml import GraphFeaturePreprocessor
+    from snapml import GraphFeaturePreprocessor
 
-        from mritra.protocol.rounds import round_id_for_ts
-        from mritra.protocol.rounds import round_window_sec as _default_round_window_sec
+    from mritra.protocol.rounds import round_id_for_ts
+    from mritra.protocol.rounds import round_window_sec as _default_round_window_sec
 
-        if round_window_sec is None:
-            round_window_sec = _default_round_window_sec()
+    if round_window_sec is None:
+        round_window_sec = _default_round_window_sec()
 
-        df = df.sort_values("ts", kind="stable").reset_index(drop=True)
-        edge_arr = _prepare_edge_array(df)
-        batch_id = round_id_for_ts(edge_arr[:, 3], t0, round_window_sec).astype(np.int64)
+    df = df.sort_values("ts", kind="stable").reset_index(drop=True)
+    edge_arr = _prepare_edge_array(df)
+    batch_id = round_id_for_ts(edge_arr[:, 3], t0, round_window_sec).astype(np.int64)
 
-        gfp = GraphFeaturePreprocessor()
-        gfp.set_params(dict(gfp_cfg.get("params", {})))
+    gfp = GraphFeaturePreprocessor()
+    gfp.set_params(dict(gfp_cfg.get("params", {})))
 
-        outputs = []
-        for b in np.unique(batch_id):  # ascending; edge_arr is ts-sorted so this is time order
-            outputs.append(gfp.transform(edge_arr[batch_id == b]))
-        result = np.concatenate(outputs, axis=0)
-    except ImportError:
-        df = df.sort_values("ts", kind="stable").reset_index(drop=True)
-        edge_arr = _prepare_edge_array(df)
-        result = _networkx_stub_features(edge_arr)
-
-    # First 5 columns are the input (edge_id, src, dst, ts, amount); rest are features
     n_input_cols = 5
-    n_feat = result.shape[1] - n_input_cols
-    feat_names = gfp_feature_names(n_feat, gfp_cfg)
-    row_ids = result[:, 0].astype(np.int64)
-    features = result[:, n_input_cols:]
+    row_ids_list = []
+    features_list = []
 
-    feat_df = pd.DataFrame(features, columns=feat_names)
+    for b in np.unique(batch_id):  # ascending; edge_arr is ts-sorted so this is time order
+        batch_edges = edge_arr[batch_id == b]
+        if len(batch_edges) == 0:
+            continue
+        out = gfp.transform(batch_edges)
+        row_ids_list.append(out[:, 0].astype(np.int64))
+        features_list.append(out[:, n_input_cols:].astype(np.float32))
+
+    row_ids = np.concatenate(row_ids_list, axis=0)
+    features = np.concatenate(features_list, axis=0)
+
+    n_feat = features.shape[1]
+    feat_names = gfp_feature_names(n_feat, gfp_cfg)
+
+    feat_df = pd.DataFrame(features, columns=feat_names, copy=False)
     feat_df.insert(0, "row_id", row_ids)
     return feat_df.set_index("row_id")
-
-
-# ---------------------------------------------------------------------------
-# NetworkX stub for testing on environments without snapml (macOS, Windows)
-# ---------------------------------------------------------------------------
-
-
-def _networkx_stub_features(edge_arr: np.ndarray) -> np.ndarray:
-    """Compute basic graph stats via NetworkX as a stand-in for GFP.
-
-    This is NOT used in production (snapml is required). It exists only so
-    that test_leakage.py can verify feature-array shapes and label-exclusion
-    properties without importing snapml.
-
-    Returns the original 5-column edge array with 6 appended stub features:
-        src_out_degree, src_in_degree, dst_out_degree, dst_in_degree,
-        src_total_degree, dst_total_degree
-    """
-    import networkx as nx
-
-    G = nx.DiGraph()
-    for row in edge_arr:
-        src, dst = int(row[1]), int(row[2])
-        G.add_edge(src, dst)
-
-    out_deg = dict(G.out_degree())
-    in_deg = dict(G.in_degree())
-
-    n = edge_arr.shape[0]
-    feats = np.zeros((n, 6), dtype=np.float64)
-    for i, row in enumerate(edge_arr):
-        s, d = int(row[1]), int(row[2])
-        feats[i, 0] = out_deg.get(s, 0)
-        feats[i, 1] = in_deg.get(s, 0)
-        feats[i, 2] = out_deg.get(d, 0)
-        feats[i, 3] = in_deg.get(d, 0)
-        feats[i, 4] = feats[i, 0] + feats[i, 1]
-        feats[i, 5] = feats[i, 2] + feats[i, 3]
-
-    return np.hstack([edge_arr, feats])
-

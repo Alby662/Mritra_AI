@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Build per-config, per-institution feature tables (PREREGISTRATION §5).
 
 Uses mritra/features/views.py as the single source of truth for which edges each
@@ -19,6 +20,8 @@ from __future__ import annotations
 
 import argparse
 import logging
+import tempfile
+from pathlib import Path
 
 import pandas as pd
 
@@ -27,8 +30,11 @@ from mritra.data.partition import add_institutions, make_partition
 from mritra.features.behaviour import compute_behavioural_features
 from mritra.features.graph_gfp import compute_gfp_features, load_gfp_config
 from mritra.features.views import feature_view
-from mritra.protocol.rounds import round_window_sec
+from mritra.protocol.crypto import KeyPair
+from mritra.protocol.rounds import round_id_for_ts, round_window_sec
 from mritra.runs import new_run_id, run_dir, snapml_version, write_manifest
+from mritra.services.bank_service import BankService
+from mritra.services.enclave_service import EnclaveService
 
 logger = logging.getLogger("build_features")
 
@@ -61,13 +67,126 @@ def build_config_features(
 ) -> dict[str, list[str]]:
     feature_columns: dict[str, list[str]] = {}
 
-    if config in ("C1", "C3"):
+    if config == "C1":
         for bank_id in range(k):
-            view = feature_view(config if config == "C1" else "C1", df, bank_id=bank_id)
+            view = feature_view("C1", df, bank_id=bank_id)
             combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
             out_path = feature_dir / config / f"bank_{bank_id}.parquet"
             out_path.parent.mkdir(parents=True, exist_ok=True)
-            combined.to_parquet(out_path)
+            tmp_path = out_path.with_suffix(".tmp.parquet")
+            combined.to_parquet(tmp_path)
+            tmp_path.rename(out_path)
+            feature_columns[str(bank_id)] = list(combined.columns)
+            logger.info(
+                "%s bank %d: %d rows, %d cols -> %s",
+                config,
+                bank_id,
+                len(combined),
+                combined.shape[1],
+                out_path,
+            )
+    elif config == "C3":
+        # Don't keep heavy local features or views in memory.
+        # We process rounds first, then load C1 features one bank at a time.
+        with tempfile.TemporaryDirectory() as d:
+            tlog_path = Path(d) / "tlog.db"
+            bank_keypairs = {i: KeyPair.generate() for i in range(k)}
+            bank_public_keys = {i: kp.public_key for i, kp in bank_keypairs.items()}
+            enclave = EnclaveService(tlog_path, bank_public_keys)
+            banks = {
+                i: BankService(i, bank_keypairs[i].private_key, enclave.public_key)
+                for i in range(k)
+            }
+
+            # Pre-compute round_id to avoid repeated computation
+            df_rounds = df.copy()
+            df_rounds["round_id"] = round_id_for_ts(df_rounds["ts"], t0, window_sec)
+            rounds = sorted(df_rounds["round_id"].unique())
+
+            accumulated_net_features = {i: [] for i in range(k)}
+
+            for r_id in rounds:
+                envelopes = []
+                round_df = df_rounds[df_rounds["round_id"] == r_id]
+                for bank_id in range(k):
+                    bank_df = round_df[
+                        (round_df["from_inst"] == bank_id) | (round_df["to_inst"] == bank_id)
+                    ]
+                    # Pass empty DataFrame to create 6-dim zero-vector placeholders for summaries
+                    env = banks[bank_id].create_submission(
+                        int(r_id), bank_df, local_features=pd.DataFrame()
+                    )
+                    envelopes.append(env)
+
+                as_of = t0 + (r_id + 1) * window_sec
+                responses = enclave.process_round(int(r_id), envelopes, as_of=as_of)
+
+                for bank_id, resp in responses.items():
+                    if resp.features:
+                        accumulated_net_features[bank_id].extend(resp.features)
+
+            # Delete large copies
+            del df_rounds
+            enclave.close()
+
+        for bank_id in range(k):
+            net_df = banks[bank_id].receive_features(accumulated_net_features[bank_id])
+
+            # Load C1 features for this bank only
+            c1_path = feature_dir / "C1" / f"bank_{bank_id}.parquet"
+            combined = pd.read_parquet(c1_path)
+
+            if not net_df.empty:
+                net_df["target_round_id"] = net_df["round_id"] + 1
+
+                # Keep only the last feature update per account per target round
+                net_df = (
+                    net_df.drop(columns=["round_id"])
+                    .groupby(["account", "target_round_id"])
+                    .last()
+                    .reset_index()
+                )
+                net_df = net_df.sort_values("target_round_id")
+
+                # Create lightweight dataframe to avoid sorting the 1.5GB combined dataframe
+                sub_df = df[df["row_id"].isin(combined.index)].set_index("row_id")
+                merge_light = pd.DataFrame(
+                    {
+                        "row_id": combined.index,
+                        "ts": sub_df.loc[combined.index, "ts"].values,
+                        "from_acct": sub_df.loc[combined.index, "from_acct"].astype(str).values,
+                    }
+                )
+                merge_light["round_id"] = round_id_for_ts(merge_light["ts"], t0, window_sec)
+
+                # Sort the lightweight dataframe for merge_asof
+                merge_light = merge_light.sort_values("round_id")
+
+                merged_light = pd.merge_asof(
+                    merge_light,
+                    net_df,
+                    left_on="round_id",
+                    right_on="target_round_id",
+                    left_by="from_acct",
+                    right_by="account",
+                    direction="backward",
+                )
+
+                # Drop helper columns and set index back to row_id
+                merged_light = merged_light.set_index("row_id").drop(
+                    columns=["ts", "from_acct", "round_id", "target_round_id", "account"],
+                    errors="ignore",
+                )
+
+                # Assign computed features directly to the original combined dataframe (zero-copy alignment)
+                for col in merged_light.columns:
+                    combined[col] = merged_light[col]
+
+            out_path = feature_dir / config / f"bank_{bank_id}.parquet"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = out_path.with_suffix(".tmp.parquet")
+            combined.to_parquet(tmp_path)
+            tmp_path.rename(out_path)
             feature_columns[str(bank_id)] = list(combined.columns)
             logger.info(
                 "%s bank %d: %d rows, %d cols -> %s",
@@ -82,7 +201,9 @@ def build_config_features(
         combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
         out_path = feature_dir / "C4" / "all.parquet"
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        combined.to_parquet(out_path)
+        tmp_path = out_path.with_suffix(".tmp.parquet")
+        combined.to_parquet(tmp_path)
+        tmp_path.rename(out_path)
         feature_columns["all"] = list(combined.columns)
         logger.info("C4: %d rows, %d cols -> %s", len(combined), combined.shape[1], out_path)
 
@@ -149,3 +270,4 @@ def main() -> None:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     main()
+# noqa: E501

@@ -106,8 +106,10 @@ class BankService:
                 else pd.DataFrame()
             )
 
+            from mritra.features.network import NETWORK_SUMMARY_DIM
+
             # Use zeros if no features available yet
-            vec = [0.0] * 6 if acct_feats.empty else acct_feats.mean().tolist()
+            vec = [0.0] * NETWORK_SUMMARY_DIM if acct_feats.empty else acct_feats.mean().tolist()
 
             summaries.append(BoundarySummary(account=acct, features=vec))
         return summaries
@@ -140,10 +142,13 @@ class BankService:
         if not features:
             return pd.DataFrame()
 
+        from mritra.features.network import NETWORK_SUMMARY_DIM, network_feature_names
+
+        names = network_feature_names(NETWORK_SUMMARY_DIM)
         rows = []
         for f in features:
             row = {"account": f.account, "round_id": f.round_id}
-            for i, v in enumerate(f.features):
-                row[f"net_feat_{i}"] = v
+            for name, v in zip(names, f.features, strict=True):
+                row[name] = v
             rows.append(row)
         return pd.DataFrame(rows)

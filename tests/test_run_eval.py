@@ -50,3 +50,23 @@ def test_c1_cross_bank_empty_cross_txns_reports_zero_samples() -> None:
         {}, pd.DataFrame(columns=["row_id", "from_inst", "to_inst"]), pd.Series(dtype=int)
     )
     assert result == {"n_samples": 0, "n_positive": 0, "f1_minority": 0.0, "pr_auc": 0.0}
+
+
+def test_c1_cross_bank_is_symmetric() -> None:
+    """The score for a cross-bank txn must be identical regardless of from/to ordering."""
+    from mritra.models.score import cross_bank_max_score
+
+    scores = {
+        0: pd.DataFrame({"row_id": [1], "prob": [0.8]}),
+        1: pd.DataFrame({"row_id": [1], "prob": [0.3]}),
+    }
+    # Transaction from 0 to 1
+    txns_0_to_1 = pd.DataFrame({"row_id": [1], "from_inst": [0], "to_inst": [1]})
+    # Transaction from 1 to 0 (reversed)
+    txns_1_to_0 = pd.DataFrame({"row_id": [1], "from_inst": [1], "to_inst": [0]})
+
+    result_0_to_1 = cross_bank_max_score(scores, txns_0_to_1)
+    result_1_to_0 = cross_bank_max_score(scores, txns_1_to_0)
+
+    assert result_0_to_1.iloc[0]["prob"] == result_1_to_0.iloc[0]["prob"]
+    assert result_0_to_1.iloc[0]["prob"] == 0.8

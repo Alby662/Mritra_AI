@@ -86,6 +86,15 @@ def cross_bank_max_score(
     -------
     DataFrame with row_id, prob, pred for cross-bank transactions.
     """
+    # Pre-index scores by row_id for O(1) lookup
+    indexed_scores = {}
+    for inst, df in scores_by_inst.items():
+        if "row_id" in df.columns:
+            # check if row_id is already the index
+            indexed_scores[inst] = df.set_index("row_id")
+        else:
+            indexed_scores[inst] = df
+
     rows = []
     for _, txn in cross_txns.iterrows():
         rid = txn["row_id"]
@@ -95,17 +104,15 @@ def cross_bank_max_score(
         prob_from = 0.0
         prob_to = 0.0
 
-        if from_inst in scores_by_inst:
-            s = scores_by_inst[from_inst]
-            match = s[s["row_id"] == rid]
-            if len(match) > 0:
-                prob_from = float(match.iloc[0]["prob"])
+        if from_inst in indexed_scores:
+            s = indexed_scores[from_inst]
+            if rid in s.index:
+                prob_from = float(s.loc[rid, "prob"])
 
-        if to_inst in scores_by_inst:
-            s = scores_by_inst[to_inst]
-            match = s[s["row_id"] == rid]
-            if len(match) > 0:
-                prob_to = float(match.iloc[0]["prob"])
+        if to_inst in indexed_scores:
+            s = indexed_scores[to_inst]
+            if rid in s.index:
+                prob_to = float(s.loc[rid, "prob"])
 
         rows.append({"row_id": rid, "prob": max(prob_from, prob_to)})
 

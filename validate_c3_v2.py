@@ -1,0 +1,78 @@
+# ruff: noqa: E501
+from pathlib import Path
+
+import pandas as pd
+
+from mritra.config import load_config
+from mritra.data.partition import add_institutions, make_partition
+from mritra.features.network import NETWORK_SUMMARY_DIM
+from mritra.features.views import feature_view
+
+
+def main():
+    cfg = load_config()
+    k = cfg["institutions"]["k"]
+
+    # Load base df just to get feature_view
+    df = pd.read_parquet(cfg["paths"]["parquet"] + "/trans.parquet")
+    df = df[df["split"].isin(["train", "val", "test"])].copy()
+    part_cfg = cfg["partitions"]["P1"]
+    inst_of = make_partition(df, part_cfg["method"], k, seed=part_cfg.get("seed"))
+    df = add_institutions(df, inst_of)
+
+    run_dir = list(sorted(Path("results/runs").glob("*")))[-1]
+
+    for bank_id in range(k):
+        expected_view = feature_view(
+            "C3", df, bank_id=bank_id, network_summary_dim=NETWORK_SUMMARY_DIM
+        )
+        expected_cols = sorted(expected_view.feature_columns)
+
+        path = run_dir / f"features/C3/bank_{bank_id}.parquet"
+        print(f"\n--- Validating {path} ---")
+
+        try:
+            actual_df = pd.read_parquet(path)
+        except Exception as e:
+            print(f"FAILED to read {path}: {e}")
+            continue
+
+        print(f"Bank {bank_id}: Successfully read {len(actual_df)} rows")
+
+        actual_cols = sorted(list(actual_df.columns))
+
+        if actual_cols == expected_cols:
+            print(
+                f"Bank {bank_id}: Schema exactly matches feature_view('C3') ({len(actual_cols)} columns)"
+            )
+        else:
+            print(f"Bank {bank_id}: SCHEMA MISMATCH!")
+            missing = set(expected_cols) - set(actual_cols)
+            extra = set(actual_cols) - set(expected_cols)
+            print(f"  Missing from parquet: {missing}")
+            print(f"  Extra in parquet: {extra}")
+
+        # NaN check for net_* columns
+        net_cols = [c for c in actual_cols if c.startswith("net_")]
+        if not net_cols:
+            print("WARNING: No net_* columns found in parquet!")
+            continue
+
+        nan_counts = actual_df[net_cols].isna().sum()
+        nan_rates = (nan_counts / len(actual_df)) * 100
+
+        print("\nNaN Rates for network columns:")
+        print(nan_rates.head(5).to_string())
+        if len(nan_rates) > 5:
+            print(f"... and {len(nan_rates) - 5} more net_* columns with similar rates")
+
+        total_rows = len(actual_df)
+        fan_out_nan = nan_counts["net_fan_out"]
+        print(
+            f"Overall NaN rate for net_fan_out: {fan_out_nan} / {total_rows} ({fan_out_nan / total_rows * 100:.2f}%)"
+        )
+
+
+if __name__ == "__main__":
+    main()
+# noqa: E501

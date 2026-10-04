@@ -24,14 +24,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mritra.data.partition import add_institutions, make_partition, partition_volume_balanced
+from mritra.data.partition import add_institutions, make_partition
 from mritra.data.split import temporal_split
 from mritra.eval.metrics import evaluate_configuration, gap_recovered
 from mritra.features.behaviour import compute_behavioural_features
-from mritra.features.graph_gfp import _prepare_edge_array, _networkx_stub_features
+from mritra.features.graph_gfp import _prepare_edge_array, compute_gfp_features
 from mritra.features.network import compute_network_features
 from mritra.models.train import _optimal_threshold, train_lightgbm
-
 
 # ───────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -42,20 +41,22 @@ def _make_transaction_df(n: int = 200, seed: int = 42) -> pd.DataFrame:
     """Synthetic transaction table with realistic columns, sorted by ts."""
     rng = np.random.default_rng(seed)
     ts = np.sort(rng.integers(1_000_000, 2_000_000, size=n))
-    return pd.DataFrame({
-        "row_id": np.arange(n, dtype=np.int64),
-        "ts": ts,
-        "from_bank": rng.integers(0, 10, size=n),
-        "from_acct": [f"A{i % 20}" for i in range(n)],
-        "to_bank": rng.integers(0, 10, size=n),
-        "to_acct": [f"B{i % 20}" for i in range(n)],
-        "amt_paid": rng.exponential(500, size=n).round(2),
-        "amt_recv": rng.exponential(500, size=n).round(2),
-        "cur_paid": rng.choice(["USD", "EUR", "GBP"], size=n),
-        "cur_recv": rng.choice(["USD", "EUR", "GBP"], size=n),
-        "fmt": rng.choice(["Wire", "ACH", "Cash", "Check"], size=n),
-        "is_laund": rng.choice([0, 1], size=n, p=[0.95, 0.05]).astype(np.int8),
-    })
+    return pd.DataFrame(
+        {
+            "row_id": np.arange(n, dtype=np.int64),
+            "ts": ts,
+            "from_bank": rng.integers(0, 10, size=n),
+            "from_acct": [f"A{i % 20}" for i in range(n)],
+            "to_bank": rng.integers(0, 10, size=n),
+            "to_acct": [f"B{i % 20}" for i in range(n)],
+            "amt_paid": rng.exponential(500, size=n).round(2),
+            "amt_recv": rng.exponential(500, size=n).round(2),
+            "cur_paid": rng.choice(["USD", "EUR", "GBP"], size=n),
+            "cur_recv": rng.choice(["USD", "EUR", "GBP"], size=n),
+            "fmt": rng.choice(["Wire", "ACH", "Cash", "Check"], size=n),
+            "is_laund": rng.choice([0, 1], size=n, p=[0.95, 0.05]).astype(np.int8),
+        }
+    )
 
 
 def _add_inst_columns(df: pd.DataFrame, k: int = 5) -> pd.DataFrame:
@@ -196,23 +197,14 @@ class TestGFPLeakage:
         # GFP edge array: [edge_id, src, dst, ts, amount] — exactly 5 columns
         assert arr.shape[1] == 5, f"Edge array has {arr.shape[1]} cols, expected 5"
 
-    def test_stub_features_output_shape_consistent(self):
-        """Stub features should append exactly 6 columns to the 5-column input."""
-        df = _make_transaction_df(50)
-        arr = _prepare_edge_array(df)
-        result = _networkx_stub_features(arr)
-        assert result.shape[1] == 11, f"Expected 11 columns, got {result.shape[1]}"
-        assert result.shape[0] == len(df)
-
     def test_gfp_on_train_only_no_test_edges(self):
         """When we compute GFP on train-only data, test row_ids must not appear."""
         df = _make_transaction_df(200)
         split = temporal_split(df["ts"], 0.6, 0.2)
         train_df = df[split == "train"]
-        arr = _prepare_edge_array(train_df)
-        result = _networkx_stub_features(arr)
+        result = compute_gfp_features(train_df)
         train_row_ids = set(train_df["row_id"])
-        result_row_ids = set(result[:, 0].astype(int))
+        result_row_ids = set(result.index.astype(int))
         # Result should only contain train row IDs
         assert result_row_ids <= train_row_ids, (
             f"GFP output contains row_ids not in train: {result_row_ids - train_row_ids}"
@@ -252,13 +244,15 @@ class TestLabelLeakage:
 
     def test_network_features_exclude_label(self):
         """Network feature output must not contain labels."""
-        edges = pd.DataFrame({
-            "edge_ref": [1, 2],
-            "from_acct": ["0_A1", "1_B1"],
-            "to_acct": ["1_B1", "0_A1"],
-            "ts": [100, 200],
-            "amount": [500.0, 300.0],
-        })
+        edges = pd.DataFrame(
+            {
+                "edge_ref": [1, 2],
+                "from_acct": ["0_A1", "1_B1"],
+                "to_acct": ["1_B1", "0_A1"],
+                "ts": [100, 200],
+                "amount": [500.0, 300.0],
+            }
+        )
         summaries = {
             "0_A1": np.array([1.0, 2.0, 3.0]),
             "1_B1": np.array([4.0, 5.0, 6.0]),
@@ -311,12 +305,11 @@ class TestEnclaveBoundary:
 
     def test_enclave_returns_only_own_accounts(self):
         """Bank 0 must not receive features for Bank 1's accounts."""
-        from pathlib import Path
         import tempfile
+        from pathlib import Path
 
         from nacl.public import PrivateKey
 
-        from mritra.protocol.crypto import KeyPair
         from mritra.protocol.messages import (
             BoundarySummary,
             CrossBankTxn,
@@ -411,9 +404,7 @@ class TestTrainingLeakage:
         # Verify it's computed from train
         y_test = np.ones(100, dtype=int)  # all positive (very different distribution)
         spw_test = (100 - int(y_test.sum())) / int(y_test.sum())
-        assert spw != spw_test, (
-            "scale_pos_weight accidentally equals test-derived value"
-        )
+        assert spw != spw_test, "scale_pos_weight accidentally equals test-derived value"
         assert spw > 10, "With 1% positive rate, spw should be ~99"
 
     def test_train_function_does_not_accept_test_data(self):
@@ -434,16 +425,19 @@ class TestTrainingLeakage:
         n_train, n_val = 200, 100
         n_feats = 5
 
-        X_train = pd.DataFrame(rng.standard_normal((n_train, n_feats)),
-                               columns=[f"f{i}" for i in range(n_feats)])
+        X_train = pd.DataFrame(
+            rng.standard_normal((n_train, n_feats)), columns=[f"f{i}" for i in range(n_feats)]
+        )
         y_train = rng.choice([0, 1], size=n_train, p=[0.9, 0.1]).astype(int)
-        X_val = pd.DataFrame(rng.standard_normal((n_val, n_feats)),
-                             columns=[f"f{i}" for i in range(n_feats)])
+        X_val = pd.DataFrame(
+            rng.standard_normal((n_val, n_feats)), columns=[f"f{i}" for i in range(n_feats)]
+        )
         y_val = rng.choice([0, 1], size=n_val, p=[0.9, 0.1]).astype(int)
 
         grid = {"num_leaves": [15], "learning_rate": [0.1], "n_estimators": [50]}
-        model, threshold, info = train_lightgbm(X_train, y_train, X_val, y_val,
-                                                seed=42, grid_cfg=grid)
+        model, threshold, info = train_lightgbm(
+            X_train, y_train, X_val, y_val, seed=42, grid_cfg=grid
+        )
         assert 0.01 <= threshold < 1.0
         assert info["n_train"] == n_train
         assert info["n_val"] == n_val
@@ -463,12 +457,14 @@ class TestEvaluationLeakage:
         """evaluate_configuration does not access global state — only its df arg."""
         rng = np.random.default_rng(42)
         n = 100
-        df = pd.DataFrame({
-            "prob": rng.uniform(0, 1, size=n),
-            "pred": rng.choice([0, 1], size=n),
-            "is_laund": rng.choice([0, 1], size=n, p=[0.9, 0.1]).astype(int),
-            "cross": rng.choice([True, False], size=n),
-        })
+        df = pd.DataFrame(
+            {
+                "prob": rng.uniform(0, 1, size=n),
+                "pred": rng.choice([0, 1], size=n),
+                "is_laund": rng.choice([0, 1], size=n, p=[0.9, 0.1]).astype(int),
+                "cross": rng.choice([True, False], size=n),
+            }
+        )
         result = evaluate_configuration(df)
         assert "all" in result
         assert "cross_bank" in result
@@ -510,13 +506,15 @@ class TestNetworkFeatureLeakage:
         """Boundary summaries are feature vectors, not label vectors."""
         # If a summary is [0, 0, ..., 1] where 1 = laund, that's leakage.
         # We verify that summaries are unconstrained floats, not binary {0,1} labels.
-        edges = pd.DataFrame({
-            "edge_ref": [1, 2, 3],
-            "from_acct": ["A", "B", "C"],
-            "to_acct": ["B", "C", "A"],
-            "ts": [100, 200, 300],
-            "amount": [500.0, 300.0, 700.0],
-        })
+        edges = pd.DataFrame(
+            {
+                "edge_ref": [1, 2, 3],
+                "from_acct": ["A", "B", "C"],
+                "to_acct": ["B", "C", "A"],
+                "ts": [100, 200, 300],
+                "amount": [500.0, 300.0, 700.0],
+            }
+        )
         # Summaries with continuous feature values (not labels)
         summaries = {
             "A": np.array([1.23, 4.56, 7.89]),
@@ -531,13 +529,15 @@ class TestNetworkFeatureLeakage:
 
     def test_network_features_symmetric_topology(self):
         """If topology is symmetric, fan-out and fan-in should match."""
-        edges = pd.DataFrame({
-            "edge_ref": [1, 2],
-            "from_acct": ["A", "B"],
-            "to_acct": ["B", "A"],
-            "ts": [100, 200],
-            "amount": [500.0, 500.0],
-        })
+        edges = pd.DataFrame(
+            {
+                "edge_ref": [1, 2],
+                "from_acct": ["A", "B"],
+                "to_acct": ["B", "A"],
+                "ts": [100, 200],
+                "amount": [500.0, 500.0],
+            }
+        )
         summaries = {
             "A": np.array([1.0, 1.0]),
             "B": np.array([1.0, 1.0]),
@@ -645,8 +645,15 @@ class TestFeatureMatrixSanity:
     """Feature matrix used for training must never contain forbidden columns."""
 
     FORBIDDEN_FEATURE_NAMES = {
-        "is_laund", "is_laundering", "label", "target", "y",
-        "split", "train", "val", "test",  # split indicators
+        "is_laund",
+        "is_laundering",
+        "label",
+        "target",
+        "y",
+        "split",
+        "train",
+        "val",
+        "test",  # split indicators
     }
 
     def test_behavioural_features_clean(self):
@@ -716,17 +723,28 @@ class TestReconciliationLeakage:
         txns = {
             0: [
                 CrossBankTxn(
-                    edge_ref=1, own_account="A1", direction="out",
-                    counterparty_bank=1, counterparty_account="B1",
-                    ts=100, amount=500.0, currency="USD", fmt="Wire",
+                    edge_ref=1,
+                    own_account="A1",
+                    direction="out",
+                    counterparty_bank=1,
+                    counterparty_account="B1",
+                    ts=100,
+                    amount=500.0,
+                    currency="USD",
+                    fmt="Wire",
                 )
             ],
             1: [
                 CrossBankTxn(
-                    edge_ref=1, own_account="B1", direction="in",
-                    counterparty_bank=0, counterparty_account="A1",
-                    ts=100, amount=999.0,  # TAMPERED amount
-                    currency="USD", fmt="Wire",
+                    edge_ref=1,
+                    own_account="B1",
+                    direction="in",
+                    counterparty_bank=0,
+                    counterparty_account="A1",
+                    ts=100,
+                    amount=999.0,  # TAMPERED amount
+                    currency="USD",
+                    fmt="Wire",
                 )
             ],
         }
@@ -741,9 +759,15 @@ class TestReconciliationLeakage:
         txns = {
             0: [
                 CrossBankTxn(
-                    edge_ref=1, own_account="A1", direction="out",
-                    counterparty_bank=1, counterparty_account="B1",
-                    ts=100, amount=500.0, currency="USD", fmt="Wire",
+                    edge_ref=1,
+                    own_account="A1",
+                    direction="out",
+                    counterparty_bank=1,
+                    counterparty_account="B1",
+                    ts=100,
+                    amount=500.0,
+                    currency="USD",
+                    fmt="Wire",
                 )
             ],
             1: [],  # Bank 1 doesn't report anything
@@ -800,4 +824,3 @@ class TestTransparencyLogIntegrity:
             assert len(entries) == 5
             valid, broken_seq = verify_chain(entries)
             assert valid, f"Chain broken at seq {broken_seq}"
-

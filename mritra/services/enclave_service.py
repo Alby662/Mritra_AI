@@ -183,7 +183,11 @@ class EnclaveService:
         # across rounds in normal use).
         edges_up_to_as_of = self._boundary_edges[self._boundary_edges["ts"] < as_of]
         net_features = compute_network_features(
-            edges_up_to_as_of, self._latest_summaries, as_of=as_of, precision=feature_precision
+            edges_up_to_as_of,
+            self._latest_summaries,
+            as_of=as_of,
+            precision=feature_precision,
+            target_accounts=accounts_this_round,
         )
 
         # Step 6: Build responses — each bank gets only its own accounts that appeared
@@ -194,7 +198,7 @@ class EnclaveService:
             prefix = f"{bank_id}_"
             bank_features = []
             for acct_key, feat_vec in net_features.items():
-                if acct_key.startswith(prefix) and acct_key in accounts_this_round:
+                if acct_key.startswith(prefix):
                     raw_acct = acct_key[len(prefix) :]
                     bank_features.append(
                         NetworkFeatures(

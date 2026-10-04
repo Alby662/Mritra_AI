@@ -11,6 +11,8 @@ import logging
 import numpy as np
 import pandas as pd
 
+NETWORK_SUMMARY_DIM = 6
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,8 +33,10 @@ def network_feature_names(summary_dim: int) -> list[str]:
 def compute_network_features(
     boundary_edges: pd.DataFrame,
     boundary_summaries: dict[str, np.ndarray],
+    summary_dim: int = NETWORK_SUMMARY_DIM,
     as_of: int | None = None,
     precision: int = 4,
+    target_accounts: set[str] | None = None,
 ) -> dict[str, np.ndarray]:
     """Compute network features on the boundary graph.
 
@@ -53,6 +57,10 @@ def compute_network_features(
         Defaults to max edge ts + 1.
     precision : int
         Rounding precision for output features (output minimisation, §9.2).
+    target_accounts : set of str, optional
+        If provided, only compute and return features for these specific accounts.
+        Massively speeds up computation when only a small subset of accounts had
+        activity in the current round.
 
     Returns
     -------
@@ -81,17 +89,26 @@ def compute_network_features(
     out_amounts: dict[str, list[float]] = {}
     in_amounts: dict[str, list[float]] = {}
 
-    for _, row in boundary_edges.iterrows():
-        src = str(row["from_acct"])
-        dst = str(row["to_acct"])
-        amt = float(row["amount"])
-
+    for src, dst, amt in zip(
+        boundary_edges["from_acct"],
+        boundary_edges["to_acct"],
+        boundary_edges["amount"],
+        strict=True,
+    ):
+        src = str(src)
+        dst = str(dst)
+        amt = float(amt)
         out_edges.setdefault(src, []).append(dst)
         in_edges.setdefault(dst, []).append(src)
         out_amounts.setdefault(src, []).append(amt)
         in_amounts.setdefault(dst, []).append(amt)
 
-    all_accounts = set(out_edges.keys()) | set(in_edges.keys())
+    graph_accounts = set(out_edges.keys()) | set(in_edges.keys())
+    if target_accounts is not None:
+        all_accounts = target_accounts & graph_accounts
+    else:
+        all_accounts = graph_accounts
+
     result: dict[str, np.ndarray] = {}
 
     for acct in all_accounts:
@@ -116,13 +133,16 @@ def compute_network_features(
         neighbour_vecs = [boundary_summaries[n] for n in neighbours if n in boundary_summaries]
         if neighbour_vecs:
             stack = np.stack(neighbour_vecs)
+            if stack.shape[1] != summary_dim:
+                raise ValueError(
+                    f"Expected boundary summaries of dim {summary_dim}, got {stack.shape[1]}"
+                )
             feats.extend(np.mean(stack, axis=0).tolist())
             feats.extend(np.max(stack, axis=0).tolist())
             feats.extend(np.sum(stack, axis=0).tolist())
         else:
             # No neighbour summaries — zero-fill
-            dim = len(next(iter(boundary_summaries.values()))) if boundary_summaries else 0
-            feats.extend([0.0] * (dim * 3))
+            feats.extend([0.0] * (summary_dim * 3))
 
         result[acct] = np.round(np.array(feats, dtype=np.float64), precision)
 

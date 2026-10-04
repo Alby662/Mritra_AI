@@ -53,7 +53,6 @@ def compute_behavioural_features(df: pd.DataFrame) -> pd.DataFrame:
     -------
     DataFrame indexed by row_id with behavioural feature columns.
     """
-    from bisect import bisect_left
 
     df = df.sort_values("ts").reset_index(drop=True)
     n = len(df)
@@ -130,27 +129,37 @@ def compute_behavioural_features(df: pd.DataFrame) -> pd.DataFrame:
     feats["currency_diversity"] = _cur_df.groupby("sk")["first"].cumsum().to_numpy()
     logger.info("  currency_diversity done")
 
-    # --- 6. Baseline deviation: numpy loop with bisect, O(n log n) ---
+    # --- 6. Baseline deviation: Vectorized with pandas rolling ---
+    _df = pd.DataFrame(
+        {
+            "sk": sender_key,
+            "ts": pd.to_datetime(ts, unit="s"),
+            "amt": amt_paid,
+            "amt_sq": amt_paid**2,
+        }
+    )
+    # Data is already sorted by ts, so df is ordered
+    roll = _df.groupby("sk").rolling("30D", on="ts")
+
+    r_sum = roll["amt"].sum().reset_index(level=0, drop=True).sort_index().values
+    r_sum_sq = roll["amt_sq"].sum().reset_index(level=0, drop=True).sort_index().values
+    r_count = roll["amt"].count().reset_index(level=0, drop=True).sort_index().values
+
+    # Exclude current row to prevent leakage
+    count_excl = r_count - 1
+    sum_excl = r_sum - amt_paid
+    sum_sq_excl = r_sum_sq - amt_paid**2
+
     baseline_dev = np.zeros(n, dtype=np.float64)
-    acct_hist: dict[str, tuple[list[int], list[float]]] = {}
-    for i in range(n):
-        sk = sender_key[i]
-        ts_i = int(ts[i])
-        amt = amt_paid[i]
-        if sk not in acct_hist:
-            acct_hist[sk] = ([], [])
-        hist_ts, hist_amts = acct_hist[sk]
-        # bisect_left on sorted timestamps: O(log n) per lookup
-        cutoff = ts_i - BASELINE_WINDOW
-        start_idx = bisect_left(hist_ts, cutoff)
-        window = hist_amts[start_idx:]
-        if len(window) >= 2:
-            mu = np.mean(window)
-            sigma = np.std(window)
-            if sigma > 0:
-                baseline_dev[i] = (amt - mu) / sigma
-        hist_ts.append(ts_i)
-        hist_amts.append(amt)
+    mask = count_excl >= 2
+
+    mu = sum_excl[mask] / count_excl[mask]
+    var = (sum_sq_excl[mask] / count_excl[mask]) - mu**2
+    sigma = np.sqrt(np.maximum(var, 0))
+
+    valid = sigma > 1e-9
+    baseline_dev[mask] = np.where(valid, (amt_paid[mask] - mu) / np.where(valid, sigma, 1.0), 0.0)
+
     feats["baseline_deviation"] = baseline_dev
     logger.info("  baseline_deviation done")
 

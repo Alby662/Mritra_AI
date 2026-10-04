@@ -1,0 +1,755 @@
+{
+  "config_sha256": "c91ea5b2e57e08862cd0875ae2d99d67d868768432de46c4794ac63023c7aaeb",
+  "feature_columns": {
+    "C1": {
+      "0": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "1": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "2": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "3": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "4": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ]
+    },
+    "C3": {
+      "0": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "1": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "2": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "3": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ],
+      "4": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ]
+    },
+    "C4": {
+      "all": [
+        "gfp_unverified_0",
+        "gfp_unverified_1",
+        "gfp_unverified_2",
+        "gfp_unverified_3",
+        "gfp_unverified_4",
+        "gfp_unverified_5",
+        "sender_velocity_1h",
+        "sender_velocity_24h",
+        "sender_velocity_7d",
+        "pass_through_ratio",
+        "cross_inst_share",
+        "format_diversity",
+        "currency_diversity",
+        "baseline_deviation"
+      ]
+    }
+  },
+  "partition": "P1",
+  "round_window_sec": 3600,
+  "run_id": "20261004T092741Z",
+  "snapml_version": "not_installed",
+  "splits": [
+    "test",
+    "train",
+    "val"
+  ],
+  "t0": 1661990400,
+  "train_run_info": {
+    "C1": {
+      "bank_0": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 962,
+          "n_train": 1007367,
+          "n_val": 367337,
+          "optimal_threshold": 0.98,
+          "scale_pos_weight": 1046.1590436590436,
+          "seed": 42,
+          "threshold": 0.98,
+          "val_pr_auc": 0.008345905331174129
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 962,
+          "n_train": 1007367,
+          "n_val": 367337,
+          "optimal_threshold": 0.98,
+          "scale_pos_weight": 1046.1590436590436,
+          "seed": 52,
+          "threshold": 0.98,
+          "val_pr_auc": 0.007951165059438691
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 962,
+          "n_train": 1007367,
+          "n_val": 367337,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1046.1590436590436,
+          "seed": 62,
+          "threshold": 0.99,
+          "val_pr_auc": 0.007621478291942672
+        }
+      },
+      "bank_1": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 678,
+          "n_train": 1002410,
+          "n_val": 356880,
+          "optimal_threshold": 0.9400000000000001,
+          "scale_pos_weight": 1477.480825958702,
+          "seed": 42,
+          "threshold": 0.9400000000000001,
+          "val_pr_auc": 0.005583938744396341
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 678,
+          "n_train": 1002410,
+          "n_val": 356880,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1477.480825958702,
+          "seed": 52,
+          "threshold": 0.99,
+          "val_pr_auc": 0.00367827185933252
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 678,
+          "n_train": 1002410,
+          "n_val": 356880,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1477.480825958702,
+          "seed": 62,
+          "threshold": 0.99,
+          "val_pr_auc": 0.004744531279544592
+        }
+      },
+      "bank_2": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 901,
+          "n_train": 1004826,
+          "n_val": 359205,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1114.2341842397336,
+          "seed": 42,
+          "threshold": 0.99,
+          "val_pr_auc": 0.007947127900897038
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 901,
+          "n_train": 1004826,
+          "n_val": 359205,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1114.2341842397336,
+          "seed": 52,
+          "threshold": 0.99,
+          "val_pr_auc": 0.005338432694014077
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 901,
+          "n_train": 1004826,
+          "n_val": 359205,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1114.2341842397336,
+          "seed": 62,
+          "threshold": 0.99,
+          "val_pr_auc": 0.0045401848852376775
+        }
+      },
+      "bank_3": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 816,
+          "n_train": 1002693,
+          "n_val": 357771,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1227.7904411764705,
+          "seed": 42,
+          "threshold": 0.99,
+          "val_pr_auc": 0.00615438748583984
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 816,
+          "n_train": 1002693,
+          "n_val": 357771,
+          "optimal_threshold": 0.98,
+          "scale_pos_weight": 1227.7904411764705,
+          "seed": 52,
+          "threshold": 0.98,
+          "val_pr_auc": 0.00723933199733943
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 816,
+          "n_train": 1002693,
+          "n_val": 357771,
+          "optimal_threshold": 0.9500000000000001,
+          "scale_pos_weight": 1227.7904411764705,
+          "seed": 62,
+          "threshold": 0.9500000000000001,
+          "val_pr_auc": 0.007691450895259848
+        }
+      },
+      "bank_4": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 769,
+          "n_train": 1004398,
+          "n_val": 358532,
+          "optimal_threshold": 0.9500000000000001,
+          "scale_pos_weight": 1305.109232769831,
+          "seed": 42,
+          "threshold": 0.9500000000000001,
+          "val_pr_auc": 0.005514385434385752
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 769,
+          "n_train": 1004398,
+          "n_val": 358532,
+          "optimal_threshold": 0.8300000000000001,
+          "scale_pos_weight": 1305.109232769831,
+          "seed": 52,
+          "threshold": 0.8300000000000001,
+          "val_pr_auc": 0.005104490971274072
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 769,
+          "n_train": 1004398,
+          "n_val": 358532,
+          "optimal_threshold": 0.59,
+          "scale_pos_weight": 1305.109232769831,
+          "seed": 62,
+          "threshold": 0.59,
+          "val_pr_auc": 0.006179912964023271
+        }
+      }
+    },
+    "C3": {
+      "bank_0": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 962,
+          "n_train": 1007367,
+          "n_val": 367337,
+          "optimal_threshold": 0.98,
+          "scale_pos_weight": 1046.1590436590436,
+          "seed": 42,
+          "threshold": 0.98,
+          "val_pr_auc": 0.008345905331174129
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 962,
+          "n_train": 1007367,
+          "n_val": 367337,
+          "optimal_threshold": 0.98,
+          "scale_pos_weight": 1046.1590436590436,
+          "seed": 52,
+          "threshold": 0.98,
+          "val_pr_auc": 0.007951165059438691
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 962,
+          "n_train": 1007367,
+          "n_val": 367337,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1046.1590436590436,
+          "seed": 62,
+          "threshold": 0.99,
+          "val_pr_auc": 0.007621478291942672
+        }
+      },
+      "bank_1": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 678,
+          "n_train": 1002410,
+          "n_val": 356880,
+          "optimal_threshold": 0.9400000000000001,
+          "scale_pos_weight": 1477.480825958702,
+          "seed": 42,
+          "threshold": 0.9400000000000001,
+          "val_pr_auc": 0.005583938744396341
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 678,
+          "n_train": 1002410,
+          "n_val": 356880,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1477.480825958702,
+          "seed": 52,
+          "threshold": 0.99,
+          "val_pr_auc": 0.00367827185933252
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 678,
+          "n_train": 1002410,
+          "n_val": 356880,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1477.480825958702,
+          "seed": 62,
+          "threshold": 0.99,
+          "val_pr_auc": 0.004744531279544592
+        }
+      },
+      "bank_2": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 901,
+          "n_train": 1004826,
+          "n_val": 359205,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1114.2341842397336,
+          "seed": 42,
+          "threshold": 0.99,
+          "val_pr_auc": 0.007947127900897038
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 901,
+          "n_train": 1004826,
+          "n_val": 359205,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1114.2341842397336,
+          "seed": 52,
+          "threshold": 0.99,
+          "val_pr_auc": 0.005338432694014077
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 901,
+          "n_train": 1004826,
+          "n_val": 359205,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1114.2341842397336,
+          "seed": 62,
+          "threshold": 0.99,
+          "val_pr_auc": 0.0045401848852376775
+        }
+      },
+      "bank_3": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 816,
+          "n_train": 1002693,
+          "n_val": 357771,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1227.7904411764705,
+          "seed": 42,
+          "threshold": 0.99,
+          "val_pr_auc": 0.00615438748583984
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 816,
+          "n_train": 1002693,
+          "n_val": 357771,
+          "optimal_threshold": 0.98,
+          "scale_pos_weight": 1227.7904411764705,
+          "seed": 52,
+          "threshold": 0.98,
+          "val_pr_auc": 0.00723933199733943
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 816,
+          "n_train": 1002693,
+          "n_val": 357771,
+          "optimal_threshold": 0.9500000000000001,
+          "scale_pos_weight": 1227.7904411764705,
+          "seed": 62,
+          "threshold": 0.9500000000000001,
+          "val_pr_auc": 0.007691450895259848
+        }
+      },
+      "bank_4": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 769,
+          "n_train": 1004398,
+          "n_val": 358532,
+          "optimal_threshold": 0.9500000000000001,
+          "scale_pos_weight": 1305.109232769831,
+          "seed": 42,
+          "threshold": 0.9500000000000001,
+          "val_pr_auc": 0.005514385434385752
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 31
+          },
+          "n_pos_train": 769,
+          "n_train": 1004398,
+          "n_val": 358532,
+          "optimal_threshold": 0.8300000000000001,
+          "scale_pos_weight": 1305.109232769831,
+          "seed": 52,
+          "threshold": 0.8300000000000001,
+          "val_pr_auc": 0.005104490971274072
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.1,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 769,
+          "n_train": 1004398,
+          "n_val": 358532,
+          "optimal_threshold": 0.59,
+          "scale_pos_weight": 1305.109232769831,
+          "seed": 62,
+          "threshold": 0.59,
+          "val_pr_auc": 0.006179912964023271
+        }
+      }
+    },
+    "C4": {
+      "all": {
+        "42": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 2299,
+          "n_train": 3047214,
+          "n_val": 1015564,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1324.4519356241844,
+          "seed": 42,
+          "threshold": 0.99,
+          "val_pr_auc": 0.009842237730304092
+        },
+        "52": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 2299,
+          "n_train": 3047214,
+          "n_val": 1015564,
+          "optimal_threshold": 0.9500000000000001,
+          "scale_pos_weight": 1324.4519356241844,
+          "seed": 52,
+          "threshold": 0.9500000000000001,
+          "val_pr_auc": 0.00836926716674237
+        },
+        "62": {
+          "best_params": {
+            "learning_rate": 0.05,
+            "min_child_samples": 20,
+            "n_estimators": 500,
+            "num_leaves": 63
+          },
+          "n_pos_train": 2299,
+          "n_train": 3047214,
+          "n_val": 1015564,
+          "optimal_threshold": 0.99,
+          "scale_pos_weight": 1324.4519356241844,
+          "seed": 62,
+          "threshold": 0.99,
+          "val_pr_auc": 0.007156702148850692
+        }
+      }
+    }
+  }
+}

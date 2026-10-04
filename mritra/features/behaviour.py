@@ -40,31 +40,6 @@ FEATURE_COLUMNS = [
 ]
 
 
-def _rolling_agg(
-    group: pd.DataFrame, ts_col: str, val_col: str, window_sec: int, agg: str
-) -> np.ndarray:
-    """Backward-looking rolling aggregation over a sorted group."""
-    ts = group[ts_col].to_numpy()
-    vals = group[val_col].to_numpy(dtype=np.float64)
-    n = len(ts)
-    out = np.full(n, np.nan, dtype=np.float64)
-    for i in range(n):
-        start = ts[i] - window_sec
-        mask = ts[:i] >= start  # exclude current row, past only
-        window_vals = vals[:i][mask]
-        if len(window_vals) == 0:
-            continue
-        if agg == "sum":
-            out[i] = window_vals.sum()
-        elif agg == "count":
-            out[i] = len(window_vals)
-        elif agg == "mean":
-            out[i] = window_vals.mean()
-        elif agg == "std":
-            out[i] = window_vals.std() if len(window_vals) > 1 else 0.0
-    return out
-
-
 def compute_behavioural_features(df: pd.DataFrame) -> pd.DataFrame:
     """Compute behavioural features for each transaction, keyed by row_id.
 
@@ -78,111 +53,106 @@ def compute_behavioural_features(df: pd.DataFrame) -> pd.DataFrame:
     -------
     DataFrame indexed by row_id with behavioural feature columns.
     """
+    from bisect import bisect_left
+
     df = df.sort_values("ts").reset_index(drop=True)
     n = len(df)
 
-    feats: dict[str, np.ndarray] = {
-        "row_id": df["row_id"].to_numpy(),
-    }
-
     logger.info("Computing behavioural features for %d transactions", n)
 
-    # --- Per-sender account features ---
-    sender_key = df["from_inst"].astype(str) + "_" + df["from_acct"].astype(str)
+    # --- Pre-extract numpy arrays (avoids slow df.iloc[i] in loops) ---
+    row_ids = df["row_id"].to_numpy()
+    ts = df["ts"].to_numpy(dtype=np.int64)
+    amt_paid = df["amt_paid"].to_numpy(dtype=np.float64)
+    amt_recv_arr = df["amt_recv"].to_numpy(dtype=np.float64)
+    from_inst = df["from_inst"].to_numpy()
+    to_inst = df["to_inst"].to_numpy()
+    fmts = df["fmt"].astype(str).to_numpy()
+    curs = df["cur_paid"].astype(str).to_numpy()
 
+    sender_key = (df["from_inst"].astype(str) + "_" + df["from_acct"].astype(str)).to_numpy()
+    receiver_key = (df["to_inst"].astype(str) + "_" + df["to_acct"].astype(str)).to_numpy()
+
+    feats: dict[str, np.ndarray] = {"row_id": row_ids}
+
+    # --- Build sender group indices once (reused by velocity) ---
+    _idx_df = pd.DataFrame({"sk": sender_key})
+    sender_groups = {k: grp.index.to_numpy() for k, grp in _idx_df.groupby("sk")}
+
+    # --- 1. Velocity: searchsorted per group, O(n log n) total ---
     for window_name, window_sec in WINDOWS.items():
         velocity = np.zeros(n, dtype=np.float64)
-        for _key, idx in df.groupby(sender_key, observed=True).groups.items():
-            group = df.iloc[idx].sort_values("ts")
-            ts = group["ts"].to_numpy()
-            for j, pos in enumerate(idx):
-                start = ts[j] - window_sec
-                velocity[pos] = np.sum(ts[:j] >= start)
+        for indices in sender_groups.values():
+            group_ts = ts[indices]  # sorted since df is sorted by ts
+            left = np.searchsorted(group_ts, group_ts - window_sec, side="left")
+            velocity[indices] = np.arange(len(indices)) - left
         feats[f"sender_velocity_{window_name}"] = velocity
+        logger.info("  velocity %s done", window_name)
 
-    # --- Pass-through ratio (cumulative up to current time) ---
-    # For each account: total sent / total received so far
+    # --- 2. Pass-through ratio: numpy loop, O(n) ---
+    acct_sent: dict[str, float] = {}
+    acct_recv: dict[str, float] = {}
     cum_sent = np.zeros(n, dtype=np.float64)
     cum_recv = np.zeros(n, dtype=np.float64)
 
-    acct_sent: dict[str, float] = {}
-    acct_recv: dict[str, float] = {}
-
     for i in range(n):
-        s_key = sender_key.iloc[i]
-        r_key = str(df.iloc[i]["to_inst"]) + "_" + str(df.iloc[i]["to_acct"])
-        amt_paid = float(df.iloc[i]["amt_paid"])
-        amt_recv = float(df.iloc[i]["amt_recv"])
-
-        acct_sent[s_key] = acct_sent.get(s_key, 0.0) + amt_paid
-        acct_recv[r_key] = acct_recv.get(r_key, 0.0) + amt_recv
-
-        total_recv = acct_recv.get(s_key, 0.0)
-        cum_sent[i] = acct_sent[s_key]
-        cum_recv[i] = total_recv
+        sk = sender_key[i]
+        rk = receiver_key[i]
+        acct_sent[sk] = acct_sent.get(sk, 0.0) + amt_paid[i]
+        acct_recv[rk] = acct_recv.get(rk, 0.0) + amt_recv_arr[i]
+        cum_sent[i] = acct_sent[sk]
+        cum_recv[i] = acct_recv.get(sk, 0.0)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         feats["pass_through_ratio"] = np.where(cum_recv > 0, cum_sent / cum_recv, 0.0)
+    logger.info("  pass_through_ratio done")
 
-    # --- Cross-institution share (sender) ---
-    cross_count = np.zeros(n, dtype=np.float64)
-    total_count = np.zeros(n, dtype=np.float64)
-    acct_cross: dict[str, int] = {}
-    acct_total: dict[str, int] = {}
-
-    for i in range(n):
-        s_key = sender_key.iloc[i]
-        is_cross = df.iloc[i]["from_inst"] != df.iloc[i]["to_inst"]
-        acct_total[s_key] = acct_total.get(s_key, 0) + 1
-        if is_cross:
-            acct_cross[s_key] = acct_cross.get(s_key, 0) + 1
-        cross_count[i] = acct_cross.get(s_key, 0)
-        total_count[i] = acct_total[s_key]
-
+    # --- 3. Cross-institution share: vectorized groupby + cumsum ---
+    is_cross = (from_inst != to_inst).astype(np.float64)
+    _cross_df = pd.DataFrame({"sk": sender_key, "cross": is_cross, "one": np.ones(n)})
+    cum_cross = _cross_df.groupby("sk")["cross"].cumsum().to_numpy()
+    cum_total = _cross_df.groupby("sk")["one"].cumsum().to_numpy()
     with np.errstate(divide="ignore", invalid="ignore"):
-        feats["cross_inst_share"] = np.where(total_count > 0, cross_count / total_count, 0.0)
+        feats["cross_inst_share"] = np.where(cum_total > 0, cum_cross / cum_total, 0.0)
+    logger.info("  cross_inst_share done")
 
-    # --- Format diversity (cumulative distinct formats per sender) ---
-    acct_fmts: dict[str, set[str]] = {}
-    fmt_div = np.zeros(n, dtype=np.float64)
-    for i in range(n):
-        s_key = sender_key.iloc[i]
-        fmt = str(df.iloc[i]["fmt"])
-        if s_key not in acct_fmts:
-            acct_fmts[s_key] = set()
-        acct_fmts[s_key].add(fmt)
-        fmt_div[i] = len(acct_fmts[s_key])
-    feats["format_diversity"] = fmt_div
+    # --- 4. Format diversity: vectorized with duplicated + cumsum ---
+    _fmt_df = pd.DataFrame({"sk": sender_key, "fmt": fmts})
+    first_fmt = (~_fmt_df.duplicated(subset=["sk", "fmt"], keep="first")).astype(np.float64)
+    _fmt_df["first"] = first_fmt
+    feats["format_diversity"] = _fmt_df.groupby("sk")["first"].cumsum().to_numpy()
+    logger.info("  format_diversity done")
 
-    # --- Currency diversity ---
-    acct_curs: dict[str, set[str]] = {}
-    cur_div = np.zeros(n, dtype=np.float64)
-    for i in range(n):
-        s_key = sender_key.iloc[i]
-        cur = str(df.iloc[i]["cur_paid"])
-        if s_key not in acct_curs:
-            acct_curs[s_key] = set()
-        acct_curs[s_key].add(cur)
-        cur_div[i] = len(acct_curs[s_key])
-    feats["currency_diversity"] = cur_div
+    # --- 5. Currency diversity: vectorized with duplicated + cumsum ---
+    _cur_df = pd.DataFrame({"sk": sender_key, "cur": curs})
+    first_cur = (~_cur_df.duplicated(subset=["sk", "cur"], keep="first")).astype(np.float64)
+    _cur_df["first"] = first_cur
+    feats["currency_diversity"] = _cur_df.groupby("sk")["first"].cumsum().to_numpy()
+    logger.info("  currency_diversity done")
 
-    # --- Baseline deviation (30-day rolling z-score on amount) ---
+    # --- 6. Baseline deviation: numpy loop with bisect, O(n log n) ---
     baseline_dev = np.zeros(n, dtype=np.float64)
-    acct_amts: dict[str, list[tuple[int, float]]] = {}
+    acct_hist: dict[str, tuple[list[int], list[float]]] = {}
     for i in range(n):
-        s_key = sender_key.iloc[i]
-        ts_i = int(df.iloc[i]["ts"])
-        amt = float(df.iloc[i]["amt_paid"])
-        if s_key not in acct_amts:
-            acct_amts[s_key] = []
-        # Window: past 30 days
-        window = [a for t, a in acct_amts[s_key] if t >= ts_i - BASELINE_WINDOW]
+        sk = sender_key[i]
+        ts_i = int(ts[i])
+        amt = amt_paid[i]
+        if sk not in acct_hist:
+            acct_hist[sk] = ([], [])
+        hist_ts, hist_amts = acct_hist[sk]
+        # bisect_left on sorted timestamps: O(log n) per lookup
+        cutoff = ts_i - BASELINE_WINDOW
+        start_idx = bisect_left(hist_ts, cutoff)
+        window = hist_amts[start_idx:]
         if len(window) >= 2:
             mu = np.mean(window)
             sigma = np.std(window)
-            baseline_dev[i] = (amt - mu) / sigma if sigma > 0 else 0.0
-        acct_amts[s_key].append((ts_i, amt))
+            if sigma > 0:
+                baseline_dev[i] = (amt - mu) / sigma
+        hist_ts.append(ts_i)
+        hist_amts.append(amt)
     feats["baseline_deviation"] = baseline_dev
+    logger.info("  baseline_deviation done")
 
     result = pd.DataFrame(feats)
     return result.set_index("row_id")

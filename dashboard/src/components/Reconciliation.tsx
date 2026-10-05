@@ -1,78 +1,174 @@
 import React, { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
-
-interface ReconIssue {
-  edgeRef: string;
-  fromBank: string;
-  toBank: string;
-  bankA_Amount: string;
-  bankB_Amount: string;
-  issueType: 'AMOUNT_MISMATCH' | 'TIMESTAMP_MISMATCH' | 'UNMATCHED_REFERENCE';
-  status: 'CAUGHT';
-}
+import { 
+  Download, 
+  Copy, 
+  Check 
+} from 'lucide-react';
+import { RECON_DISCREPANCIES } from '../data/telemetryData';
+import type { ReconEvent } from '../data/telemetryData';
 
 export const Reconciliation: React.FC = () => {
-  const [issues] = useState<ReconIssue[]>([
-    { edgeRef: 'TXN_CROSS_9011', fromBank: 'Bank Alpha (Inst 0)', toBank: 'Bank Beta (Inst 1)', bankA_Amount: '$50,000.00', bankB_Amount: '$45,000.00', issueType: 'AMOUNT_MISMATCH', status: 'CAUGHT' },
-    { edgeRef: 'TXN_CROSS_9014', fromBank: 'Bank Beta (Inst 1)', toBank: 'Bank Gamma (Inst 2)', bankA_Amount: '$120,000.00', bankB_Amount: 'MISSING', issueType: 'UNMATCHED_REFERENCE', status: 'CAUGHT' },
-    { edgeRef: 'TXN_CROSS_9088', fromBank: 'Bank Gamma (Inst 2)', toBank: 'Bank Alpha (Inst 0)', bankA_Amount: '$30,000.00', bankB_Amount: '$30,000.00 (+4h delta)', issueType: 'TIMESTAMP_MISMATCH', status: 'CAUGHT' },
-  ]);
+  const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'AMOUNT_MISMATCH' | 'UNMATCHED_REFERENCE' | 'TIMESTAMP_MISMATCH' | 'REPLAY_DETECTED'>('ALL');
+  const [inspectedIssue, setInspectedIssue] = useState<ReconEvent | null>(null);
+  const [copiedProof, setCopiedProof] = useState(false);
+
+  const filteredIssues = RECON_DISCREPANCIES.filter(issue => {
+    if (selectedFilter === 'ALL') return true;
+    return issue.issueType === selectedFilter;
+  });
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedProof(true);
+    setTimeout(() => setCopiedProof(false), 2000);
+  };
+
+  const handleExportJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(RECON_DISCREPANCIES, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "mritra_double_entry_reconciliation.json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Overview Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Injected Malicious Edges</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', marginTop: '4px' }}>3</div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Simulated lying bank attacks</div>
+      {/* ─── Apple Overview Stat Cards ──────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+        <div className="bento-card animate-bento bento-delay-1" style={{ padding: '20px 24px' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+            Injected Attack Vectors
+          </div>
+          <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px' }}>
+            4
+          </div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            Simulated lying bank inject_lying_bank.py
+          </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
-          <div style={{ fontSize: '0.75rem', color: '#34d399', textTransform: 'uppercase', fontWeight: 600 }}>Enclave Caught Issues</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#34d399', marginTop: '4px' }}>3</div>
-          <div style={{ fontSize: '0.75rem', color: '#34d399', marginTop: '4px' }}>Detected before graph entry</div>
+        <div className="bento-card animate-bento bento-delay-2" style={{ padding: '20px 24px', border: '1.5px solid var(--lime-border)' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+            Enclave Intercepted
+          </div>
+          <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px', color: 'var(--apple-green)' }}>
+            4 / 4
+          </div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            Neutralized prior to boundary graph entry
+          </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Reconciliation Catch Rate</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>100.0%</div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Zero fake edges entered boundary</div>
+        <div className="bento-card animate-bento bento-delay-3" style={{ padding: '20px 24px' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+            Reconciliation Catch Rate
+          </div>
+          <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)' }}>
+            100.0%
+          </div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            Zero poisoning of downstream features
+          </div>
         </div>
       </div>
 
-      {/* Reconciled Issues Table */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldCheck size={20} color="#10b981" /> Reconciled Double-Entry Audit Log
-        </h3>
+      {/* ─── Apple Table Card with Filtering & Export ───────────── */}
+      <div className="apple-table-card animate-bento bento-delay-2">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
+          <div>
+            <h3 className="bento-card-title">Reconciled Double-Entry Audit Log</h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Verifies matching credits and debits across institutional boundaries
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {/* Filter buttons */}
+            <div className="apple-segmented-control">
+              <button 
+                onClick={() => setSelectedFilter('ALL')} 
+                className={`apple-segment-btn ${selectedFilter === 'ALL' ? 'active' : ''}`}
+              >
+                All (4)
+              </button>
+              <button 
+                onClick={() => setSelectedFilter('AMOUNT_MISMATCH')} 
+                className={`apple-segment-btn ${selectedFilter === 'AMOUNT_MISMATCH' ? 'active' : ''}`}
+              >
+                Amount Mismatch
+              </button>
+              <button 
+                onClick={() => setSelectedFilter('UNMATCHED_REFERENCE')} 
+                className={`apple-segment-btn ${selectedFilter === 'UNMATCHED_REFERENCE' ? 'active' : ''}`}
+              >
+                Missing Ref
+              </button>
+              <button 
+                onClick={() => setSelectedFilter('REPLAY_DETECTED')} 
+                className={`apple-segment-btn ${selectedFilter === 'REPLAY_DETECTED' ? 'active' : ''}`}
+              >
+                Replay
+              </button>
+            </div>
+
+            <button 
+              onClick={handleExportJSON}
+              className="selector-pill"
+              title="Export Audit Log as JSON"
+            >
+              <Download size={14} /> Export JSON
+            </button>
+          </div>
+        </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <table className="apple-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'left', color: '#94a3b8' }}>
-                <th style={{ padding: '12px 16px' }}>Txn Ref</th>
-                <th style={{ padding: '12px 16px' }}>Sender Bank</th>
-                <th style={{ padding: '12px 16px' }}>Receiver Bank</th>
-                <th style={{ padding: '12px 16px' }}>Sender Amount</th>
-                <th style={{ padding: '12px 16px' }}>Receiver Amount</th>
-                <th style={{ padding: '12px 16px' }}>Discrepancy Type</th>
-                <th style={{ padding: '12px 16px' }}>Enclave Action</th>
+              <tr>
+                <th>Txn Reference</th>
+                <th>Sender Entity</th>
+                <th>Receiver Entity</th>
+                <th>Sender Ledger</th>
+                <th>Receiver Ledger</th>
+                <th>Discrepancy Category</th>
+                <th>Enclave Action</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {issues.map(item => (
-                <tr key={item.edgeRef} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <td style={{ padding: '14px 16px', fontWeight: 700 }} className="code-font">{item.edgeRef}</td>
-                  <td style={{ padding: '14px 16px', color: '#cbd5e1' }}>{item.fromBank}</td>
-                  <td style={{ padding: '14px 16px', color: '#cbd5e1' }}>{item.toBank}</td>
-                  <td style={{ padding: '14px 16px', fontWeight: 600 }} className="code-font">{item.bankA_Amount}</td>
-                  <td style={{ padding: '14px 16px', color: '#f87171', fontWeight: 600 }} className="code-font">{item.bankB_Amount}</td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span className="glow-pill badge-amber" style={{ fontSize: '0.7rem' }}>{item.issueType}</span>
+              {filteredIssues.map((issue) => (
+                <tr key={issue.edgeRef}>
+                  <td className="code-font" style={{ fontWeight: 800 }}>
+                    {issue.edgeRef}
                   </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span className="glow-pill badge-emerald" style={{ fontSize: '0.7rem' }}>Rejected & Logged</span>
+                  <td style={{ fontWeight: 600 }}>{issue.fromBank}</td>
+                  <td style={{ fontWeight: 600 }}>{issue.toBank}</td>
+                  <td className="tabular-nums code-font" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                    {issue.bankA_Amount}
+                  </td>
+                  <td className="tabular-nums code-font" style={{ color: issue.bankB_Amount.includes('MISSING') ? 'var(--apple-red)' : 'var(--apple-amber)', fontWeight: 700 }}>
+                    {issue.bankB_Amount}
+                  </td>
+                  <td>
+                    <span className="pill-tag pill-tag-danger" style={{ fontSize: '0.68rem' }}>
+                      {issue.issueType.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="pill-tag pill-tag-success" style={{ fontSize: '0.68rem' }}>
+                      {issue.actionTaken.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td>
+                    <button 
+                      onClick={() => setInspectedIssue(issue)}
+                      className="selector-pill"
+                      style={{ padding: '4px 12px', fontSize: '0.72rem' }}
+                    >
+                      Audit Proof &gt;
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -80,6 +176,76 @@ export const Reconciliation: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* ─── Apple Style Issue Inspection Sheet ─────────────────── */}
+      {inspectedIssue && (
+        <div className="apple-sheet-backdrop" onClick={() => setInspectedIssue(null)}>
+          <div className="apple-sheet animate-bento" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="pill-tag pill-tag-danger">
+                  {inspectedIssue.issueType.replace(/_/g, ' ')}
+                </span>
+                <span className="code-font" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {inspectedIssue.edgeRef}
+                </span>
+              </div>
+              <button 
+                onClick={() => setInspectedIssue(null)}
+                style={{ border: 'none', background: 'rgba(0,0,0,0.06)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontWeight: 800 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '6px' }}>
+              Double-Entry Reconciliation Failure
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginBottom: '20px' }}>
+              Transaction amounts reported by the sender institution do not balance against receiver ledger records.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>SENDER: {inspectedIssue.fromBank}</div>
+                <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px' }}>
+                  {inspectedIssue.bankA_Amount}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Timestamp: {inspectedIssue.timestampA}</div>
+              </div>
+
+              <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>RECEIVER: {inspectedIssue.toBank}</div>
+                <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px', color: 'var(--apple-red)' }}>
+                  {inspectedIssue.bankB_Amount}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Timestamp: {inspectedIssue.timestampB}</div>
+              </div>
+            </div>
+
+            <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>ENCLAVE REJECTION PROOF HASH</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700 }}>{inspectedIssue.proofHash}</div>
+              </div>
+              <button 
+                onClick={() => handleCopy(inspectedIssue.proofHash)}
+                style={{ padding: '6px 12px', border: 'none', background: '#ffffff', borderRadius: 'var(--radius-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600 }}
+              >
+                {copiedProof ? <Check size={14} color="var(--apple-green)" /> : <Copy size={14} />}
+                {copiedProof ? 'Copied' : 'Copy Proof'}
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setInspectedIssue(null)}
+              className="btn-pill-dark"
+            >
+              Acknowledge & Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

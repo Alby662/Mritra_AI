@@ -6,19 +6,31 @@ import {
   CheckCircle, 
   Cpu, 
   Lock, 
-  ChevronDown 
+  ChevronDown,
+  Copy,
+  Check
 } from 'lucide-react';
+import { RUN_CATALOG } from '../data/telemetryData';
+import type { RunMetadata } from '../data/telemetryData';
 
 interface OverviewProps {
   onNavigateTab?: (tab: string) => void;
+  selectedRunId?: string;
+  onSelectRunId?: (id: string) => void;
 }
 
-export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
+export const Overview: React.FC<OverviewProps> = ({ 
+  onNavigateTab,
+  selectedRunId = '20261004T092741Z'
+}) => {
+  const currentRun: RunMetadata = RUN_CATALOG[selectedRunId] || RUN_CATALOG['20261004T092741Z'];
   const [hoveredRadarAxis, setHoveredRadarAxis] = useState<string | null>(null);
   const [targetAccount, setTargetAccount] = useState('acct_309');
   const [quarantineStatus, setQuarantineStatus] = useState<string | null>(null);
   const [selectedStreamFilter, setSelectedStreamFilter] = useState<'all' | 'flagged'>('all');
   const [showProofModal, setShowProofModal] = useState(false);
+  const [inspectedTx, setInspectedTx] = useState<any | null>(null);
+  const [copiedTxId, setCopiedTxId] = useState(false);
   const [activeSplinePoint, setActiveSplinePoint] = useState<number>(4);
 
   // Live mule streams data (styled like Pinterest recent transactions)
@@ -33,6 +45,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       status: 'CRITICAL',
       icon: '🏛️',
       color: '#000000',
+      hash: '0x8f2a...c10b',
+      reason: 'Rapid fan-out pass-through within 14 minutes across 2 institutions.',
     },
     {
       id: 'tx_882',
@@ -44,6 +58,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       status: 'HIGH',
       icon: '⚡',
       color: '#4f46e5',
+      hash: '0x3c99...e412',
+      reason: 'High entropy outbound structuring under $15k ceiling.',
     },
     {
       id: 'tx_883',
@@ -55,6 +71,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       status: 'HIGH',
       icon: '🛡️',
       color: '#059669',
+      hash: '0x71ba...094a',
+      reason: 'Sub-threshold currency deposit split across multiple accounts.',
     },
     {
       id: 'tx_884',
@@ -66,6 +84,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       status: 'CRITICAL',
       icon: '🌐',
       color: '#d97706',
+      hash: '0xd048...bf31',
+      reason: 'Cross-jurisdiction high-volume wire with immediate onward relay.',
     },
     {
       id: 'tx_885',
@@ -77,6 +97,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
       status: 'CRITICAL',
       icon: '🔄',
       color: '#e11d48',
+      hash: '0x55ee...a928',
+      reason: '1:5 fan-out tree flagged by enclave topological embedding.',
     }
   ];
 
@@ -110,7 +132,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
     { round: '15 Rnd', c3: 0.81, c4: 0.84, label: 'G = 81.5%', amount: '$19,850' },
     { round: '20 Rnd', c3: 0.86, c4: 0.88, label: 'G = 86.9%', amount: '$22,400' },
     { round: '25 Rnd', c3: 0.89, c4: 0.91, label: 'G = 89.4%', amount: '$25,120' },
-    { round: '30 Rnd', c3: 0.913, c4: 0.925, label: 'G = 91.3%', amount: '$26,590.40' },
+    { round: '30 Rnd', c3: currentRun.gRecovered, c4: 0.925, label: `G = ${(currentRun.gRecovered * 100).toFixed(1)}%`, amount: '$26,590.40' },
   ];
 
   const handleQuarantine = () => {
@@ -118,98 +140,104 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
     setTimeout(() => setQuarantineStatus(null), 6000);
   };
 
+  const handleCopyHash = (text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedTxId(true);
+    setTimeout(() => setCopiedTxId(false), 2000);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* ─── Top Masonry Stat Strip ──────────────────────────────── */}
+      {/* ─── Top Masonry Stat Strip (Live Integrated Metrics) ─────── */}
       <div 
         style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', 
           gap: '14px' 
         }}
       >
-        {/* Stat 1 */}
+        {/* Stat 1: Thesis Metric G */}
         <div 
           className="bento-card animate-bento bento-delay-1"
-          style={{ padding: '16px 20px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          style={{ padding: '18px 22px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
         >
           <div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Thesis Metric (G)
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Thesis Gap Recovered (G)
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
-              91.3% <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>+42.1% F1</span>
+            <div className="tabular-nums" style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
+              {(currentRun.gRecovered * 100).toFixed(1)}% <span style={{ fontSize: '0.75rem', color: 'var(--apple-green)', fontWeight: 800 }}>+42.1% F1</span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-              95% CI: [87.5% – 94.2%]
+            <div className="tabular-nums" style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+              95% CI: [{(currentRun.ciLower * 100).toFixed(1)}% – {(currentRun.ciUpper * 100).toFixed(1)}%]
             </div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--lime-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <TrendingUp size={20} color="#000" />
+          <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'var(--lime-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TrendingUp size={21} color="#000" />
           </div>
         </div>
 
-        {/* Stat 2 */}
+        {/* Stat 2: Enclave Proof */}
         <div 
           className="bento-card animate-bento bento-delay-2"
-          style={{ padding: '16px 20px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          style={{ padding: '18px 22px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
         >
           <div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Hardware Enclave
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              Verified <span className="badge-dot" style={{ position: 'static', width: '8px', height: '8px', background: '#059669' }}></span>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              Verified <span className="badge-dot" style={{ position: 'static', width: '8px', height: '8px', background: 'var(--apple-green)' }}></span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
               IBM LinuxONE / AMD SEV-SNP
             </div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Cpu size={20} color="#000" />
+          <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Cpu size={21} color="#000" />
           </div>
         </div>
 
-        {/* Stat 3 */}
+        {/* Stat 3: DP Budget */}
         <div 
           className="bento-card animate-bento bento-delay-3"
-          style={{ padding: '16px 20px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          style={{ padding: '18px 22px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
         >
           <div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Differential Privacy
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
+            <div className="tabular-nums" style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
               ε = 1.15 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>/ 2.0 max</span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
               Zero Raw PII Leakage
             </div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Lock size={20} color="#000" />
+          <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Lock size={21} color="#000" />
           </div>
         </div>
 
-        {/* Stat 4 */}
+        {/* Stat 4: Evaluated Dataset */}
         <div 
           className="bento-card animate-bento bento-delay-4"
-          style={{ padding: '16px 20px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          style={{ padding: '18px 22px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
         >
           <div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              False Positive Rate
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              AMLworld Benchmark
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
-              0.08% <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>-76% drop</span>
+            <div className="tabular-nums" style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
+              {currentRun.totalSamples.toLocaleString()} <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>rows</span>
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-              Preserves legitimate accounts
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+              {currentRun.partition} · {currentRun.featuresCount} Features
             </div>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--lime-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ShieldCheck size={20} color="#000" />
+          <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'var(--lime-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ShieldCheck size={21} color="#000" />
           </div>
         </div>
       </div>
@@ -220,7 +248,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
         {/* ── COLUMN 1: Feed + Lime Bank Card ────────────────────── */}
         <div className="bento-column">
           
-          {/* Card 1: Recent Interventions Stream (Inspiration's "Recent transactions") */}
+          {/* Card 1: Recent Interventions Stream (Apple Card Style) */}
           <div className="bento-card animate-bento bento-delay-1" style={{ flex: 1 }}>
             <div className="bento-card-header">
               <div>
@@ -257,7 +285,12 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             {/* Stream rows */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {streamData.slice(0, 5).map((item) => (
-                <div key={item.id} className="stream-row">
+                <div 
+                  key={item.id} 
+                  className="stream-row"
+                  onClick={() => setInspectedTx(item)}
+                  title="Click to inspect cryptographic proof"
+                >
                   <div className="stream-left">
                     <div className="stream-icon-badge">
                       {item.icon}
@@ -268,8 +301,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                     </div>
                   </div>
                   <div>
-                    <div className="stream-amount">{item.amount}</div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, textAlign: 'right', color: item.status === 'CRITICAL' ? '#dc2626' : '#d97706' }}>
+                    <div className="stream-amount tabular-nums">{item.amount}</div>
+                    <div className="tabular-nums" style={{ fontSize: '0.68rem', fontWeight: 800, textAlign: 'right', color: item.status === 'CRITICAL' ? 'var(--apple-red)' : 'var(--apple-amber)' }}>
                       {(item.riskScore * 100).toFixed(0)}% RISK
                     </div>
                   </div>
@@ -278,7 +311,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             </div>
           </div>
 
-          {/* Card 2: Lime Enclave Passport Card (Inspiration's "Platina / Universal" card) */}
+          {/* Card 2: Lime Enclave Passport Card */}
           <div className="enclave-passport-card animate-bento bento-delay-2">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
               <div>
@@ -291,7 +324,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.7 }}>Interdicted</span>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>$8,523.20K</div>
+                <div className="tabular-nums" style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>$8,523.20K</div>
               </div>
             </div>
 
@@ -318,7 +351,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.68rem', opacity: 0.65, fontWeight: 700 }}>PRIVACY BUDGET</div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                <div className="tabular-nums" style={{ fontSize: '0.82rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
                   ε = 1.15 / 2.0
                 </div>
               </div>
@@ -338,7 +371,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
         {/* ── COLUMN 2: Radar Chart + Curvy Bezier Graph ─────────── */}
         <div className="bento-column">
           
-          {/* Card 3: Spending / Risk Radar (Inspiration's "Spending" radar chart) */}
+          {/* Card 3: Spending / Risk Radar (Interactive SVG) */}
           <div className="bento-card animate-bento bento-delay-2" style={{ padding: '24px' }}>
             <div className="bento-card-header" style={{ marginBottom: '10px' }}>
               <div>
@@ -412,7 +445,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                   strokeDasharray="4 3"
                 />
 
-                {/* C3 Mritra Enclave Polygon (Lime saturated glow!) */}
+                {/* C3 Mritra Enclave Polygon (Lime saturated glow) */}
                 <polygon
                   points={c3Coords}
                   fill="rgba(198, 239, 78, 0.65)"
@@ -448,7 +481,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               <div className="radar-legend">
                 <span style={{ display: 'flex', alignItems: 'center' }}>
                   <span className="legend-dot" style={{ background: 'var(--lime)' }}></span>
-                  C3 Mritra Enclave (91.3% Coverage)
+                  C3 Mritra Enclave ({(currentRun.gRecovered * 100).toFixed(1)}% Coverage)
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }}>
                   <span className="legend-dot" style={{ background: '#999999' }}></span>
@@ -458,7 +491,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             </div>
           </div>
 
-          {/* Card 4: Curvy Bezier Convergence Graph (Inspiration's "Budget" chart) */}
+          {/* Card 4: Curvy Bezier Convergence Graph */}
           <div className="bento-card animate-bento bento-delay-3" style={{ flex: 1, padding: '24px' }}>
             <div className="bento-card-header">
               <div>
@@ -546,13 +579,13 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                 })}
               </svg>
 
-              {/* Floating Pill Tooltip (like $26,590.40 pill in inspiration!) */}
+              {/* Floating Pill Tooltip */}
               <div 
                 style={{ 
                   position: 'absolute', 
                   top: activeSplinePoint === 4 ? '4px' : '45px', 
                   right: activeSplinePoint === 4 ? '15px' : '40%', 
-                  transition: 'all 0.3s ease' 
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' 
                 }}
               >
                 <div className="chart-tooltip-pill">
@@ -581,7 +614,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
         {/* ── COLUMN 3: Quick Action + Tall Lime Promo Card ──────── */}
         <div className="bento-column">
           
-          {/* Card 5: Quick Quarantine Dispatch (Inspiration's "Quick transfer") */}
+          {/* Card 5: Quick Quarantine Dispatch */}
           <div className="bento-card animate-bento bento-delay-3">
             <div className="bento-card-header">
               <div>
@@ -593,11 +626,11 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             {/* Avatar circle row with + button */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
               {[
-                { id: 'acct_309', label: '309', color: '#000000', ring: true },
-                { id: 'acct_204', label: '204', color: '#4f46e5', ring: false },
-                { id: 'acct_205', label: '205', color: '#059669', ring: false },
-                { id: 'acct_101', label: '101', color: '#d97706', ring: false },
-                { id: 'acct_412', label: '412', color: '#e11d48', ring: false },
+                { id: 'acct_309', label: '309', color: '#000000' },
+                { id: 'acct_204', label: '204', color: '#4f46e5' },
+                { id: 'acct_205', label: '205', color: '#059669' },
+                { id: 'acct_101', label: '101', color: '#d97706' },
+                { id: 'acct_412', label: '412', color: '#e11d48' },
               ].map((acc) => (
                 <button
                   key={acc.id}
@@ -645,7 +678,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               </button>
             </div>
 
-            {/* Input field ($1000 input style) */}
+            {/* Input field */}
             <div style={{ position: 'relative', marginBottom: '14px' }}>
               <input
                 type="text"
@@ -665,7 +698,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                   transition: 'border-color 0.2s ease',
                 }}
               />
-              <span style={{ position: 'absolute', right: '12px', top: '13px', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              <span className="tabular-nums" style={{ position: 'absolute', right: '12px', top: '13px', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                 $49,200.00
               </span>
             </div>
@@ -685,10 +718,10 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                   marginTop: '12px',
                   padding: '10px 14px',
                   borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(16, 185, 129, 0.12)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: 'rgba(52, 199, 89, 0.12)',
+                  border: '1px solid rgba(52, 199, 89, 0.3)',
                   fontSize: '0.74rem',
-                  color: '#059669',
+                  color: 'var(--apple-green)',
                   fontWeight: 600,
                 }}
               >
@@ -698,7 +731,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             )}
           </div>
 
-          {/* Card 6: Tall Lime Spotlight (Inspiration's "How to reduce expenses by 25%?" card) */}
+          {/* Card 6: Tall Lime Spotlight */}
           <div className="bento-spotlight-card animate-bento bento-delay-4" style={{ flex: 1 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
@@ -710,17 +743,15 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
               <h2 className="bento-spotlight-heading">
                 How to recover
-                <span className="bento-spotlight-highlight">91.3%</span>
+                <span className="bento-spotlight-highlight">{(currentRun.gRecovered * 100).toFixed(1)}%</span>
                 gap without raw PII ?
               </h2>
             </div>
 
-            {/* Architectural Graphic / Piggy bank style graphic */}
+            {/* Architectural Vector Illustration */}
             <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ position: 'relative', width: '130px', height: '90px' }}>
-                {/* SVG Shield / Vault illustration */}
                 <svg width="130" height="90" viewBox="0 0 130 90" fill="none">
-                  {/* Outer coin stack / vault base */}
                   <ellipse cx="65" cy="70" rx="45" ry="12" fill="#000000" fillOpacity="0.12" />
                   <path
                     d="M 35,45 Q 65,15 95,45 L 85,70 Q 65,85 45,70 Z"
@@ -730,10 +761,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  {/* Keyhole / secure enclave core */}
                   <circle cx="65" cy="50" r="8" fill="#000000" />
                   <rect x="62" y="52" width="6" height="12" fill="#000000" rx="2" />
-                  {/* Radiating security arcs */}
                   <path d="M 22,35 A 40 40 0 0 1 108,35" stroke="#000000" strokeWidth="2.5" strokeDasharray="4 4" />
                 </svg>
               </div>
@@ -771,46 +800,105 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
       </div>
 
-      {/* ─── Formal Proof & Audit Modal ──────────────────────────── */}
-      {showProofModal && (
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-          }}
-          onClick={() => setShowProofModal(false)}
-        >
-          <div 
-            className="animate-bento"
-            style={{
-              background: '#ffffff',
-              borderRadius: 'var(--radius-xl)',
-              maxWidth: '620px',
-              width: '100%',
-              padding: '32px',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.3)',
-              position: 'relative',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-              <span className="pill-tag pill-tag-lime">Mathematical Proof §5</span>
+      {/* ─── Apple Style Transaction Inspection Sheet ───────────── */}
+      {inspectedTx && (
+        <div className="apple-sheet-backdrop" onClick={() => setInspectedTx(null)}>
+          <div className="apple-sheet animate-bento" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="pill-tag pill-tag-danger">
+                  {inspectedTx.status} RISK ({(inspectedTx.riskScore * 100).toFixed(0)}%)
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  {inspectedTx.id}
+                </span>
+              </div>
               <button 
-                onClick={() => setShowProofModal(false)}
-                style={{ border: 'none', background: 'transparent', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 800 }}
+                onClick={() => setInspectedTx(null)}
+                style={{ border: 'none', background: 'rgba(0,0,0,0.06)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontWeight: 800 }}
               >
                 ✕
               </button>
             </div>
 
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.025em', marginBottom: '6px' }}>
+              {inspectedTx.title}
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px' }}>
+              {inspectedTx.reason}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ background: 'var(--bg-card-subtle)', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>INTERDICTED AMOUNT</div>
+                <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px' }}>
+                  {inspectedTx.amount}
+                </div>
+              </div>
+              <div style={{ background: 'var(--bg-card-subtle)', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>TRANSACTION ROUTE</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '4px' }}>
+                  {inspectedTx.bank}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>PROOF COMMITMENT HASH</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700 }}>{inspectedTx.hash}</div>
+              </div>
+              <button 
+                onClick={() => handleCopyHash(inspectedTx.hash)}
+                style={{ padding: '6px 12px', border: 'none', background: '#ffffff', borderRadius: 'var(--radius-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600 }}
+              >
+                {copiedTxId ? <Check size={14} color="var(--apple-green)" /> : <Copy size={14} />}
+                {copiedTxId ? 'Copied' : 'Copy Hash'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => {
+                  setTargetAccount('acct_309');
+                  setInspectedTx(null);
+                  handleQuarantine();
+                }}
+                className="btn-pill-dark"
+                style={{ flex: 1 }}
+              >
+                Trigger Consortium Freeze
+              </button>
+              <button 
+                onClick={() => {
+                  setInspectedTx(null);
+                  if (onNavigateTab) onNavigateTab('chain');
+                }}
+                className="selector-pill"
+                style={{ padding: '12px 20px', fontWeight: 700 }}
+              >
+                Inspect in Graph &gt;
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Apple Style Formal Proof & Audit Modal ─────────────── */}
+      {showProofModal && (
+        <div className="apple-sheet-backdrop" onClick={() => setShowProofModal(false)}>
+          <div className="apple-sheet animate-bento" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <span className="pill-tag pill-tag-lime">Mathematical Proof §5</span>
+              <button 
+                onClick={() => setShowProofModal(false)}
+                style={{ border: 'none', background: 'rgba(0,0,0,0.06)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontWeight: 800 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.025em', marginBottom: '12px' }}>
               Zero-Knowledge Cross-Bank Parity
             </h3>
 
@@ -821,10 +909,10 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             <div style={{ background: '#f6f7f7', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px', fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
               <div style={{ color: '#555', marginBottom: '4px' }}>// Primary Hypothesis Metric:</div>
               <div style={{ fontWeight: 700, color: '#000' }}>
-                G = (F1_C3 - F1_C1) / (F1_C4 - F1_C1) = 0.913
+                G = (F1_C3 - F1_C1) / (F1_C4 - F1_C1) = {currentRun.gRecovered}
               </div>
-              <div style={{ color: '#059669', marginTop: '6px' }}>
-                ✓ Gate min_gap_f1 ≥ 0.01 satisfied (p-value &lt; 0.0001)
+              <div style={{ color: 'var(--apple-green)', marginTop: '6px' }}>
+                ✓ Gate min_gap_f1 ≥ 0.01 satisfied (p-value &lt; {currentRun.pVal})
               </div>
             </div>
 

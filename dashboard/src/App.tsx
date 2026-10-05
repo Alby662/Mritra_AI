@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   LayoutGrid, 
   Network, 
@@ -17,15 +17,35 @@ import { ChainGraph } from './components/ChainGraph';
 import { TransparencyLog } from './components/TransparencyLog';
 import { Reconciliation } from './components/Reconciliation';
 import { ConfigAudit } from './components/ConfigAudit';
+import { RUN_CATALOG } from './data/telemetryData';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'chain' | 'tlog' | 'recon' | 'audit'>('overview');
-  const [selectedPartition, setSelectedPartition] = useState<'P1' | 'P2'>('P1');
+  const [selectedRunId, setSelectedRunId] = useState<string>('20261004T092741Z');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showRunDropdown, setShowRunDropdown] = useState(false);
+
+  const activeRun = RUN_CATALOG[selectedRunId] || RUN_CATALOG['20261004T092741Z'];
+
+  // Apple-style Keyboard Shortcut Ergonomics (1 - 5 to switch tabs)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === '1') setActiveTab('overview');
+      if (e.key === '2') setActiveTab('chain');
+      if (e.key === '3') setActiveTab('tlog');
+      if (e.key === '4') setActiveTab('recon');
+      if (e.key === '5') setActiveTab('audit');
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 800);
+    setTimeout(() => setIsRefreshing(false), 700);
   };
 
   return (
@@ -40,12 +60,12 @@ export function App() {
       {/* ─── Main Outer Container ─────────────────────────────────── */}
       <div className="app-container">
         
-        {/* ─── Left Slim Obsidian Sidebar ─────────────────────────── */}
+        {/* ─── Left Slim Obsidian Sidebar (Apple Dock Style) ──────── */}
         <aside className="nav-sidebar">
           {/* Brand Mark */}
           <button 
             className="nav-logo-btn" 
-            title="Mritra AI Engine"
+            title="Mritra AI — Confidential AML Engine"
             onClick={() => setActiveTab('overview')}
           >
             <Shield size={22} color="#c6ef4e" />
@@ -60,7 +80,7 @@ export function App() {
               aria-label="Executive Bento Dashboard"
             >
               <LayoutGrid size={20} />
-              <span className="nav-tooltip">Dashboard Bento</span>
+              <span className="nav-tooltip">Dashboard (Key 1)</span>
             </button>
 
             {/* Topology Graph */}
@@ -70,7 +90,7 @@ export function App() {
               aria-label="Topology Graph"
             >
               <Network size={20} />
-              <span className="nav-tooltip">Laundering Topology</span>
+              <span className="nav-tooltip">Topology (Key 2)</span>
             </button>
 
             {/* Transparency Log */}
@@ -80,7 +100,7 @@ export function App() {
               aria-label="Transparency Log"
             >
               <FileText size={20} />
-              <span className="nav-tooltip">Transparency Log</span>
+              <span className="nav-tooltip">Merkle Log (Key 3)</span>
             </button>
 
             {/* Double-Entry Audit */}
@@ -90,7 +110,7 @@ export function App() {
               aria-label="Double-Entry Audit"
             >
               <CheckCircle2 size={20} />
-              <span className="nav-tooltip">Reconciliation Audit</span>
+              <span className="nav-tooltip">Reconciliation (Key 4)</span>
             </button>
 
             {/* Parity Audit */}
@@ -100,7 +120,7 @@ export function App() {
               aria-label="Parity & Tests"
             >
               <Sliders size={20} />
-              <span className="nav-tooltip">Parity Audit §5</span>
+              <span className="nav-tooltip">Parity Audit §5 (Key 5)</span>
             </button>
           </div>
 
@@ -112,7 +132,7 @@ export function App() {
               aria-label="System Documentation"
             >
               <HelpCircle size={19} />
-              <span className="nav-tooltip">Documentation</span>
+              <span className="nav-tooltip">Audit Docs</span>
             </button>
             <button 
               className="nav-icon-btn" 
@@ -139,43 +159,94 @@ export function App() {
                 {activeTab === 'audit' && 'Parity Audit'}
               </h1>
               <span className="header-badge">
-                {selectedPartition === 'P1' ? 'Partition P1 (Volume Balanced)' : 'Partition P2 (Random Partitions)'}
+                {activeRun.partition}
               </span>
             </div>
 
-            {/* Actions & Filters matching inspiration */}
+            {/* Header Actions & Live Partition Switcher */}
             <div className="header-actions">
-              {/* Partition / Filter Dropdown Pill */}
-              <button 
-                className="selector-pill"
-                onClick={() => setSelectedPartition(p => p === 'P1' ? 'P2' : 'P1')}
-              >
-                <span>Financial · {selectedPartition}</span>
-                <ChevronDown size={14} style={{ opacity: 0.6 }} />
-              </button>
+              {/* Partition / Run Dropdown Selector */}
+              <div style={{ position: 'relative' }}>
+                <button 
+                  className="selector-pill"
+                  onClick={() => setShowRunDropdown(!showRunDropdown)}
+                >
+                  <span style={{ fontWeight: 700 }}>Partition: {activeRun.partition.split(' ')[0]}</span>
+                  <ChevronDown size={14} style={{ opacity: 0.6 }} />
+                </button>
+
+                {showRunDropdown && (
+                  <div 
+                    className="animate-bento"
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      background: '#ffffff',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: 'var(--shadow-modal)',
+                      border: '1px solid var(--border-medium)',
+                      padding: '6px',
+                      zIndex: 80,
+                      minWidth: '240px'
+                    }}
+                  >
+                    {Object.values(RUN_CATALOG).map((run) => (
+                      <button
+                        key={run.runId}
+                        onClick={() => {
+                          setSelectedRunId(run.runId);
+                          setShowRunDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: selectedRunId === run.runId ? 'rgba(0,0,0,0.06)' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px',
+                          fontFamily: 'var(--font-display)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>{run.partition}</span>
+                          {selectedRunId === run.runId && <span className="badge-dot" style={{ position: 'static' }}></span>}
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          Run ID: {run.runId}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Refresh Button */}
               <button 
                 className="icon-circle-btn" 
                 onClick={handleRefresh}
-                title="Refresh Live Enclave Stream"
+                title="Refresh Live Enclave Telemetry"
               >
                 <RotateCcw 
                   size={16} 
                   style={{ 
-                    transition: 'transform 0.6s ease',
+                    transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
                     transform: isRefreshing ? 'rotate(360deg)' : 'none'
                   }} 
                 />
               </button>
 
               {/* Notifications Bell */}
-              <button className="icon-circle-btn" title="3 Critical Alerts">
+              <button className="icon-circle-btn" title="4 Neutralized Discrepancies">
                 <Bell size={16} />
                 <span className="badge-dot"></span>
               </button>
 
-              {/* User Profile Capsule (Joseph Mitchell / Chief AML Officer) */}
+              {/* User Profile Capsule */}
               <div 
                 className="user-profile-capsule"
                 onClick={() => setActiveTab('audit')}
@@ -186,56 +257,71 @@ export function App() {
                 </div>
                 <div className="user-info">
                   <span className="user-name">Joseph Mitchell</span>
-                  <span className="user-role">Lead AML Auditor</span>
+                  <span className="user-role">Chief AML Auditor</span>
                 </div>
               </div>
             </div>
           </header>
 
-          {/* ─── Secondary View Switcher Tabs ─────────────────────── */}
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
-            <button 
-              onClick={() => setActiveTab('overview')} 
-              className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-            >
-              <LayoutGrid size={15} /> Executive Bento
-            </button>
-            <button 
-              onClick={() => setActiveTab('chain')} 
-              className={`tab-btn ${activeTab === 'chain' ? 'active' : ''}`}
-            >
-              <Network size={15} /> Ring Topology
-            </button>
-            <button 
-              onClick={() => setActiveTab('tlog')} 
-              className={`tab-btn ${activeTab === 'tlog' ? 'active' : ''}`}
-            >
-              <FileText size={15} /> Merkle Log
-            </button>
-            <button 
-              onClick={() => setActiveTab('recon')} 
-              className={`tab-btn ${activeTab === 'recon' ? 'active' : ''}`}
-            >
-              <CheckCircle2 size={15} /> Double-Entry Audit
-            </button>
-            <button 
-              onClick={() => setActiveTab('audit')} 
-              className={`tab-btn ${activeTab === 'audit' ? 'active' : ''}`}
-            >
-              <Sliders size={15} /> Pre-reg Parity (§5)
-            </button>
+          {/* ─── Apple Style Segmented View Switcher ───────────────── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div className="apple-segmented-control">
+              <button 
+                onClick={() => setActiveTab('overview')} 
+                className={`apple-segment-btn ${activeTab === 'overview' ? 'active-lime' : ''}`}
+              >
+                <LayoutGrid size={15} /> Executive Bento
+              </button>
+              <button 
+                onClick={() => setActiveTab('chain')} 
+                className={`apple-segment-btn ${activeTab === 'chain' ? 'active-lime' : ''}`}
+              >
+                <Network size={15} /> Ring Topology
+              </button>
+              <button 
+                onClick={() => setActiveTab('tlog')} 
+                className={`apple-segment-btn ${activeTab === 'tlog' ? 'active-lime' : ''}`}
+              >
+                <FileText size={15} /> Merkle Ledger
+              </button>
+              <button 
+                onClick={() => setActiveTab('recon')} 
+                className={`apple-segment-btn ${activeTab === 'recon' ? 'active-lime' : ''}`}
+              >
+                <CheckCircle2 size={15} /> Double-Entry Audit
+              </button>
+              <button 
+                onClick={() => setActiveTab('audit')} 
+                className={`apple-segment-btn ${activeTab === 'audit' ? 'active-lime' : ''}`}
+              >
+                <Sliders size={15} /> Pre-reg Parity (§5)
+              </button>
+            </div>
+
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <span>Shortcuts: <kbd style={{ background: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontWeight: 700 }}>1–5</kbd></span>
+              <span className="pill-tag pill-tag-success" style={{ fontSize: '0.66rem' }}>
+                LIVE ENCLAVE STREAMING
+              </span>
+            </div>
           </div>
 
           {/* ─── Main Viewport Component ───────────────────────────── */}
           <main style={{ flex: 1 }}>
-            {activeTab === 'overview' && <Overview onNavigateTab={(t: string) => setActiveTab(t as any)} />}
+            {activeTab === 'overview' && (
+              <Overview 
+                onNavigateTab={(t: string) => setActiveTab(t as any)} 
+                selectedRunId={selectedRunId}
+                onSelectRunId={setSelectedRunId}
+              />
+            )}
             {activeTab === 'chain' && <ChainGraph />}
             {activeTab === 'tlog' && <TransparencyLog />}
             {activeTab === 'recon' && <Reconciliation />}
             {activeTab === 'audit' && <ConfigAudit />}
           </main>
 
-          {/* ─── Sub-footer Telemetry Bar ──────────────────────────── */}
+          {/* ─── Sub-footer Telemetry Bar (Apple Calibrated) ───────── */}
           <footer 
             style={{
               padding: '16px 24px',

@@ -40,7 +40,7 @@ dashboard:
 	cd dashboard && npm run dev
 
 test:
-	$(RUN) pytest -q
+	$(RUN) pytest -qx
 
 lint:
 	$(RUN) ruff check .

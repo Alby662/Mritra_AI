@@ -1,3 +1,4 @@
+
 """Behavioural features per account (plan §7.1 item 2).
 
 Rolling windows (1 h, 24 h, 7 d) computed streaming in timestamp order —

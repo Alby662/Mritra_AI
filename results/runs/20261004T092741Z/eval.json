@@ -1,0 +1,586 @@
+{
+  "c1_cross_bank": {
+    "42": {
+      "f1_minority": 0.011972930765226444,
+      "n_positive": 852,
+      "n_samples": 784161,
+      "pr_auc": 0.007877090147955495,
+      "threshold": 0.99
+    },
+    "52": {
+      "f1_minority": 0.010793072014585233,
+      "n_positive": 852,
+      "n_samples": 784161,
+      "pr_auc": 0.006217233452300868,
+      "threshold": 0.99
+    },
+    "62": {
+      "f1_minority": 0.013549863273620179,
+      "n_positive": 852,
+      "n_samples": 784161,
+      "pr_auc": 0.007079892141757467,
+      "threshold": 0.99
+    }
+  },
+  "gap_recovered": {},
+  "gap_recovered_note": "C3 is not available for this run (scripts/build_features.py does not build C3's network features offline yet) -- G cannot be computed",
+  "results": {
+    "C1": {
+      "bank_0": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.01703753420414064,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.008345905331174129
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.01703753420414064,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.008345905331174129
+          },
+          "sensitivity_rows_kept": 367337,
+          "sensitivity_rows_total": 367337
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.019681968196819683,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007951165059438691
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.019681968196819683,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007951165059438691
+          },
+          "sensitivity_rows_kept": 367337,
+          "sensitivity_rows_total": 367337
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.026431150077359463,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007621478291942672
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.026431150077359463,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007621478291942672
+          },
+          "sensitivity_rows_kept": 367337,
+          "sensitivity_rows_total": 367337
+        }
+      },
+      "bank_1": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.020320643926898464,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.005583938744396341
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.020320643926898464,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.005583938744396341
+          },
+          "sensitivity_rows_kept": 356880,
+          "sensitivity_rows_total": 356880
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.009871931696905017,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.00367827185933252
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.009871931696905017,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.00367827185933252
+          },
+          "sensitivity_rows_kept": 356880,
+          "sensitivity_rows_total": 356880
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.013103037522334724,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.004744531279544592
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.013103037522334724,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.004744531279544592
+          },
+          "sensitivity_rows_kept": 356880,
+          "sensitivity_rows_total": 356880
+        }
+      },
+      "bank_2": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.013899360760531061,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.007947127900897038
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.013899360760531061,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.007947127900897038
+          },
+          "sensitivity_rows_kept": 359205,
+          "sensitivity_rows_total": 359205
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.010436610729436498,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.005338432694014077
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.010436610729436498,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.005338432694014077
+          },
+          "sensitivity_rows_kept": 359205,
+          "sensitivity_rows_total": 359205
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.010954676952748313,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.0045401848852376775
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.010954676952748313,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.0045401848852376775
+          },
+          "sensitivity_rows_kept": 359205,
+          "sensitivity_rows_total": 359205
+        }
+      },
+      "bank_3": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.01222364277027659,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00615438748583984
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.01222364277027659,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00615438748583984
+          },
+          "sensitivity_rows_kept": 357771,
+          "sensitivity_rows_total": 357771
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.012425616693317954,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00723933199733943
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.012425616693317954,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00723933199733943
+          },
+          "sensitivity_rows_kept": 357771,
+          "sensitivity_rows_total": 357771
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.013873489694385217,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.007691450895259848
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.013873489694385217,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.007691450895259848
+          },
+          "sensitivity_rows_kept": 357771,
+          "sensitivity_rows_total": 357771
+        }
+      },
+      "bank_4": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.008232548270740506,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005514385434385752
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.008232548270740506,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005514385434385752
+          },
+          "sensitivity_rows_kept": 358532,
+          "sensitivity_rows_total": 358532
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.011467215524845633,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005104490971274072
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.011467215524845633,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005104490971274072
+          },
+          "sensitivity_rows_kept": 358532,
+          "sensitivity_rows_total": 358532
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.015449143656064313,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.006179912964023271
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.015449143656064313,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.006179912964023271
+          },
+          "sensitivity_rows_kept": 358532,
+          "sensitivity_rows_total": 358532
+        }
+      }
+    },
+    "C3": {
+      "bank_0": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.01703753420414064,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.008345905331174129
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.01703753420414064,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.008345905331174129
+          },
+          "sensitivity_rows_kept": 367337,
+          "sensitivity_rows_total": 367337
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.019681968196819683,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007951165059438691
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.019681968196819683,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007951165059438691
+          },
+          "sensitivity_rows_kept": 367337,
+          "sensitivity_rows_total": 367337
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.026431150077359463,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007621478291942672
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.026431150077359463,
+            "n_positive": 442,
+            "n_samples": 367337,
+            "pr_auc": 0.007621478291942672
+          },
+          "sensitivity_rows_kept": 367337,
+          "sensitivity_rows_total": 367337
+        }
+      },
+      "bank_1": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.020320643926898464,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.005583938744396341
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.020320643926898464,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.005583938744396341
+          },
+          "sensitivity_rows_kept": 356880,
+          "sensitivity_rows_total": 356880
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.009871931696905017,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.00367827185933252
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.009871931696905017,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.00367827185933252
+          },
+          "sensitivity_rows_kept": 356880,
+          "sensitivity_rows_total": 356880
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.013103037522334724,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.004744531279544592
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.013103037522334724,
+            "n_positive": 342,
+            "n_samples": 356880,
+            "pr_auc": 0.004744531279544592
+          },
+          "sensitivity_rows_kept": 356880,
+          "sensitivity_rows_total": 356880
+        }
+      },
+      "bank_2": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.013899360760531061,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.007947127900897038
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.013899360760531061,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.007947127900897038
+          },
+          "sensitivity_rows_kept": 359205,
+          "sensitivity_rows_total": 359205
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.010436610729436498,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.005338432694014077
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.010436610729436498,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.005338432694014077
+          },
+          "sensitivity_rows_kept": 359205,
+          "sensitivity_rows_total": 359205
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.010954676952748313,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.0045401848852376775
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.010954676952748313,
+            "n_positive": 403,
+            "n_samples": 359205,
+            "pr_auc": 0.0045401848852376775
+          },
+          "sensitivity_rows_kept": 359205,
+          "sensitivity_rows_total": 359205
+        }
+      },
+      "bank_3": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.01222364277027659,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00615438748583984
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.01222364277027659,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00615438748583984
+          },
+          "sensitivity_rows_kept": 357771,
+          "sensitivity_rows_total": 357771
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.012425616693317954,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00723933199733943
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.012425616693317954,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.00723933199733943
+          },
+          "sensitivity_rows_kept": 357771,
+          "sensitivity_rows_total": 357771
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.013873489694385217,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.007691450895259848
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.013873489694385217,
+            "n_positive": 390,
+            "n_samples": 357771,
+            "pr_auc": 0.007691450895259848
+          },
+          "sensitivity_rows_kept": 357771,
+          "sensitivity_rows_total": 357771
+        }
+      },
+      "bank_4": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.008232548270740506,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005514385434385752
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.008232548270740506,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005514385434385752
+          },
+          "sensitivity_rows_kept": 358532,
+          "sensitivity_rows_total": 358532
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.011467215524845633,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005104490971274072
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.011467215524845633,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.005104490971274072
+          },
+          "sensitivity_rows_kept": 358532,
+          "sensitivity_rows_total": 358532
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.015449143656064313,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.006179912964023271
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.015449143656064313,
+            "n_positive": 356,
+            "n_samples": 358532,
+            "pr_auc": 0.006179912964023271
+          },
+          "sensitivity_rows_kept": 358532,
+          "sensitivity_rows_total": 358532
+        }
+      }
+    },
+    "C4": {
+      "all": {
+        "42": {
+          "primary": {
+            "f1_minority": 0.022421300235223464,
+            "n_positive": 1081,
+            "n_samples": 1015564,
+            "pr_auc": 0.009842237730304092
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.022421300235223464,
+            "n_positive": 1081,
+            "n_samples": 1015564,
+            "pr_auc": 0.009842237730304092
+          },
+          "sensitivity_rows_kept": 1015564,
+          "sensitivity_rows_total": 1015564
+        },
+        "52": {
+          "primary": {
+            "f1_minority": 0.019594823897422276,
+            "n_positive": 1081,
+            "n_samples": 1015564,
+            "pr_auc": 0.00836926716674237
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.019594823897422276,
+            "n_positive": 1081,
+            "n_samples": 1015564,
+            "pr_auc": 0.00836926716674237
+          },
+          "sensitivity_rows_kept": 1015564,
+          "sensitivity_rows_total": 1015564
+        },
+        "62": {
+          "primary": {
+            "f1_minority": 0.01666911800755013,
+            "n_positive": 1081,
+            "n_samples": 1015564,
+            "pr_auc": 0.007156702148850692
+          },
+          "sensitivity_dense_days": {
+            "f1_minority": 0.01666911800755013,
+            "n_positive": 1081,
+            "n_samples": 1015564,
+            "pr_auc": 0.007156702148850692
+          },
+          "sensitivity_rows_kept": 1015564,
+          "sensitivity_rows_total": 1015564
+        }
+      }
+    }
+  },
+  "split": "val"
+}

@@ -24,6 +24,7 @@ import tempfile
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from mritra.config import config_sha256, load_config, repo_path
 from mritra.data.partition import add_institutions, make_partition
@@ -169,7 +170,7 @@ def build_config_features(
                         accumulated_net_features[bank_id].extend(resp.features)
 
             # Delete large copies
-            del df_rounds
+            # del df_rounds
             enclave.close()
 
             # SAFEGUARD: dump Enclave state to disk so we never lose 40 mins again
@@ -282,13 +283,111 @@ def build_config_features(
             logger.info("Skipping C4: already exists and is fresh")
             return feature_columns
 
-        combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
+        logger.info("Computing C4 features (streaming)...")
+        from mritra.features.behaviour import compute_behavioural_features
+
+        behav_feats = compute_behavioural_features(view.edges)
+
+        # Free view.edges to save RAM
+        import gc
+
+        # del df
+        view = None
+        gc.collect()
+
+        from snapml import GraphFeaturePreprocessor
+        from mritra.protocol.rounds import round_id_for_ts
+        from mritra.features.graph_gfp import _prepare_edge_array, gfp_feature_names
+
+        import pandas as pd
+        import numpy as np
+
+        # Use the provided df to prepare edge array
+        df = df.sort_values("ts", kind="stable").reset_index(drop=True)
+        edge_arr = _prepare_edge_array(df)
+        batch_id = round_id_for_ts(edge_arr[:, 3], t0, window_sec).astype(np.int64)
+        # Note: df is still alive in main(), but chunking gfp removes the 9GB peak.
+
+        gfp = GraphFeaturePreprocessor()
+        gfp.set_params(dict(gfp_cfg.get("params", {})))
+
         out_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = out_path.with_suffix(".tmp.parquet")
-        combined.to_parquet(tmp_path)
+
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        writer = None
+
+        row_ids_list = []
+        features_list = []
+        n_feat = None
+        feat_names = None
+
+        rows_processed = 0
+
+        for b in np.unique(batch_id):
+            batch_edges = edge_arr[batch_id == b]
+            if len(batch_edges) == 0:
+                continue
+            out = gfp.transform(batch_edges)
+            row_ids_list.append(out[:, 0].astype(np.int64))
+            features_list.append(out[:, 5:].astype(np.float32))
+
+            if len(row_ids_list) >= 10:
+                c_row = np.concatenate(row_ids_list, axis=0)
+                c_feat = np.concatenate(features_list, axis=0)
+                if n_feat is None:
+                    n_feat = c_feat.shape[1]
+                    feat_names = gfp_feature_names(n_feat, gfp_cfg)
+
+                chunk_gfp = pd.DataFrame(c_feat, columns=feat_names, copy=False)
+                chunk_gfp.insert(0, "row_id", c_row)
+                chunk_gfp = chunk_gfp.set_index("row_id")
+
+                chunk_merged = chunk_gfp.join(behav_feats)
+
+                for col in chunk_merged.columns:
+                    if chunk_merged[col].dtype == "float64":
+                        chunk_merged[col] = chunk_merged[col].astype("float32")
+
+                table = pa.Table.from_pandas(chunk_merged)
+                if writer is None:
+                    writer = pq.ParquetWriter(tmp_path, table.schema)
+                writer.write_table(table)
+
+                rows_processed += len(chunk_merged)
+                row_ids_list = []
+                features_list = []
+                del chunk_gfp, chunk_merged, table
+                gc.collect()
+
+        if len(row_ids_list) > 0:
+            c_row = np.concatenate(row_ids_list, axis=0)
+            c_feat = np.concatenate(features_list, axis=0)
+            if n_feat is None:
+                n_feat = c_feat.shape[1]
+                feat_names = gfp_feature_names(n_feat, gfp_cfg)
+
+            chunk_gfp = pd.DataFrame(c_feat, columns=feat_names, copy=False)
+            chunk_gfp.insert(0, "row_id", c_row)
+            chunk_gfp = chunk_gfp.set_index("row_id")
+            chunk_merged = chunk_gfp.join(behav_feats)
+            for col in chunk_merged.columns:
+                if chunk_merged[col].dtype == "float64":
+                    chunk_merged[col] = chunk_merged[col].astype("float32")
+            table = pa.Table.from_pandas(chunk_merged)
+            if writer is None:
+                writer = pq.ParquetWriter(tmp_path, table.schema)
+            writer.write_table(table)
+            rows_processed += len(chunk_merged)
+
+        if writer is not None:
+            writer.close()
+
         tmp_path.rename(out_path)
-        feature_columns["all"] = list(combined.columns)
-        logger.info("C4: %d rows, %d cols -> %s", len(combined), combined.shape[1], out_path)
+        feature_columns["all"] = expected_cols
+        logger.info("C4: %d rows -> %s", rows_processed, out_path)
 
     return feature_columns
 

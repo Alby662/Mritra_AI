@@ -988,20 +988,63 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-/* ─── Micro animations ─────────────────────────────────────── */
+/* ─── Apple Micro-Animations & Spring Physics ───────────────── */
 @keyframes fadeInSlideUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px) scale(0.99);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
+@keyframes sheetSpringUp {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(12px); }
+}
+
+@keyframes toastSpringIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.9);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.apple-toast-capsule {
+  animation: toastSpringIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.apple-sheet-backdrop {
+  animation: fadeInBackdrop 0.25s ease both;
+}
+
+.apple-sheet {
+  animation: sheetSpringUp 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .animate-bento {
-  animation: fadeInSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeInSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .bento-delay-1 { animation-delay: 0.04s; }
@@ -1010,3 +1053,20 @@ h1, h2, h3, h4, h5, h6 {
 .bento-delay-4 { animation-delay: 0.16s; }
 .bento-delay-5 { animation-delay: 0.2s; }
 .bento-delay-6 { animation-delay: 0.24s; }
+
+/* Interactive Hover Polish */
+.stream-row {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+}
+
+.stream-row:hover {
+  transform: translateX(4px);
+}
+
+button:active {
+  transform: scale(0.96) !important;
+}
+
+.selector-pill, .icon-circle-btn, .apple-segment-btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}

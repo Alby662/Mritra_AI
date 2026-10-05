@@ -20,8 +20,10 @@ import { TransparencyLog } from './components/TransparencyLog';
 import { Reconciliation } from './components/Reconciliation';
 import { ConfigAudit } from './components/ConfigAudit';
 import { RUN_CATALOG } from './data/telemetryData';
+import { useToast } from './context/ToastContext';
 
 export function App() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'chain' | 'tlog' | 'recon' | 'audit'>('overview');
   const [selectedRunId, setSelectedRunId] = useState<string>('20261004T092741Z');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -40,7 +42,15 @@ export function App() {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(t => t === 'light' ? 'dark' : 'light');
+    setTheme(t => {
+      const next = t === 'light' ? 'dark' : 'light';
+      showToast(
+        next === 'dark' ? 'Deep Obsidian OLED Active' : 'Studio Cream Active', 
+        'Appearance preference saved in browser', 
+        'lime'
+      );
+      return next;
+    });
   };
 
   const activeRun = RUN_CATALOG[selectedRunId] || RUN_CATALOG['20261004T092741Z'];
@@ -64,6 +74,7 @@ export function App() {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    showToast('Enclave Telemetry Synchronized', 'Real-time boundary streams updated', 'success');
     setTimeout(() => setIsRefreshing(false), 700);
   };
 
@@ -216,6 +227,7 @@ export function App() {
                         onClick={() => {
                           setSelectedRunId(run.runId);
                           setShowRunDropdown(false);
+                          showToast(`Loaded Partition ${run.partition.split(' ')[0]}`, `${run.totalSamples.toLocaleString()} samples · ${(run.gRecovered * 100).toFixed(1)}% F1 recovery`, 'lime');
                         }}
                         style={{
                           width: '100%',

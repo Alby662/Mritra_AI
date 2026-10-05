@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { RUN_CATALOG } from '../data/telemetryData';
 import type { RunMetadata } from '../data/telemetryData';
+import { useToast } from '../context/ToastContext';
 
 interface OverviewProps {
   onNavigateTab?: (tab: string) => void;
@@ -23,6 +24,7 @@ export const Overview: React.FC<OverviewProps> = ({
   onNavigateTab,
   selectedRunId = '20261004T092741Z'
 }) => {
+  const { showToast } = useToast();
   const currentRun: RunMetadata = RUN_CATALOG[selectedRunId] || RUN_CATALOG['20261004T092741Z'];
   const [hoveredRadarAxis, setHoveredRadarAxis] = useState<string | null>(null);
   const [targetAccount, setTargetAccount] = useState('acct_309');
@@ -137,12 +139,14 @@ export const Overview: React.FC<OverviewProps> = ({
 
   const handleQuarantine = () => {
     setQuarantineStatus(`Account ${targetAccount} quarantined across all 3 consortium banks. Interdicted funds: $49,200.00.`);
+    showToast(`Account ${targetAccount} Quarantined`, 'Consortium freeze order dispatched across 3 banks · $49,200 secured', 'danger');
     setTimeout(() => setQuarantineStatus(null), 6000);
   };
 
   const handleCopyHash = (text: string) => {
     navigator.clipboard?.writeText(text);
     setCopiedTxId(true);
+    showToast('Cryptographic Hash Copied', text, 'copy');
     setTimeout(() => setCopiedTxId(false), 2000);
   };
 

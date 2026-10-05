@@ -10,7 +10,9 @@ import {
   ChevronDown, 
   Settings,
   HelpCircle,
-  Shield
+  Shield,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { Overview } from './components/Overview';
 import { ChainGraph } from './components/ChainGraph';
@@ -25,9 +27,25 @@ export function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showRunDropdown, setShowRunDropdown] = useState(false);
 
+  // Apple Appearance (Studio Cream vs Deep Obsidian OLED)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('mritra-theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('mritra-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(t => t === 'light' ? 'dark' : 'light');
+  };
+
   const activeRun = RUN_CATALOG[selectedRunId] || RUN_CATALOG['20261004T092741Z'];
 
-  // Apple-style Keyboard Shortcut Ergonomics (1 - 5 to switch tabs)
+  // Apple-style Keyboard Shortcut Ergonomics (1 - 5 to switch tabs, T to toggle appearance)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -38,6 +56,7 @@ export function App() {
       if (e.key === '3') setActiveTab('tlog');
       if (e.key === '4') setActiveTab('recon');
       if (e.key === '5') setActiveTab('audit');
+      if (e.key === 't' || e.key === 'T') toggleTheme();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -244,6 +263,20 @@ export function App() {
               <button className="icon-circle-btn" title="4 Neutralized Discrepancies">
                 <Bell size={16} />
                 <span className="badge-dot"></span>
+              </button>
+
+              {/* Apple Theme Switcher (Studio Cream vs Deep Obsidian OLED) */}
+              <button 
+                className="icon-circle-btn" 
+                onClick={toggleTheme}
+                title={theme === 'light' ? "Switch to Deep Obsidian OLED (Key T)" : "Switch to Studio Cream (Key T)"}
+                aria-label="Toggle Theme Appearance"
+              >
+                {theme === 'light' ? (
+                  <Moon size={16} />
+                ) : (
+                  <Sun size={16} color="var(--lime)" />
+                )}
               </button>
 
               {/* User Profile Capsule */}

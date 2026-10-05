@@ -108,11 +108,11 @@ export const ChainGraph: React.FC = () => {
         </div>
 
         {/* SVG Graph Canvas */}
-        <div style={{ width: '100%', overflowX: 'auto', background: '#ffffff', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', padding: '20px 0' }}>
+        <div style={{ width: '100%', overflowX: 'auto', background: 'var(--bg-card-solid)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', padding: '20px 0' }}>
           <svg width="780" height="340" viewBox="0 0 780 340" style={{ display: 'block', margin: '0 auto' }}>
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="28" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill={mode === 'C3' ? '#000000' : '#999999'} />
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={mode === 'C3' ? 'var(--text-primary)' : '#999999'} />
               </marker>
               <filter id="glow-lime" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="5" result="blur" />
@@ -131,7 +131,7 @@ export const ChainGraph: React.FC = () => {
                     y1={p1.y}
                     x2={p2.x}
                     y2={p2.y}
-                    stroke={mode === 'C3' ? '#000000' : '#bbbbbb'}
+                    stroke={mode === 'C3' ? 'var(--text-primary)' : '#bbbbbb'}
                     strokeWidth={mode === 'C3' ? 2.5 : 1.5}
                     strokeDasharray={mode === 'C1' ? '4 4' : 'none'}
                     markerEnd="url(#arrow)"
@@ -142,14 +142,14 @@ export const ChainGraph: React.FC = () => {
                     width="56"
                     height="18"
                     rx="4"
-                    fill="#f6f7f7"
-                    stroke="rgba(0, 0, 0, 0.1)"
+                    fill="var(--bg-card-subtle)"
+                    stroke="var(--border-subtle)"
                   />
                   <text
                     x={(p1.x + p2.x) / 2}
                     y={(p1.y + p2.y) / 2 + 3}
                     textAnchor="middle"
-                    fill="#000000"
+                    fill="var(--text-primary)"
                     fontSize="10"
                     fontWeight="700"
                     style={{ fontFamily: 'var(--font-mono)' }}

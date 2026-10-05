@@ -843,14 +843,14 @@ export const Overview: React.FC<OverviewProps> = ({
               </div>
             </div>
 
-            <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'var(--bg-card-subtle)', padding: '14px', borderRadius: 'var(--radius-sm)', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>PROOF COMMITMENT HASH</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700 }}>{inspectedTx.hash}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{inspectedTx.hash}</div>
               </div>
               <button 
                 onClick={() => handleCopyHash(inspectedTx.hash)}
-                style={{ padding: '6px 12px', border: 'none', background: '#ffffff', borderRadius: 'var(--radius-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600 }}
+                style={{ padding: '6px 12px', border: 'none', background: 'var(--bg-card-solid)', color: 'var(--text-primary)', borderRadius: 'var(--radius-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600 }}
               >
                 {copiedTxId ? <Check size={14} color="var(--apple-green)" /> : <Copy size={14} />}
                 {copiedTxId ? 'Copied' : 'Copy Hash'}
@@ -892,7 +892,7 @@ export const Overview: React.FC<OverviewProps> = ({
               <span className="pill-tag pill-tag-lime">Mathematical Proof §5</span>
               <button 
                 onClick={() => setShowProofModal(false)}
-                style={{ border: 'none', background: 'rgba(0,0,0,0.06)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontWeight: 800 }}
+                style={{ border: 'none', background: 'rgba(0,0,0,0.06)', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontWeight: 800, color: 'var(--text-primary)' }}
               >
                 ✕
               </button>
@@ -906,9 +906,9 @@ export const Overview: React.FC<OverviewProps> = ({
               Mritra proves that confidential graph synthesis inside a hardware enclave matches centralized upper-bound oracle performance while strictly bounding leakage under (ε=1.15, δ=10⁻⁶)-Differential Privacy.
             </p>
 
-            <div style={{ background: '#f6f7f7', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px', fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
-              <div style={{ color: '#555', marginBottom: '4px' }}>// Primary Hypothesis Metric:</div>
-              <div style={{ fontWeight: 700, color: '#000' }}>
+            <div style={{ background: 'var(--bg-card-subtle)', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px', fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
+              <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>// Primary Hypothesis Metric:</div>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
                 G = (F1_C3 - F1_C1) / (F1_C4 - F1_C1) = {currentRun.gRecovered}
               </div>
               <div style={{ color: 'var(--apple-green)', marginTop: '6px' }}>

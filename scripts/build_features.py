@@ -56,6 +56,33 @@ def _combined_features(
     return gfp_feats.join(behav_feats, how="outer")
 
 
+def _should_skip(out_path, expected_cols):
+    import os
+
+    if not out_path.exists():
+        return False
+    out_mtime = out_path.stat().st_mtime
+    deps = [
+        "scripts/build_features.py",
+        "mritra/features/network.py",
+        "mritra/features/views.py",
+        "mritra/features/graph_gfp.py",
+        "mritra/features/behaviour.py",
+    ]
+    for dep in deps:
+        if os.path.exists(dep) and os.stat(dep).st_mtime > out_mtime:
+            return False
+
+    import pyarrow.parquet as pq
+
+    schema = pq.read_schema(out_path)
+    # the index might be in the schema depending on how it's saved, but let's check if all expected cols are present
+    if not set(expected_cols).issubset(set(schema.names)):
+        return False
+
+    return True
+
+
 def build_config_features(
     config: str,
     df: pd.DataFrame,
@@ -69,9 +96,17 @@ def build_config_features(
 
     if config == "C1":
         for bank_id in range(k):
-            view = feature_view("C1", df, bank_id=bank_id)
-            combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
             out_path = feature_dir / config / f"bank_{bank_id}.parquet"
+            view = feature_view("C1", df, bank_id=bank_id)
+            expected_cols = view.feature_columns
+            if _should_skip(out_path, expected_cols):
+                import pyarrow.parquet as pq
+
+                feature_columns[str(bank_id)] = pq.read_schema(out_path).names
+                logger.info("Skipping %s bank %d: already exists and is fresh", config, bank_id)
+                continue
+
+            combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
             out_path.parent.mkdir(parents=True, exist_ok=True)
             tmp_path = out_path.with_suffix(".tmp.parquet")
             combined.to_parquet(tmp_path)
@@ -85,6 +120,14 @@ def build_config_features(
                 combined.shape[1],
                 out_path,
             )
+            import gc
+
+            if config == "C3":
+                del combined
+                del sub_df
+                del merge_light
+                del merged_light
+                gc.collect()
     elif config == "C3":
         # Don't keep heavy local features or views in memory.
         # We process rounds first, then load C1 features one bank at a time.
@@ -129,8 +172,32 @@ def build_config_features(
             del df_rounds
             enclave.close()
 
+            # SAFEGUARD: dump Enclave state to disk so we never lose 40 mins again
+            import pickle
+
+            ckpt_path = feature_dir / "C3" / "c3_enclave_checkpoint.pkl"
+            ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(ckpt_path, "wb") as f:
+                pickle.dump(accumulated_net_features, f)
+
+        # Try to load if we skipped Enclave (this is if we added skip logic earlier, but let's just dump)
+        # Actually, let's just leave it as a dump for safety.
         for bank_id in range(k):
+            out_path = feature_dir / config / f"bank_{bank_id}.parquet"
+            from mritra.features.network import NETWORK_SUMMARY_DIM
+
+            view = feature_view("C3", df, bank_id=bank_id, network_summary_dim=NETWORK_SUMMARY_DIM)
+            expected_cols = view.feature_columns
+            if _should_skip(out_path, expected_cols):
+                import pyarrow.parquet as pq
+
+                feature_columns[str(bank_id)] = pq.read_schema(out_path).names
+                logger.info("Skipping C3 bank %d: already exists and is fresh", bank_id)
+                accumulated_net_features[bank_id] = []
+                continue
+
             net_df = banks[bank_id].receive_features(accumulated_net_features[bank_id])
+            accumulated_net_features[bank_id] = []  # FREE RAM IMMEDIATELY
 
             # Load C1 features for this bank only
             c1_path = feature_dir / "C1" / f"bank_{bank_id}.parquet"
@@ -196,10 +263,26 @@ def build_config_features(
                 combined.shape[1],
                 out_path,
             )
-    else:  # C4
-        view = feature_view("C4", df)
-        combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
+            import gc
+
+            if config == "C3":
+                del combined
+                del sub_df
+                del merge_light
+                del merged_light
+                gc.collect()
+    elif config == "C4":
         out_path = feature_dir / "C4" / "all.parquet"
+        view = feature_view("C4", df)
+        expected_cols = view.feature_columns
+        if _should_skip(out_path, expected_cols):
+            import pyarrow.parquet as pq
+
+            feature_columns["all"] = pq.read_schema(out_path).names
+            logger.info("Skipping C4: already exists and is fresh")
+            return feature_columns
+
+        combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = out_path.with_suffix(".tmp.parquet")
         combined.to_parquet(tmp_path)

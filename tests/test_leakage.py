@@ -254,8 +254,8 @@ class TestLabelLeakage:
             }
         )
         summaries = {
-            "0_A1": np.array([1.0, 2.0, 3.0]),
-            "1_B1": np.array([4.0, 5.0, 6.0]),
+            "0_A1": np.array([1.0] * 6),
+            "1_B1": np.array([4.0, 5.0, 6.0, 0.0, 0.0, 0.0]),
         }
         result = compute_network_features(edges, summaries)
         for acct, feat_vec in result.items():
@@ -517,9 +517,9 @@ class TestNetworkFeatureLeakage:
         )
         # Summaries with continuous feature values (not labels)
         summaries = {
-            "A": np.array([1.23, 4.56, 7.89]),
-            "B": np.array([2.34, 5.67, 8.90]),
-            "C": np.array([3.45, 6.78, 9.01]),
+            "A": np.array([1.23, 4.56, 7.89, 0.0, 0.0, 0.0]),
+            "B": np.array([2.34, 5.67, 8.90, 0.0, 0.0, 0.0]),
+            "C": np.array([3.45, 6.78, 9.01, 0.0, 0.0, 0.0]),
         }
         result = compute_network_features(edges, summaries)
         assert len(result) == 3
@@ -539,8 +539,8 @@ class TestNetworkFeatureLeakage:
             }
         )
         summaries = {
-            "A": np.array([1.0, 1.0]),
-            "B": np.array([1.0, 1.0]),
+            "A": np.array([1.0] * 6),
+            "B": np.array([1.0] * 6),
         }
         result = compute_network_features(edges, summaries)
         # Both A and B have fan-out=1, fan-in=1

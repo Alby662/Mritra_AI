@@ -40,30 +40,30 @@ interface Edge {
 
 const INITIAL_NODES: Node[] = [
   { 
-    id: 'acct_101', 
-    label: 'Acct #101', 
-    bank: 'Bank Alpha', 
-    bankColor: '#000000', 
+    id: 'inst4_mule_1', 
+    label: 'Inst 4 (Origin Hub)', 
+    bank: 'Institution 4 (Lying Bank)', 
+    bankColor: '#ff3b30', 
     role: 'Source', 
     x: 90, 
     y: 170, 
-    c1RiskScore: 0.15, 
-    c3RiskScore: 0.92,
-    balance: '$120,400.00',
-    passThroughRatio: 0.42,
-    velocityMin: 45,
+    c1RiskScore: 0.18, 
+    c3RiskScore: 0.98,
+    balance: '$244,982.00',
+    passThroughRatio: 0.96,
+    velocityMin: 14,
     inDegree: 1,
     outDegree: 2
   },
   { 
-    id: 'acct_204', 
-    label: 'Acct #204', 
-    bank: 'Bank Beta', 
-    bankColor: '#4f46e5', 
+    id: 'inst0_mule_2', 
+    label: 'Inst 0 (Alpha Relay)', 
+    bank: 'Institution 0 (Alpha)', 
+    bankColor: '#000000', 
     role: 'Mule', 
     x: 280, 
     y: 90, 
-    c1RiskScore: 0.22, 
+    c1RiskScore: 0.21, 
     c3RiskScore: 0.96,
     balance: '$49,500.00',
     passThroughRatio: 0.98,
@@ -72,14 +72,14 @@ const INITIAL_NODES: Node[] = [
     outDegree: 1
   },
   { 
-    id: 'acct_205', 
-    label: 'Acct #205', 
-    bank: 'Bank Beta', 
+    id: 'inst1_mule_3', 
+    label: 'Inst 1 (Beta Layer)', 
+    bank: 'Institution 1 (Beta)', 
     bankColor: '#4f46e5', 
     role: 'Mule', 
     x: 280, 
     y: 250, 
-    c1RiskScore: 0.18, 
+    c1RiskScore: 0.14, 
     c3RiskScore: 0.94,
     balance: '$49,800.00',
     passThroughRatio: 0.97,
@@ -88,15 +88,15 @@ const INITIAL_NODES: Node[] = [
     outDegree: 1
   },
   { 
-    id: 'acct_309', 
-    label: 'Acct #309', 
-    bank: 'Bank Gamma', 
+    id: 'inst2_mule_4', 
+    label: 'Inst 2 (Gamma Collector)', 
+    bank: 'Institution 2 (Gamma)', 
     bankColor: '#059669', 
     role: 'Mule', 
     x: 490, 
     y: 170, 
     c1RiskScore: 0.12, 
-    c3RiskScore: 0.98,
+    c3RiskScore: 0.97,
     balance: '$98,600.00',
     passThroughRatio: 0.99,
     velocityMin: 12,
@@ -104,15 +104,15 @@ const INITIAL_NODES: Node[] = [
     outDegree: 1
   },
   { 
-    id: 'acct_412', 
-    label: 'Acct #412', 
-    bank: 'Bank Alpha', 
-    bankColor: '#000000', 
+    id: 'inst3_dest_5', 
+    label: 'Inst 3 (Delta Drain)', 
+    bank: 'Institution 3 (Delta)', 
+    bankColor: '#d97706', 
     role: 'Destination', 
     x: 700, 
     y: 170, 
-    c1RiskScore: 0.08, 
-    c3RiskScore: 0.91,
+    c1RiskScore: 0.11, 
+    c3RiskScore: 0.92,
     balance: '$98,000.00',
     passThroughRatio: 0.05,
     velocityMin: 120,
@@ -122,11 +122,11 @@ const INITIAL_NODES: Node[] = [
 ];
 
 const INITIAL_EDGES: Edge[] = [
-  { id: 'e1', from: 'acct_101', to: 'acct_204', amount: '$49,500', ts: '10:04', isCrossBank: true },
-  { id: 'e2', from: 'acct_101', to: 'acct_205', amount: '$49,800', ts: '10:05', isCrossBank: true },
-  { id: 'e3', from: 'acct_204', to: 'acct_309', amount: '$49,200', ts: '10:18', isCrossBank: true },
-  { id: 'e4', from: 'acct_205', to: 'acct_309', amount: '$49,400', ts: '10:19', isCrossBank: true },
-  { id: 'e5', from: 'acct_309', to: 'acct_412', amount: '$98,000', ts: '10:35', isCrossBank: true },
+  { id: 'e1', from: 'inst4_mule_1', to: 'inst0_mule_2', amount: '$49,500', ts: '10:04', isCrossBank: true },
+  { id: 'e2', from: 'inst4_mule_1', to: 'inst1_mule_3', amount: '$49,800', ts: '10:05', isCrossBank: true },
+  { id: 'e3', from: 'inst0_mule_2', to: 'inst2_mule_4', amount: '$49,200', ts: '10:18', isCrossBank: true },
+  { id: 'e4', from: 'inst1_mule_3', to: 'inst2_mule_4', amount: '$49,400', ts: '10:19', isCrossBank: true },
+  { id: 'e5', from: 'inst2_mule_4', to: 'inst3_dest_5', amount: '$98,000', ts: '10:35', isCrossBank: true },
 ];
 
 export const ChainGraph: React.FC = () => {
@@ -489,10 +489,10 @@ export const ChainGraph: React.FC = () => {
               <ShieldAlert size={24} color="var(--apple-amber)" />
               <div>
                 <h4 style={{ color: 'var(--apple-amber)', fontWeight: 800, fontSize: '0.95rem' }}>
-                  C1 Status Quo: Isolated Bank View (Laundering Ring Missed!)
+                  C1 Status Quo: Isolated Siloed Model (78.7% Cross-Bank Laundering Missed!)
                 </h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '2px', lineHeight: 1.5 }}>
-                  Bank Alpha only sees internal transactions $101 → $204 and $309 → $412. Bank Beta only sees $204 → $309. Because amounts are split under $50,000 threshold, each bank's local model computes low risk (&lt; 22%) and misses the structured fan-in/fan-out ring.
+                  Under C1 siloed evaluation, each bank trains independently on internal ledger history (223 features). Because 78.7% of laundering transactions and 90.8% of laundering rings span institutional boundaries, C1 local classifiers miss cross-bank fan-out hops (F1 minority ~ 0.012 – 0.021).
                 </p>
               </div>
             </div>
@@ -501,10 +501,10 @@ export const ChainGraph: React.FC = () => {
               <CheckCircle2 size={24} color="var(--text-primary)" />
               <div>
                 <h4 style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: '0.95rem' }}>
-                  C3 Mritra Enclave: Cross-Bank Boundary Graph Active (Ring Caught!)
+                  C3 Mritra Enclave: Confidential Boundary Graph Active (+23 GFP Features!)
                 </h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '2px', lineHeight: 1.5 }}>
-                  The confidential enclave reconciles cross-bank transactions and returns non-leaking network features (Pass-through ratio = 0.98, Temporal-cycle = 12 mins). Risk scores jump to 98% and automatically flag all 3 mule accounts without revealing raw account histories to competitors!
+                  The hardware enclave reconciles double-entry cross-bank edges and computes 23 confidential boundary graph embeddings (<code className="code-font" style={{ fontSize: '0.8rem' }}>net_pass_through_ratio</code>, <code className="code-font" style={{ fontSize: '0.8rem' }}>net_fan_out</code>, <code className="code-font" style={{ fontSize: '0.8rem' }}>net_nbr_max</code>) under (ε=1.15, δ=10⁻⁶)-Differential Privacy, reconstructing the complete laundering topology with zero raw PII disclosure!
                 </p>
               </div>
             </div>
@@ -570,7 +570,7 @@ export const ChainGraph: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '4px' }}>
-                    <span>Rapid Dispersal Velocity (12-min window)</span>
+                    <span className="code-font">net_pass_through_ratio (Enclave)</span>
                     <span className="code-font" style={{ fontWeight: 700, color: 'var(--apple-red)' }}>+0.42 Risk Weight</span>
                   </div>
                   <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.06)', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -580,7 +580,7 @@ export const ChainGraph: React.FC = () => {
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '4px' }}>
-                    <span>Structured Boundary Fan-Out Degree</span>
+                    <span className="code-font">net_fan_out (Boundary Hub)</span>
                     <span className="code-font" style={{ fontWeight: 700, color: 'var(--apple-amber)' }}>+0.28 Risk Weight</span>
                   </div>
                   <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.06)', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -590,7 +590,7 @@ export const ChainGraph: React.FC = () => {
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '4px' }}>
-                    <span>Historical Amount Entropy Deviation</span>
+                    <span className="code-font">net_nbr_max_0 (Multi-Bank Degree)</span>
                     <span className="code-font" style={{ fontWeight: 700, color: 'var(--apple-green)' }}>+0.14 Risk Weight</span>
                   </div>
                   <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.06)', borderRadius: '9999px', overflow: 'hidden' }}>

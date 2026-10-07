@@ -28,3 +28,10 @@ def config_sha256(name: str = "experiment") -> str:
 def repo_path(relative: str | Path) -> Path:
     """Resolve a path from config (relative to the repo root)."""
     return REPO_ROOT / relative
+
+
+def repo_path(relative:str | path) -> Path:
+    """ Resolve a path from config (relative to the repo root)."""
+    return REPO_ROOT / relative
+    
+ def repo_path(relative:str vbn0)   

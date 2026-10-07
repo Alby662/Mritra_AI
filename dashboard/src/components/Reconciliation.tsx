@@ -1,16 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Download, 
   Copy, 
-  Check 
+  Check,
+  ShieldCheck
 } from 'lucide-react';
-import { RECON_DISCREPANCIES } from '../data/telemetryData';
-import type { ReconEvent } from '../data/telemetryData';
+import { 
+  REAL_RECONCILIATION_REPORT, 
+  RECON_DISCREPANCIES, 
+  fetchLiveResultsSummary 
+} from '../data/telemetryData';
+import type { ReconEvent, ReconciliationReport } from '../data/telemetryData';
 
 export const Reconciliation: React.FC = () => {
-  const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'AMOUNT_MISMATCH' | 'UNMATCHED_REFERENCE' | 'TIMESTAMP_MISMATCH' | 'REPLAY_DETECTED'>('ALL');
+  const [report, setReport] = useState<ReconciliationReport>(REAL_RECONCILIATION_REPORT);
+  const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'AMOUNT_MISMATCH' | 'UNMATCHED_REFERENCE' | 'DROPPED_EDGE' | 'PERTURBED_WEIGHT'>('ALL');
   const [inspectedIssue, setInspectedIssue] = useState<ReconEvent | null>(null);
   const [copiedProof, setCopiedProof] = useState(false);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+
+  useEffect(() => {
+    fetchLiveResultsSummary().then((summary) => {
+      if (summary && summary.reconciliation) {
+        setIsLiveConnected(true);
+        if (summary.reconciliation.injected_issues) {
+          setReport({
+            lyingInstitution: summary.reconciliation.lying_institution ?? 4,
+            injectedIssues: summary.reconciliation.injected_issues,
+            caughtIssues: summary.reconciliation.caught_issues,
+            catchRate: summary.reconciliation.catch_rate,
+            matchedTransactions: summary.reconciliation.reconciliation?.matched ?? 3299155,
+            amountMismatches: summary.reconciliation.reconciliation?.mismatches ?? 46348,
+            unmatchedReferences: summary.reconciliation.reconciliation?.unmatched_refs ?? 198634,
+            nOriginalInst4: summary.reconciliation.injection_stats?.n_original ?? 662115,
+            nDroppedInst4: summary.reconciliation.injection_stats?.n_dropped ?? 198634,
+            nPerturbedInst4: summary.reconciliation.injection_stats?.n_perturbed ?? 46348,
+            nRemainingInst4: summary.reconciliation.injection_stats?.n_remaining ?? 463481,
+          });
+        }
+      }
+    });
+  }, []);
 
   const filteredIssues = RECON_DISCREPANCIES.filter(issue => {
     if (selectedFilter === 'ALL') return true;
@@ -24,7 +54,14 @@ export const Reconciliation: React.FC = () => {
   };
 
   const handleExportJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(RECON_DISCREPANCIES, null, 2));
+    const exportPayload = {
+      experiment: 'Lying Bank Injection & Double-Entry Reconciliation',
+      benchmarkSource: 'results/reconciliation_injection.json',
+      report,
+      sampleDiscrepancies: RECON_DISCREPANCIES,
+      generatedAt: new Date().toISOString(),
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
     downloadAnchor.setAttribute("download", "mritra_double_entry_reconciliation.json");
@@ -35,81 +72,107 @@ export const Reconciliation: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* ─── Apple Overview Stat Cards ──────────────────────────── */}
+      {/* ─── Model Benchmark Stat Cards ─────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
         <div className="bento-card animate-bento bento-delay-1" style={{ padding: '20px 24px' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-            Injected Attack Vectors
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+              Injected Adversarial Vectors
+            </span>
+            <span className="pill-tag pill-tag-danger" style={{ fontSize: '0.62rem' }}>
+              Bank #{report.lyingInstitution}
+            </span>
           </div>
           <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px' }}>
-            4
+            {report.injectedIssues.toLocaleString()}
           </div>
           <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Simulated lying bank inject_lying_bank.py
+            {report.amountMismatches.toLocaleString()} perturbed + {report.unmatchedReferences.toLocaleString()} dropped edges
           </div>
         </div>
 
         <div className="bento-card animate-bento bento-delay-2" style={{ padding: '20px 24px', border: '1.5px solid var(--lime-border)' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-            Enclave Intercepted
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+              Enclave Intercepted
+            </span>
+            <ShieldCheck size={14} color="var(--apple-green)" />
           </div>
           <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px', color: 'var(--apple-green)' }}>
-            4 / 4
+            {report.caughtIssues.toLocaleString()} / {report.injectedIssues.toLocaleString()}
           </div>
           <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Neutralized prior to boundary graph entry
+            100% neutralized prior to boundary graph GFP
           </div>
         </div>
 
         <div className="bento-card animate-bento bento-delay-3" style={{ padding: '20px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+              Consortium Matched Txns
+            </span>
+            {isLiveConnected && (
+              <span className="pill-tag pill-tag-success" style={{ fontSize: '0.62rem' }}>
+                Live Model Sync
+              </span>
+            )}
+          </div>
+          <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)' }}>
+            {(report.matchedTransactions / 1000000).toFixed(2)}M
+          </div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            {report.matchedTransactions.toLocaleString()} double-entry verified transactions
+          </div>
+        </div>
+
+        <div className="bento-card animate-bento bento-delay-4" style={{ padding: '20px 24px' }}>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
             Reconciliation Catch Rate
           </div>
           <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)' }}>
-            100.0%
+            {(report.catchRate * 100).toFixed(1)}%
           </div>
           <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Zero poisoning of downstream features
+            Zero poisoning across P1 volume-balanced split
           </div>
         </div>
       </div>
 
-      {/* ─── Apple Table Card with Filtering & Export ───────────── */}
+      {/* ─── Model Benchmark Discrepancies Table ──────────────────── */}
       <div className="apple-table-card animate-bento bento-delay-2">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
           <div>
-            <h3 className="bento-card-title">Reconciled Double-Entry Audit Log</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 className="bento-card-title">Reconciled Double-Entry Audit Log</h3>
+              <span className="pill-tag pill-tag-glass" style={{ fontSize: '0.68rem' }}>
+                results/reconciliation_injection.json
+              </span>
+            </div>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Verifies matching credits and debits across institutional boundaries
+              Cryptographically verified credits and debits across institutional boundaries in TEE
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Filter buttons */}
             <div className="apple-segmented-control">
               <button 
                 onClick={() => setSelectedFilter('ALL')} 
                 className={`apple-segment-btn ${selectedFilter === 'ALL' ? 'active' : ''}`}
               >
-                All (4)
+                All ({RECON_DISCREPANCIES.length})
               </button>
               <button 
                 onClick={() => setSelectedFilter('AMOUNT_MISMATCH')} 
                 className={`apple-segment-btn ${selectedFilter === 'AMOUNT_MISMATCH' ? 'active' : ''}`}
               >
-                Amount Mismatch
+                Amount Mismatch ({report.amountMismatches.toLocaleString()})
               </button>
               <button 
                 onClick={() => setSelectedFilter('UNMATCHED_REFERENCE')} 
                 className={`apple-segment-btn ${selectedFilter === 'UNMATCHED_REFERENCE' ? 'active' : ''}`}
               >
-                Missing Ref
-              </button>
-              <button 
-                onClick={() => setSelectedFilter('REPLAY_DETECTED')} 
-                className={`apple-segment-btn ${selectedFilter === 'REPLAY_DETECTED' ? 'active' : ''}`}
-              >
-                Replay
+                Dropped Edge ({report.unmatchedReferences.toLocaleString()})
               </button>
             </div>
 
@@ -118,7 +181,7 @@ export const Reconciliation: React.FC = () => {
               className="selector-pill"
               title="Export Audit Log as JSON"
             >
-              <Download size={14} /> Export JSON
+              <Download size={14} /> Export Audit JSON
             </button>
           </div>
         </div>
@@ -127,14 +190,14 @@ export const Reconciliation: React.FC = () => {
           <table className="apple-table">
             <thead>
               <tr>
-                <th>Txn Reference</th>
+                <th>Txn Edge Ref</th>
                 <th>Sender Entity</th>
                 <th>Receiver Entity</th>
-                <th>Sender Ledger</th>
-                <th>Receiver Ledger</th>
+                <th>Inst 4 (Source) Ledger</th>
+                <th>Counterparty Ledger</th>
                 <th>Discrepancy Category</th>
                 <th>Enclave Action</th>
-                <th>Action</th>
+                <th>Audit Proof</th>
               </tr>
             </thead>
             <tbody>
@@ -143,17 +206,17 @@ export const Reconciliation: React.FC = () => {
                   <td className="code-font" style={{ fontWeight: 800 }}>
                     {issue.edgeRef}
                   </td>
-                  <td style={{ fontWeight: 600 }}>{issue.fromBank}</td>
-                  <td style={{ fontWeight: 600 }}>{issue.toBank}</td>
-                  <td className="tabular-nums code-font" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
-                    {issue.bankA_Amount}
+                  <td style={{ fontWeight: 600 }}>{issue.fromInstitution}</td>
+                  <td style={{ fontWeight: 600 }}>{issue.toInstitution}</td>
+                  <td className="tabular-nums code-font" style={{ color: issue.sourceAmount.includes('WITHHELD') ? 'var(--apple-red)' : 'var(--text-primary)', fontWeight: 700 }}>
+                    {issue.sourceAmount}
                   </td>
-                  <td className="tabular-nums code-font" style={{ color: issue.bankB_Amount.includes('MISSING') ? 'var(--apple-red)' : 'var(--apple-amber)', fontWeight: 700 }}>
-                    {issue.bankB_Amount}
+                  <td className="tabular-nums code-font" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                    {issue.counterpartyAmount}
                   </td>
                   <td>
                     <span className="pill-tag pill-tag-danger" style={{ fontSize: '0.68rem' }}>
-                      {issue.issueType.replace('_', ' ')}
+                      {issue.issueType.replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td>
@@ -202,34 +265,41 @@ export const Reconciliation: React.FC = () => {
               Double-Entry Reconciliation Failure
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginBottom: '20px' }}>
-              Transaction amounts reported by the sender institution do not balance against receiver ledger records.
+              Transaction amounts reported by Institution #4 do not balance against counterparty records in the enclave ledger.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>SENDER: {inspectedIssue.fromBank}</div>
-                <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px' }}>
-                  {inspectedIssue.bankA_Amount}
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>SOURCE: {inspectedIssue.fromInstitution}</div>
+                <div className="tabular-nums" style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: '2px', color: inspectedIssue.sourceAmount.includes('WITHHELD') ? 'var(--apple-red)' : 'var(--text-primary)' }}>
+                  {inspectedIssue.sourceAmount}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Timestamp: {inspectedIssue.timestampA}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Timestamp: {inspectedIssue.timestamp}</div>
               </div>
 
               <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>RECEIVER: {inspectedIssue.toBank}</div>
-                <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px', color: 'var(--apple-red)' }}>
-                  {inspectedIssue.bankB_Amount}
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>COUNTERPARTY: {inspectedIssue.toInstitution}</div>
+                <div className="tabular-nums" style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: '2px', color: 'var(--apple-green)' }}>
+                  {inspectedIssue.counterpartyAmount}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Timestamp: {inspectedIssue.timestampB}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Attestation: Double-Entry Signed</div>
               </div>
+            </div>
+
+            <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>ADVERSARIAL ATTACK PATTERN</div>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>
+                {inspectedIssue.inst4Attempt}
+              </p>
             </div>
 
             <div style={{ background: '#f5f5f7', padding: '14px', borderRadius: 'var(--radius-sm)', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>ENCLAVE REJECTION PROOF HASH</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700 }}>{inspectedIssue.proofHash}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>ENCLAVE ISOLATION PROOF HASH</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700 }}>{inspectedIssue.auditProofSha}</div>
               </div>
               <button 
-                onClick={() => handleCopy(inspectedIssue.proofHash)}
+                onClick={() => handleCopy(inspectedIssue.auditProofSha)}
                 style={{ padding: '6px 12px', border: 'none', background: '#ffffff', borderRadius: 'var(--radius-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600 }}
               >
                 {copiedProof ? <Check size={14} color="var(--apple-green)" /> : <Copy size={14} />}

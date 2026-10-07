@@ -227,7 +227,7 @@ export function App() {
                         onClick={() => {
                           setSelectedRunId(run.runId);
                           setShowRunDropdown(false);
-                          showToast(`Loaded Partition ${run.partition.split(' ')[0]}`, `${run.totalSamples.toLocaleString()} samples · ${(run.gRecovered * 100).toFixed(1)}% F1 recovery`, 'lime');
+                          showToast(`Loaded Partition ${run.partition.split(' ')[0]}`, `${run.totalSamples.toLocaleString()} samples · C4 Oracle F1: ${run.c4OracleF1.toFixed(4)}`, 'lime');
                         }}
                         style={{
                           width: '100%',

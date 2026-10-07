@@ -209,12 +209,18 @@ export const TransparencyLog: React.FC = () => {
               </button>
             </div>
 
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '6px' }}>
-              {inspectedBlock.queryType}
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginBottom: '20px' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginBottom: '12px' }}>
               Submitted by <strong style={{ color: '#000' }}>{inspectedBlock.requester}</strong> at {inspectedBlock.ts} UTC.
             </p>
+
+            {inspectedBlock.details && (
+              <div style={{ background: '#f5f5f7', padding: '12px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                <strong>Execution Record:</strong> {inspectedBlock.details}
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Audited Volume: {inspectedBlock.recordsCount.toLocaleString()} items committed
+                </div>
+              </div>
+            )}
 
             {/* Hashes Details */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>

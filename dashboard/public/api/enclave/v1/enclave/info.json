@@ -1,0 +1,10 @@
+{
+  "protocol_version": "0.1",
+  "enclave_pk_b64": "7QNrjR8LL9RgD3eUsQGSuT4N7J65E8ZWaQaTBzlsORY=",
+  "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+  "attestation": {
+    "type": "simulated",
+    "evidence": "dummy",
+    "hardware_target": "IBM Secure Execution on LinuxONE"
+  }
+}

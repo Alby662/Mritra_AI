@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "prebuild": "python3 ../scripts/generate_static_api.py || true",
+    "build": "npm run prebuild && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },

@@ -11,6 +11,7 @@ import {
   fetchLiveResultsSummary 
 } from '../data/telemetryData';
 import type { ReconEvent, ReconciliationReport } from '../data/telemetryData';
+import { getReconciliationSummary } from '../api/mritraApi';
 
 export const Reconciliation: React.FC = () => {
   const [report, setReport] = useState<ReconciliationReport>(REAL_RECONCILIATION_REPORT);
@@ -20,6 +21,20 @@ export const Reconciliation: React.FC = () => {
   const [isLiveConnected, setIsLiveConnected] = useState(false);
 
   useEffect(() => {
+    getReconciliationSummary(0).then((recon) => {
+      if (recon) {
+        setIsLiveConnected(true);
+        setReport(prev => ({
+          ...prev,
+          injectedIssues: recon.total_mismatches,
+          caughtIssues: recon.total_issues,
+          lyingInstitution: recon.lying_institution ?? 4,
+          amountMismatches: recon.total_mismatches,
+          unmatchedReferences: recon.total_unmatched,
+        }));
+      }
+    });
+
     fetchLiveResultsSummary().then((summary) => {
       if (summary && summary.reconciliation) {
         setIsLiveConnected(true);
@@ -29,13 +44,13 @@ export const Reconciliation: React.FC = () => {
             injectedIssues: summary.reconciliation.injected_issues,
             caughtIssues: summary.reconciliation.caught_issues,
             catchRate: summary.reconciliation.catch_rate,
-            matchedTransactions: summary.reconciliation.reconciliation?.matched ?? 3299155,
-            amountMismatches: summary.reconciliation.reconciliation?.mismatches ?? 46348,
-            unmatchedReferences: summary.reconciliation.reconciliation?.unmatched_refs ?? 198634,
-            nOriginalInst4: summary.reconciliation.injection_stats?.n_original ?? 662115,
-            nDroppedInst4: summary.reconciliation.injection_stats?.n_dropped ?? 198634,
-            nPerturbedInst4: summary.reconciliation.injection_stats?.n_perturbed ?? 46348,
-            nRemainingInst4: summary.reconciliation.injection_stats?.n_remaining ?? 463481,
+            matchedTransactions: summary.reconciliation.reconciliation?.matched ?? 466090,
+            amountMismatches: summary.reconciliation.reconciliation?.mismatches ?? 33910,
+            unmatchedReferences: summary.reconciliation.reconciliation?.unmatched_refs ?? 27495,
+            nOriginalInst4: summary.reconciliation.injection_stats?.n_original ?? 91653,
+            nDroppedInst4: summary.reconciliation.injection_stats?.n_dropped ?? 27495,
+            nPerturbedInst4: summary.reconciliation.injection_stats?.n_perturbed ?? 6415,
+            nRemainingInst4: summary.reconciliation.injection_stats?.n_remaining ?? 64158,
           });
         }
       }

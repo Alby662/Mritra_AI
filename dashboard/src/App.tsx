@@ -21,6 +21,8 @@ import { Reconciliation } from './components/Reconciliation';
 import { ConfigAudit } from './components/ConfigAudit';
 import { RUN_CATALOG } from './data/telemetryData';
 import { useToast } from './context/ToastContext';
+import { getEnclaveInfo, getBankHealth } from './api/mritraApi';
+import type { EnclaveInfo, BankHealth } from './api/mritraApi';
 
 export function App() {
   const { showToast } = useToast();
@@ -28,6 +30,13 @@ export function App() {
   const [selectedRunId, setSelectedRunId] = useState<string>('20261004T092741Z');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showRunDropdown, setShowRunDropdown] = useState(false);
+  const [enclaveInfo, setEnclaveInfo] = useState<EnclaveInfo | null>(null);
+  const [bankHealth, setBankHealth] = useState<BankHealth | null>(null);
+
+  useEffect(() => {
+    getEnclaveInfo().then(setEnclaveInfo);
+    getBankHealth().then(setBankHealth);
+  }, []);
 
   // Apple Appearance (Studio Cream vs Deep Obsidian OLED)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -191,6 +200,24 @@ export function App() {
               <span className="header-badge">
                 {activeRun.partition}
               </span>
+              {enclaveInfo?.attestation?.type === 'simulated' && (
+                <span 
+                  className="pill-tag pill-tag-warning"
+                  style={{ fontSize: '0.68rem', cursor: 'default' }}
+                  title="Production target: IBM Secure Execution on LinuxONE"
+                >
+                  Enclave boundary simulated
+                </span>
+              )}
+              {bankHealth?.status === 'ok' && (
+                <span 
+                  className="pill-tag pill-tag-success"
+                  style={{ fontSize: '0.68rem', cursor: 'default' }}
+                  title={`mTLS Connected to Bank Service (${bankHealth.bank_id}) on :8000/:8001`}
+                >
+                  Bank {bankHealth.bank_id} Online
+                </span>
+              )}
             </div>
 
             {/* Header Actions & Live Partition Switcher */}

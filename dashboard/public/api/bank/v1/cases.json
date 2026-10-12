@@ -1,0 +1,30 @@
+{
+  "bank_id": "B1",
+  "cases": [
+    {
+      "account": "B1_acct_8019C0990",
+      "score": 0.9942,
+      "flagged": true
+    },
+    {
+      "account": "B1_acct_80514DE20",
+      "score": 0.985,
+      "flagged": true
+    },
+    {
+      "account": "B1_acct_80145D1D0",
+      "score": 0.9712,
+      "flagged": true
+    },
+    {
+      "account": "B1_acct_800459750",
+      "score": 0.9634,
+      "flagged": true
+    },
+    {
+      "account": "B1_acct_8010E8680",
+      "score": 0.952,
+      "flagged": true
+    }
+  ]
+}

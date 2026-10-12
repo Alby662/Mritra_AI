@@ -1,0 +1,150 @@
+[
+  {
+    "seq": 1,
+    "ts": 1791671601,
+    "type": "ENCLAVE_STARTED",
+    "actor": "ENCLAVE",
+    "round_id": null,
+    "input_sha256": null,
+    "output_sha256": null,
+    "code_sha256": "dummy_code",
+    "detail": {
+      "test": 1
+    },
+    "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "entry_hash": "8c509ad6b39a1b528430dcdf1e1f82135c55126f92aff424f13e512e205670d6"
+  },
+  {
+    "seq": 2,
+    "ts": 1791835909,
+    "type": "ENCLAVE_STARTED",
+    "actor": "ENCLAVE",
+    "round_id": null,
+    "input_sha256": null,
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "attestation_type": "simulated",
+      "evidence": "dummy"
+    },
+    "prev_hash": "8c509ad6b39a1b528430dcdf1e1f82135c55126f92aff424f13e512e205670d6",
+    "entry_hash": "9708c65a082526d6f1ae1352c3f7dca49d487059322b0efb18d71be4618cbf65"
+  },
+  {
+    "seq": 3,
+    "ts": 1791835999,
+    "type": "SUBMISSION_RECEIVED",
+    "actor": "B0",
+    "round_id": 0,
+    "input_sha256": "7a1e4d0794fb75c8ddfb7b34f59c651d9399aa587c1e92a8f1fe5b57ef44938e",
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "status": "accepted",
+      "txns_count": 124500
+    },
+    "prev_hash": "9708c65a082526d6f1ae1352c3f7dca49d487059322b0efb18d71be4618cbf65",
+    "entry_hash": "ca4856091ddc4ea0754254a7ba7b5c437bf72d1c8bb556bd24fc569199df72d4"
+  },
+  {
+    "seq": 4,
+    "ts": 1791835999,
+    "type": "SUBMISSION_RECEIVED",
+    "actor": "B1",
+    "round_id": 0,
+    "input_sha256": "0dc90abe50d717297ff74ea00e20200bbe4bfb8121fba07d51e52649c582ec76",
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "status": "accepted",
+      "txns_count": 118900
+    },
+    "prev_hash": "ca4856091ddc4ea0754254a7ba7b5c437bf72d1c8bb556bd24fc569199df72d4",
+    "entry_hash": "9b30c5380ef975e3ab50deecdb9d1aee08c2228b06df09084dfe126428dccb90"
+  },
+  {
+    "seq": 5,
+    "ts": 1791835999,
+    "type": "SUBMISSION_RECEIVED",
+    "actor": "B2",
+    "round_id": 0,
+    "input_sha256": "f8cc523a358544e18e96f5ef7a9f5fcb5b5508f9d58ca59dea65391d72ee786c",
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "status": "accepted",
+      "txns_count": 105400
+    },
+    "prev_hash": "9b30c5380ef975e3ab50deecdb9d1aee08c2228b06df09084dfe126428dccb90",
+    "entry_hash": "4d828687e2de3ab75a8fb4e63b27296c9a704e6cfec77a79f0c2d49fc212123a"
+  },
+  {
+    "seq": 6,
+    "ts": 1791835999,
+    "type": "SUBMISSION_RECEIVED",
+    "actor": "B3",
+    "round_id": 0,
+    "input_sha256": "43344c058352bfccf2c7aca57b24600d87986066da18062e4b550b1842efe6f1",
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "status": "accepted",
+      "txns_count": 112100
+    },
+    "prev_hash": "4d828687e2de3ab75a8fb4e63b27296c9a704e6cfec77a79f0c2d49fc212123a",
+    "entry_hash": "c720f164befbcb6ff88b1ce8169ed027097fcacaf4bcfaf9aff38a6d58956e50"
+  },
+  {
+    "seq": 7,
+    "ts": 1791835999,
+    "type": "SUBMISSION_RECEIVED",
+    "actor": "B4",
+    "round_id": 0,
+    "input_sha256": "1436f34b2c1b6d1893eaa1ec5a0c678f7fa9d5603764bde69bff788c24a37af0",
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "inst4_lying_vector": true,
+      "status": "adversarial_discrepancies_flagged"
+    },
+    "prev_hash": "c720f164befbcb6ff88b1ce8169ed027097fcacaf4bcfaf9aff38a6d58956e50",
+    "entry_hash": "d541fd16cee184e90905b6c757b6fce67c74596b1aa227275c7c841cc7a3472a"
+  },
+  {
+    "seq": 8,
+    "ts": 1791835999,
+    "type": "ROUND_COMPUTED",
+    "actor": "ENCLAVE",
+    "round_id": 0,
+    "input_sha256": "4474c068ddf7f545adec074859c2438220ac9ecacc360cc2bfe0fd9824ab130f",
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "banks": 5,
+      "catch_rate": 1.0,
+      "intercepted_inst4_issues": 61405,
+      "matched_edges_added": 466090,
+      "mismatched_refs": 33910,
+      "unmatched_refs": 27495
+    },
+    "prev_hash": "d541fd16cee184e90905b6c757b6fce67c74596b1aa227275c7c841cc7a3472a",
+    "entry_hash": "4ff9c76d44ac378a100150e70c619281d2d5f64fef905ac79d7fde6665531cef"
+  },
+  {
+    "seq": 9,
+    "ts": 1791835999,
+    "type": "FEATURES_DISPATCHED",
+    "actor": "ENCLAVE",
+    "round_id": 0,
+    "input_sha256": "a9cf1e2740b5f563d2cc57279c5f474ac5ee59bb68005b6040a7ff7ae611bd93",
+    "output_sha256": null,
+    "code_sha256": "04be13a05351e5ede027cb3828ae28d383a2efce97f7d8b345e68832a175f62e",
+    "detail": {
+      "delta": 1e-06,
+      "dim": 252,
+      "privacy_budget_eps": 1.15
+    },
+    "prev_hash": "4ff9c76d44ac378a100150e70c619281d2d5f64fef905ac79d7fde6665531cef",
+    "entry_hash": "c17206d41f51f683cb5c0d5c7c7d4f1eee81e583da3dc23b4f7c8baeda355c24"
+  }
+]

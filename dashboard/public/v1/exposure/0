@@ -1,0 +1,14 @@
+{
+  "round_id": 0,
+  "bank_id": "B1",
+  "bytes_sent": 1024,
+  "fields_exposed": [
+    "amount",
+    "ts",
+    "currency",
+    "fmt",
+    "own_account",
+    "counterparty_bank",
+    "counterparty_account"
+  ]
+}

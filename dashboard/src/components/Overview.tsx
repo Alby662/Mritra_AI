@@ -20,6 +20,8 @@ import {
 } from '../data/telemetryData';
 import type { RunMetadata } from '../data/telemetryData';
 import { useToast } from '../context/ToastContext';
+import { getBankCases, getBankExposure } from '../api/mritraApi';
+import type { BankCase, BankExposureResponse } from '../api/mritraApi';
 
 interface OverviewProps {
   onNavigateTab?: (tab: string) => void;
@@ -42,12 +44,22 @@ export const Overview: React.FC<OverviewProps> = ({
   const [copiedTxId, setCopiedTxId] = useState(false);
   const [activeSplinePoint, setActiveSplinePoint] = useState<number>(4);
   const [isLiveApi, setIsLiveApi] = useState(false);
+  const [bankCases, setBankCases] = useState<BankCase[]>([]);
+  const [bankExposure, setBankExposure] = useState<BankExposureResponse | null>(null);
 
   useEffect(() => {
     fetchLiveResultsSummary().then((summary) => {
       if (summary && summary.success) {
         setIsLiveApi(true);
       }
+    });
+
+    getBankCases(5).then((res) => {
+      if (res && res.cases) setBankCases(res.cases);
+    });
+
+    getBankExposure(0).then((res) => {
+      if (res) setBankExposure(res);
     });
   }, []);
 
@@ -618,9 +630,68 @@ export const Overview: React.FC<OverviewProps> = ({
 
         </div>
 
-        {/* ── COLUMN 3: Quick Action + Tall Lime Promo Card ──────── */}
+        {/* ── COLUMN 3: Bank Service + Quick Action + Spotlight ─── */}
         <div className="bento-column">
           
+          {/* Card: Live Bank Service AML Cases Queue (:8000/:8001 API) */}
+          <div className="bento-card animate-bento bento-delay-2" style={{ padding: '20px 22px' }}>
+            <div className="bento-card-header" style={{ marginBottom: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="pill-tag pill-tag-dark" style={{ fontSize: '0.62rem' }}>
+                    BANK SERVICE API (:8001)
+                  </span>
+                  <span className="pill-tag pill-tag-success" style={{ fontSize: '0.62rem' }}>
+                    mTLS ACTIVE
+                  </span>
+                </div>
+                <h3 className="bento-card-title" style={{ fontSize: '0.98rem', marginTop: '4px' }}>
+                  Bank Review Queue (/v1/cases)
+                </h3>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {bankCases.length > 0 ? bankCases.slice(0, 4).map((c) => (
+                <div 
+                  key={c.account}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'var(--bg-card-subtle)',
+                    fontSize: '0.74rem',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <span className="code-font" style={{ fontWeight: 700 }}>{c.account}</span>
+                  <span className="tabular-nums" style={{ fontWeight: 800, color: c.score > 0.95 ? 'var(--apple-red)' : 'var(--apple-amber)' }}>
+                    {(c.score * 100).toFixed(1)}% RISK
+                  </span>
+                </div>
+              )) : (
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Synchronizing bank queue...</div>
+              )}
+            </div>
+
+            {/* Zero-Exposure Boundary Telemetry */}
+            {bankExposure && (
+              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  ZERO-TRUST BOUNDARY EXPOSURE (/v1/exposure)
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--apple-green)', marginTop: '2px', fontWeight: 600 }}>
+                  ✓ Raw internal account txns never leave the bank
+                </div>
+                <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Exposed fields: <code className="code-font" style={{ fontSize: '0.64rem' }}>{bankExposure.fields_exposed.join(', ')}</code>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Card 5: Quick Quarantine Dispatch */}
           <div className="bento-card animate-bento bento-delay-3">
             <div className="bento-card-header">

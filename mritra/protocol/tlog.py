@@ -15,7 +15,6 @@ import sqlite3
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -37,29 +36,34 @@ CREATE TABLE IF NOT EXISTS tlog (
 
 GENESIS_HASH = "0" * 64
 
+
 def _canonical_json(d: dict) -> str:
     """Deterministic JSON serialisation for hashing."""
     return json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
 
 def _compute_entry_hash(prev_hash: str, entry: dict) -> str:
     """SHA-256(prev_hash || canonical_json(entry without entry_hash))."""
     payload = prev_hash + _canonical_json(entry)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+
 @dataclass
 class LogEntry:
     """A single transparency log entry."""
+
     seq: int
     ts: int
     type: str
     actor: str
-    round_id: Optional[int]
-    input_sha256: Optional[str]
-    output_sha256: Optional[str]
+    round_id: int | None
+    input_sha256: str | None
+    output_sha256: str | None
     code_sha256: str
     prev_hash: str
     entry_hash: str
     detail: dict = field(default_factory=dict)
+
 
 class TransparencyLog:
     """Append-only, hash-chained SQLite transparency log."""
@@ -103,7 +107,7 @@ class TransparencyLog:
             "detail": detail,
             "prev_hash": prev_hash,
         }
-        
+
         entry_hash = _compute_entry_hash(prev_hash, entry_dict)
 
         self._conn.execute(

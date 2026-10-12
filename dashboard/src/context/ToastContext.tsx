@@ -93,6 +93,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
+// oxlint-disable-next-line react/only-export-components
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {

@@ -1,0 +1,99 @@
+name: Dashboard CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+      - '.github/workflows/dashboard-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+      - '.github/workflows/dashboard-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gate:
+    name: Lint, Type Check & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Oxlint Static Analysis
+        run: npm run lint
+
+      - name: TypeScript Type Check
+        run: npx tsc -b
+
+      - name: Production Vite Build
+        run: npm run build
+
+      - name: Archive Production Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-dist
+          path: dashboard/dist
+          retention-days: 7
+
+  deploy-to-ec2:
+    name: Deploy to EC2 Web Server
+    needs: quality-gate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dashboard-dist
+          path: ./dist
+
+      - name: Configure SSH Key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Register Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H -T 10 "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync Build Artifacts via Rsync
+        env:
+          EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          TARGET_DIR: ${{ secrets.EC2_TARGET_DIR || '/var/www/dashboard' }}
+        run: |
+          echo "Deploying dashboard to ${EC2_USER}@${EC2_HOST}:${TARGET_DIR}..."
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=accept-new" \
+            ./dist/ "${EC2_USER}@${EC2_HOST}:${TARGET_DIR}/"
+
+      - name: Reload Nginx Service on EC2
+        env:
+          EC2_USER: ${{ secrets.EC2_USER || 'ubuntu' }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          ssh "${EC2_USER}@${EC2_HOST}" "sudo systemctl reload nginx || sudo service nginx reload"
+          echo "Dashboard successfully deployed and Nginx reloaded!"

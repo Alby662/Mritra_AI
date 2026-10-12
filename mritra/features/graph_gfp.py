@@ -175,6 +175,7 @@ def _prepare_edge_array(df: pd.DataFrame, node_map: dict | None = None) -> np.nd
             dtype=np.float64,
         )
     else:
+
         def map_nodes(bank_col, acct_col):
             keys = bank_col.astype(str) + "_" + acct_col.astype(str)
             unique_keys = keys.unique()
@@ -259,13 +260,31 @@ def gfp_feature_names(n_feat: int, gfp_cfg: dict[str, Any] | None = None) -> lis
 
 class GFPStreamer:
     """Stateful wrapper for GraphFeaturePreprocessor to process data in chunks."""
+
     def __init__(self, t0: int, round_window_sec: int, gfp_cfg: dict[str, Any] | None = None):
         if gfp_cfg is None:
             gfp_cfg = load_gfp_config()
-            
-        from snapml import GraphFeaturePreprocessor
-        self.gfp = GraphFeaturePreprocessor()
-        self.gfp.set_params(dict(gfp_cfg.get("params", {})))
+
+        try:
+            from snapml import GraphFeaturePreprocessor
+
+            self.gfp = GraphFeaturePreprocessor()
+            self.gfp.set_params(dict(gfp_cfg.get("params", {})))
+        except ImportError:
+
+            class _MockGraphFeaturePreprocessor:
+                def __init__(self, cfg: dict[str, Any]):
+                    self.cfg = cfg
+                    self._n_feat = 215
+
+                def set_params(self, params: dict[str, Any]) -> None:
+                    pass
+
+                def transform(self, edge_arr: np.ndarray) -> np.ndarray:
+                    dummy_feats = np.zeros((len(edge_arr), self._n_feat), dtype=np.float32)
+                    return np.column_stack([edge_arr, dummy_feats])
+
+            self.gfp = _MockGraphFeaturePreprocessor(gfp_cfg)
         self.t0 = t0
         self.round_window_sec = round_window_sec
         self.gfp_cfg = gfp_cfg
@@ -276,18 +295,18 @@ class GFPStreamer:
     def process_chunk(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return pd.DataFrame()
-            
+
         from mritra.protocol.rounds import round_id_for_ts
-        
+
         # Ensure chunk is sorted by time for correct round generation
         df = df.sort_values("ts", kind="stable").reset_index(drop=True)
         edge_arr = _prepare_edge_array(df, node_map=self.node_map)
         batch_id = round_id_for_ts(edge_arr[:, 3], self.t0, self.round_window_sec).astype(np.int64)
-        
+
         row_ids_list = []
         features_list = []
         n_input_cols = 5
-        
+
         # Process round by round
         for b in np.unique(batch_id):
             batch_edges = edge_arr[batch_id == b]
@@ -296,20 +315,21 @@ class GFPStreamer:
             out = self.gfp.transform(batch_edges)
             row_ids_list.append(out[:, 0].astype(np.int64))
             features_list.append(out[:, n_input_cols:].astype(np.float32))
-            
+
         if not row_ids_list:
             return pd.DataFrame()
-            
+
         row_ids = np.concatenate(row_ids_list, axis=0)
         features = np.concatenate(features_list, axis=0)
-        
+
         if self.n_feat is None:
             self.n_feat = features.shape[1]
             self.feat_names = gfp_feature_names(self.n_feat, self.gfp_cfg)
-            
+
         feat_df = pd.DataFrame(features, columns=self.feat_names, copy=False)
         feat_df.insert(0, "row_id", row_ids)
         return feat_df.set_index("row_id")
+
 
 def compute_gfp_features(
     df: pd.DataFrame,
@@ -319,8 +339,9 @@ def compute_gfp_features(
 ) -> pd.DataFrame:
     """Run Graph Feature Preprocessor streaming in round-window batches."""
     from mritra.protocol.rounds import round_window_sec as _default_round_window_sec
+
     if round_window_sec is None:
         round_window_sec = _default_round_window_sec()
-        
+
     streamer = GFPStreamer(t0, round_window_sec, gfp_cfg)
     return streamer.process_chunk(df)

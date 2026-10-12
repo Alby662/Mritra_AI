@@ -77,7 +77,9 @@ def train_lightgbm(
     spw = n_neg / n_pos if (n_pos > 0 and not is_unbalance) else None
 
     grid = _build_grid(grid_cfg)
-    logger.info("Grid search: %d combinations, seed=%d (is_unbalance=%s)", len(grid), seed, is_unbalance)
+    logger.info(
+        "Grid search: %d combinations, seed=%d (is_unbalance=%s)", len(grid), seed, is_unbalance
+    )
 
     best_score = -1.0
     best_model = None
@@ -96,15 +98,14 @@ def train_lightgbm(
             clf_kwargs["scale_pos_weight"] = spw
 
         model = lgb.LGBMClassifier(**clf_kwargs)
-        fit_kwargs = {"eval_set": [(X_val, y_val)], "callbacks": [lgb.early_stopping(50, verbose=False)]}
+        fit_kwargs = {
+            "eval_set": [(X_val, y_val)],
+            "callbacks": [lgb.early_stopping(50, verbose=False)],
+        }
         if "feature_name" in kwargs:
             fit_kwargs["feature_name"] = kwargs["feature_name"]
-            
-        model.fit(
-            X_train,
-            y_train,
-            **fit_kwargs
-        )
+
+        model.fit(X_train, y_train, **fit_kwargs)
         y_prob = model.predict_proba(X_val)[:, 1]
         pr_auc = average_precision_score(y_val, y_prob)
 
@@ -114,8 +115,9 @@ def train_lightgbm(
             best_params = params
         else:
             del model
-        
+
         import gc
+
         gc.collect()
 
     assert best_model is not None

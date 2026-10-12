@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
@@ -24,8 +23,7 @@ import pyarrow.parquet as pq
 
 from mritra.config import load_config, repo_path
 from mritra.data.partition import add_institutions, make_partition
-from mritra.models.score import cross_bank_max_score
-from mritra.runs import read_manifest, run_dir
+from mritra.runs import run_dir
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("find_hero_chain")
@@ -51,8 +49,6 @@ def main() -> None:
 
     logger.info("Mining Hero Chain from run: %s", run_id)
     rdir = run_dir(run_id)
-    manifest = read_manifest(run_id)
-    train_info = manifest.get("train_run_info", {})
 
     # Load transactions and patterns
     logger.info("Loading transaction metadata and patterns...")
@@ -77,7 +73,9 @@ def main() -> None:
             how="inner",
         )
     else:
-        merged = sg_patterns.merge(trans[["split"]], left_on="row_id", right_index=True, how="inner")
+        merged = sg_patterns.merge(
+            trans[["split"]], left_on="row_id", right_index=True, how="inner"
+        )
 
     pattern_ids = merged["pattern_id"].unique()
     logger.info("Found %d candidate laundering patterns", len(pattern_ids))
@@ -101,7 +99,7 @@ def main() -> None:
 
     # Load feature tables for row_ids present in patterns
     pattern_row_ids = set(merged["row_id"].unique())
-    
+
     # Pre-score all pattern row_ids under C1 and C3
     c1_probs: dict[int, dict[int, float]] = {b: {} for b in range(k)}
     c3_probs: dict[int, dict[int, float]] = {b: {} for b in range(k)}
@@ -164,41 +162,47 @@ def main() -> None:
             c1_chain_probs.append(p_c1)
             c3_chain_probs.append(p_c3)
 
-            txns_data.append({
-                "row_id": rid,
-                "ts": int(r["ts"]),
-                "from_bank": int(r["from_bank"]),
-                "from_account": str(r["from_acct"]),
-                "to_bank": int(r["to_bank"]),
-                "to_account": str(r["to_acct"]),
-                "from_institution": from_i,
-                "to_institution": to_i,
-                "amount": float(r["amt_paid"]),
-                "format": str(r.get("fmt", "ACH")),
-                "c1_siloed_prob": round(float(p_c1), 4),
-                "c3_enclave_prob": round(float(p_c3), 4),
-                "c1_missed": bool(p_c1 < 0.4),
-                "c3_caught": bool(p_c3 > 0.9),
-            })
+            txns_data.append(
+                {
+                    "row_id": rid,
+                    "ts": int(r["ts"]),
+                    "from_bank": int(r["from_bank"]),
+                    "from_account": str(r["from_acct"]),
+                    "to_bank": int(r["to_bank"]),
+                    "to_account": str(r["to_acct"]),
+                    "from_institution": from_i,
+                    "to_institution": to_i,
+                    "amount": float(r["amt_paid"]),
+                    "format": str(r.get("fmt", "ACH")),
+                    "c1_siloed_prob": round(float(p_c1), 4),
+                    "c3_enclave_prob": round(float(p_c3), 4),
+                    "c1_missed": bool(p_c1 < 0.4),
+                    "c3_caught": bool(p_c3 > 0.9),
+                }
+            )
 
         avg_c1 = float(np.mean(c1_chain_probs)) if c1_chain_probs else 0.0
         avg_c3 = float(np.mean(c3_chain_probs)) if c3_chain_probs else 0.0
         max_c3 = float(np.max(c3_chain_probs)) if c3_chain_probs else 0.0
         gap = avg_c3 - avg_c1
 
-        scored_candidates.append({
-            "pattern_id": int(pid),
-            "pattern_type": str(pat_rows["pattern_type"].iloc[0]),
-            "num_transactions": len(pat_rows),
-            "avg_c1_score": round(avg_c1, 4),
-            "avg_c3_score": round(avg_c3, 4),
-            "max_c3_score": round(max_c3, 4),
-            "detection_gap": round(gap, 4),
-            "transactions": txns_data,
-        })
+        scored_candidates.append(
+            {
+                "pattern_id": int(pid),
+                "pattern_type": str(pat_rows["pattern_type"].iloc[0]),
+                "num_transactions": len(pat_rows),
+                "avg_c1_score": round(avg_c1, 4),
+                "avg_c3_score": round(avg_c3, 4),
+                "max_c3_score": round(max_c3, 4),
+                "detection_gap": round(gap, 4),
+                "transactions": txns_data,
+            }
+        )
 
     # Sort candidates by detection gap and C3 confidence
-    scored_candidates.sort(key=lambda x: (x["max_c3_score"] >= 0.85, x["detection_gap"]), reverse=True)
+    scored_candidates.sort(
+        key=lambda x: (x["max_c3_score"] >= 0.85, x["detection_gap"]), reverse=True
+    )
 
     if not scored_candidates:
         logger.warning("No candidate chains evaluated. Generating fallback hero chain.")

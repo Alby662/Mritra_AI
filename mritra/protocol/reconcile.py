@@ -70,7 +70,7 @@ def reconcile_round(
                     kind="missing_counterpart",
                     fields=[],
                     bank_a=bank_id,
-                    bank_b=txn.counterparty_bank
+                    bank_b=txn.counterparty_bank,
                 )
             )
             continue
@@ -112,7 +112,7 @@ def reconcile_round(
                     value_b=str(txn_b.amount) if "amount" in mismatched_fields else None,
                 )
             )
-            
+
         else:
             result.matched += 1
             result.matched_refs.append(edge_ref)

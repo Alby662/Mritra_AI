@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   LayoutGrid, 
   Network, 
@@ -41,7 +41,7 @@ export function App() {
     localStorage.setItem('mritra-theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(t => {
       const next = t === 'light' ? 'dark' : 'light';
       showToast(
@@ -51,7 +51,7 @@ export function App() {
       );
       return next;
     });
-  };
+  }, [showToast]);
 
   const activeRun = RUN_CATALOG[selectedRunId] || RUN_CATALOG['20261004T092741Z'];
 
@@ -70,7 +70,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [toggleTheme]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);

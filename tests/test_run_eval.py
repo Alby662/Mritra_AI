@@ -47,7 +47,10 @@ def test_c1_cross_bank_missing_institution_score_defaults_to_zero() -> None:
 
 def test_c1_cross_bank_empty_cross_txns_reports_zero_samples() -> None:
     result = evaluate_c1_cross_bank(
-        {}, pd.DataFrame(columns=["row_id", "from_inst", "to_inst"]), pd.Series(dtype=int), threshold=0.5
+        {},
+        pd.DataFrame(columns=["row_id", "from_inst", "to_inst"]),
+        pd.Series(dtype=int),
+        threshold=0.5,
     )
     assert result == {"n_samples": 0, "n_positive": 0, "f1_minority": 0.0, "pr_auc": 0.0}
 

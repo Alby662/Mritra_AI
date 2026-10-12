@@ -1,0 +1,132 @@
+name: MLOps & Model Governance CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mritra/**'
+      - 'scripts/**'
+      - 'configs/**'
+      - 'tests/**'
+      - 'deploy/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/mlops-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mritra/**'
+      - 'scripts/**'
+      - 'configs/**'
+      - 'tests/**'
+      - 'deploy/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/mlops-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  code-quality:
+    name: Lint & Format Checks (Ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Ruff Linter Check
+        run: uv run ruff check .
+
+      - name: Ruff Code Formatting Check
+        run: uv run ruff format --check .
+
+  unit-and-protocol-tests:
+    name: Test Suite & Cryptographic Protocol Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install Dependencies
+        run: |
+          uv sync --all-groups
+          # Install Snap ML wheel on Linux runner if available
+          uv pip install snapml || true
+
+      - name: Run Full Test Suite
+        run: uv run pytest -v
+
+      - name: Verify Config & Feature Dimension Audit
+        run: uv run python scripts/config_audit.py
+
+      - name: Verify Transparency Log (tlog)
+        run: |
+          if [ -f "results/tlog.db" ]; then
+            uv run python scripts/verify_log.py --db results/tlog.db
+          fi
+
+  leakage-and-governance:
+    name: Anti-Leakage & Model Governance Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install Dependencies
+        run: uv sync --all-groups
+
+      - name: Verify Leakage Protections
+        run: uv run pytest tests/test_leakage.py tests/test_no_leak.py -v
+
+  container-builds:
+    name: Enclave & Bank Container Build Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Bank Container
+        run: docker build -f deploy/Containerfile.bank -t mritra-bank:ci .
+
+      - name: Build Enclave Container
+        run: docker build -f deploy/Containerfile.enclave -t mritra-enclave:ci .

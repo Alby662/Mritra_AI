@@ -74,27 +74,61 @@ jobs:
           SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
           SSH_KEY_RAW: ${{ secrets.EC2_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          if [ -n "$SSH_KEY_B64" ]; then
-            echo "Decoding base64-encoded SSH key..."
-            printf '%s' "$SSH_KEY_B64" | base64 --decode > ~/.ssh/id_rsa
-          elif [ -n "$SSH_KEY_RAW" ]; then
-            echo "Writing raw SSH key..."
-            printf '%s\n' "$SSH_KEY_RAW" > ~/.ssh/id_rsa
-          else
-            echo "::error::Neither EC2_SSH_KEY_B64 nor EC2_SSH_KEY secret is configured!"
-            exit 1
-          fi
+          python3 - << 'PYEOF'
+          import os, sys, re, base64, subprocess
 
-          printf "\n" >> ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          b64 = os.environ.get("SSH_KEY_B64", "").strip()
+          raw = os.environ.get("SSH_KEY_RAW", "").strip()
 
-          # Validate key syntax with ssh-keygen before connecting
-          ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null || {
-            echo "::error::The configured SSH key failed validation! Check your GitHub secret."
-            exit 1
-          }
-          echo "SSH key verified successfully."
+          key_data = ""
+          if b64:
+              print("Decoding EC2_SSH_KEY_B64...")
+              try:
+                  key_data = base64.b64decode(b64).decode("utf-8")
+              except Exception as e:
+                  print(f"::warning::Base64 decode failed: {e}")
+
+          if not key_data and raw:
+              # Check if raw itself is base64 encoded
+              if raw.startswith("LS0t") or ("BEGIN" not in raw and len(raw) > 200):
+                  print("Detecting base64 content in raw secret...")
+                  try:
+                      key_data = base64.b64decode(raw).decode("utf-8")
+                  except Exception:
+                      pass
+              if not key_data:
+                  print("Using raw EC2_SSH_KEY secret...")
+                  key_data = raw
+
+          if not key_data:
+              print("::error::Neither EC2_SSH_KEY_B64 nor EC2_SSH_KEY secret is configured!")
+              sys.exit(1)
+
+          # Auto-heal: Fix line breaks if newlines were collapsed into spaces by web UI
+          match = re.search(r'(-----BEGIN [A-Z ]+-----)\s*(.*?)\s*(-----END [A-Z ]+-----)', key_data, re.DOTALL)
+          if match:
+              h, b, f = match.groups()
+              b_clean = "".join(b.split())
+              chunks = [b_clean[i:i+64] for i in range(0, len(b_clean), 64)]
+              key_data = h + "\n" + "\n".join(chunks) + "\n" + f + "\n"
+
+          if not key_data.endswith("\n"):
+              key_data += "\n"
+
+          key_path = os.path.expanduser("~/.ssh/id_rsa")
+          os.makedirs(os.path.dirname(key_path), exist_ok=True)
+          with open(key_path, "w") as f:
+              f.write(key_data)
+          os.chmod(key_path, 0o600)
+
+          # Validate key syntax
+          p = subprocess.run(["ssh-keygen", "-y", "-f", key_path], capture_output=True, text=True)
+          if p.returncode != 0:
+              print(f"::error::SSH key validation failed: {p.stderr.strip()}")
+              sys.exit(1)
+
+          print("SSH key validated successfully!")
+          PYEOF
 
       - name: Register Known Hosts
         env:

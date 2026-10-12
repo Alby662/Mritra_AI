@@ -26,7 +26,9 @@ def tlog_path(tmp_path: Path) -> Path:
     return path
 
 
-def test_verify_log_accepts_positional_db_path(monkeypatch: pytest.MonkeyPatch, tlog_path: Path) -> None:
+def test_verify_log_accepts_positional_db_path(
+    monkeypatch: pytest.MonkeyPatch, tlog_path: Path
+) -> None:
     monkeypatch.setattr(sys, "argv", ["verify_log.py", str(tlog_path)])
     with pytest.raises(SystemExit) as excinfo:
         verify_log.main()

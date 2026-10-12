@@ -134,7 +134,12 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          ssh-keyscan -H -T 10 "${EC2_HOST}" >> ~/.ssh/known_hosts 2>/dev/null
+          if [ -z "$EC2_HOST" ]; then
+            echo "::error::GitHub secret 'EC2_HOST' is not configured! Please go to Settings -> Secrets and variables -> Actions and add EC2_HOST."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          ssh-keyscan -H -T 10 "${EC2_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Sync Build Artifacts via Rsync
         env:

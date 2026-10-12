@@ -237,6 +237,30 @@ export const RUN_CATALOG: Record<string, RunMetadata> = {
     seeds: [42, 52, 62],
     banks: REAL_BANK_EVALUATIONS,
   },
+  '20261011T161246Z': {
+    runId: '20261011T161246Z',
+    partition: 'P1 (Frozen Benchmark)',
+    configSha256: 'c91ea5b2e57e08862cd0875ae2d99d67d868768432de46c4794ac63023c7aaeb',
+    timestamp: '2026-10-11 16:12:46 UTC',
+    roundWindowSec: 86400,
+    evalSplit: 'test',
+    totalSamples: 1015558,
+    positiveRate: '0.177% (1797 / 1,015,558)',
+    modelsCount: 33,
+    featuresCount: 229,
+    c1CrossBankF1: 0.00000,
+    c1CrossBankPrAuc: 0.00177,
+    c4OracleF1: 0.02269,
+    c4OraclePrAuc: 0.01710,
+    seeds: [42, 52, 62],
+    banks: [
+      { bankId: 'bank_0', institutionId: 0, samples: 365397, positives: 574, c1_f1: 0.01320, c1_pr_auc: 0.00502, c3_f1: 0.03985, c3_pr_auc: 0.00915 },
+      { bankId: 'bank_1', institutionId: 1, samples: 357486, positives: 591, c1_f1: 0.01749, c1_pr_auc: 0.00785, c3_f1: 0.01752, c3_pr_auc: 0.01095 },
+      { bankId: 'bank_2', institutionId: 2, samples: 360177, positives: 659, c1_f1: 0.02676, c1_pr_auc: 0.01077, c3_f1: 0.01435, c3_pr_auc: 0.00437 },
+      { bankId: 'bank_3', institutionId: 3, samples: 358675, positives: 661, c1_f1: 0.01918, c1_pr_auc: 0.00786, c3_f1: 0.01233, c3_pr_auc: 0.00670 },
+      { bankId: 'bank_4', institutionId: 4, samples: 359319, positives: 705, c1_f1: 0.02322, c1_pr_auc: 0.00898, c3_f1: 0.03748, c3_pr_auc: 0.02574 },
+    ],
+  },
 };
 
 // ── 6. Merkle Transparency Log Operations (Cryptographic Sequence) ────────
@@ -420,3 +444,94 @@ export async function fetchLiveRuns() {
   }
   return Object.values(RUN_CATALOG);
 }
+
+// ── 9. Live Enclave & Bank Services Integration ───────────────────────────
+export interface LiveCase {
+  account: string;
+  score: number;
+  flagged: boolean;
+}
+
+export interface LiveBankCasesResponse {
+  bank_id: string;
+  cases: LiveCase[];
+}
+
+export interface LiveEnclaveLogEntry {
+  seq: number;
+  ts: number | string;
+  type: string;
+  actor: string;
+  round_id: number | null;
+  input_sha256: string | null;
+  output_sha256: string | null;
+  code_sha256: string;
+  detail: any;
+  prev_hash: string;
+  entry_hash: string;
+}
+
+export interface HeroChainTransaction {
+  row_id: number;
+  ts: number;
+  from_bank: number;
+  from_account: string;
+  to_bank: number;
+  to_account: string;
+  from_institution: number;
+  to_institution: number;
+  amount: number;
+  format: string;
+  c1_siloed_prob: number;
+  c3_enclave_prob: number;
+  c1_missed: boolean;
+  c3_caught: boolean;
+}
+
+export interface HeroChainData {
+  pattern_id: number;
+  pattern_type: string;
+  num_transactions: number;
+  avg_c1_score: number;
+  avg_c3_score: number;
+  max_c3_score: number;
+  detection_gap: number;
+  transactions: HeroChainTransaction[];
+}
+
+export async function fetchLiveHeroChain(): Promise<HeroChainData | null> {
+  try {
+    const res = await fetch('/api/hero-chain');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[Telemetry] Failed to fetch /api/hero-chain:', err);
+  }
+  return null;
+}
+
+export async function fetchLiveCases(): Promise<LiveBankCasesResponse | null> {
+  try {
+    const res = await fetch('/api/bank/v1/cases');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[Telemetry] Failed to fetch /api/bank/v1/cases:', err);
+  }
+  return null;
+}
+
+export async function fetchLiveTransparencyLog(): Promise<LiveEnclaveLogEntry[]> {
+  try {
+    const res = await fetch('/api/enclave/v1/log/entries');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[Telemetry] Failed to fetch /api/enclave/v1/log/entries:', err);
+  }
+  return [];
+}
+

@@ -1,21 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   ShieldAlert, 
   RefreshCw, 
   Check, 
-  Copy 
+  Copy,
+  Radio
 } from 'lucide-react';
-import { INITIAL_TLOG_BLOCKS } from '../data/telemetryData';
-import type { TLogBlock } from '../data/telemetryData';
+import { INITIAL_TLOG_BLOCKS, fetchLiveTransparencyLog } from '../data/telemetryData';
+import type { TLogBlock, LiveEnclaveLogEntry } from '../data/telemetryData';
 
 export const TransparencyLog: React.FC = () => {
   const [tampered, setTampered] = useState<boolean>(false);
   const [inspectedBlock, setInspectedBlock] = useState<TLogBlock | null>(null);
   const [copiedHash, setCopiedHash] = useState(false);
+  const [liveBlocks, setLiveBlocks] = useState<TLogBlock[] | null>(null);
+  const [isLiveEnclave, setIsLiveEnclave] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const blocks: TLogBlock[] = INITIAL_TLOG_BLOCKS.map(block => {
-    if (tampered && block.seq === 3) {
+  const loadLiveLog = async (manual = false) => {
+    if (manual) {
+      setIsRefreshing(true);
+    }
+    try {
+      const entries = await fetchLiveTransparencyLog();
+      if (entries && entries.length > 0) {
+        const mapped: TLogBlock[] = entries.map((e: LiveEnclaveLogEntry) => ({
+          seq: e.seq,
+          ts: typeof e.ts === 'number' ? new Date(e.ts * 1000).toISOString() : String(e.ts),
+          requester: e.actor === 'ENCLAVE' ? 'Mritra Enclave (Port 8443 TEE)' : (e.actor || 'Consortium Coordinator'),
+          queryType: e.type,
+          entryHash: e.entry_hash,
+          prevHash: e.prev_hash,
+          signature: `quote_sev_snp_${e.entry_hash.slice(0, 10)}...`,
+          recordsCount: e.detail && typeof e.detail === 'object' ? Object.keys(e.detail).length : 1,
+          details: typeof e.detail === 'string' ? e.detail : JSON.stringify(e.detail || {}),
+        }));
+        setLiveBlocks(mapped);
+        setIsLiveEnclave(true);
+      }
+    } catch {
+      // fallback
+    } finally {
+      if (manual) {
+        setIsRefreshing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveTransparencyLog().then((entries) => {
+      if (entries && entries.length > 0) {
+        const mapped: TLogBlock[] = entries.map((e: LiveEnclaveLogEntry) => ({
+          seq: e.seq,
+          ts: typeof e.ts === 'number' ? new Date(e.ts * 1000).toISOString() : String(e.ts),
+          requester: e.actor === 'ENCLAVE' ? 'Mritra Enclave (Port 8443 TEE)' : (e.actor || 'Consortium Coordinator'),
+          queryType: e.type,
+          entryHash: e.entry_hash,
+          prevHash: e.prev_hash,
+          signature: `quote_sev_snp_${e.entry_hash.slice(0, 10)}...`,
+          recordsCount: e.detail && typeof e.detail === 'object' ? Object.keys(e.detail).length : 1,
+          details: typeof e.detail === 'string' ? e.detail : JSON.stringify(e.detail || {}),
+        }));
+        setLiveBlocks(mapped);
+        setIsLiveEnclave(true);
+      }
+    });
+  }, []);
+
+  const activeSourceBlocks = liveBlocks && liveBlocks.length > 0 ? liveBlocks : INITIAL_TLOG_BLOCKS;
+
+  const blocks: TLogBlock[] = activeSourceBlocks.map(block => {
+    if (tampered && (block.seq === 3 || block.seq === activeSourceBlocks[activeSourceBlocks.length - 1].seq)) {
       return {
         ...block,
         entryHash: 'e999999999999999999999999999999999999999999999999999999999999999',
@@ -55,8 +111,23 @@ export const TransparencyLog: React.FC = () => {
           </p>
         </div>
 
-        {/* Apple Segmented Tamper Simulation Switcher */}
+        {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {isLiveEnclave && (
+            <span className="pill-tag pill-tag-success" style={{ fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Radio size={12} className="animate-pulse" />
+              LIVE ENCLAVE (PORT 8443 mTLS)
+            </span>
+          )}
+          <button
+            onClick={() => loadLiveLog(true)}
+            className="selector-pill"
+            style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+            title="Reload from Enclave mTLS endpoint"
+          >
+            <RefreshCw size={13} style={{ marginRight: '6px', verticalAlign: 'middle', transform: isRefreshing ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s ease' }} />
+            Sync Ledger
+          </button>
           <button
             onClick={() => setTampered(!tampered)}
             className={`selector-pill ${tampered ? 'pill-tag-danger' : ''}`}

@@ -1,5 +1,5 @@
 {
-  "config_sha256": "c91ea5b2e57e08862cd0875ae2d99d67d868768432de46c4794ac63023c7aaeb",
+  "config_sha256": "419ce9590cebd5ec7910f27827af24b14c992d2b153088a5fb2630649cccd550",
   "configs": {
     "C1": {
       "boosting_rounds": [

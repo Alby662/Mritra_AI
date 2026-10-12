@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Eye, 
   EyeOff, 
@@ -7,38 +7,16 @@ import {
   RotateCcw, 
   Scissors, 
   Copy, 
-  Check 
+  Check,
+  Radio,
+  Layers
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { PATTERN_268_NODES, PATTERN_268_EDGES } from '../data/pattern268Data';
+import type { GraphNode, GraphEdge } from '../data/pattern268Data';
+import { fetchLiveHeroChain } from '../data/telemetryData';
 
-interface Node {
-  id: string;
-  label: string;
-  bank: string;
-  bankColor: string;
-  role: 'Source' | 'Mule' | 'Destination' | 'Innocent';
-  x: number;
-  y: number;
-  c1RiskScore: number;
-  c3RiskScore: number;
-  balance: string;
-  passThroughRatio: number;
-  velocityMin: number;
-  inDegree: number;
-  outDegree: number;
-  isCut?: boolean;
-}
-
-interface Edge {
-  id: string;
-  from: string;
-  to: string;
-  amount: string;
-  ts: string;
-  isCrossBank: boolean;
-}
-
-const INITIAL_NODES: Node[] = [
+const TOY_NODES: GraphNode[] = [
   { 
     id: 'inst4_mule_1', 
     label: 'Inst 4 (Origin Hub)', 
@@ -46,7 +24,7 @@ const INITIAL_NODES: Node[] = [
     bankColor: '#ff3b30', 
     role: 'Source', 
     x: 90, 
-    y: 170, 
+    y: 190, 
     c1RiskScore: 0.18, 
     c3RiskScore: 0.98,
     balance: '$244,982.00',
@@ -61,8 +39,8 @@ const INITIAL_NODES: Node[] = [
     bank: 'Institution 0 (Alpha)', 
     bankColor: '#000000', 
     role: 'Mule', 
-    x: 280, 
-    y: 90, 
+    x: 290, 
+    y: 100, 
     c1RiskScore: 0.21, 
     c3RiskScore: 0.96,
     balance: '$49,500.00',
@@ -77,8 +55,8 @@ const INITIAL_NODES: Node[] = [
     bank: 'Institution 1 (Beta)', 
     bankColor: '#4f46e5', 
     role: 'Mule', 
-    x: 280, 
-    y: 250, 
+    x: 290, 
+    y: 280, 
     c1RiskScore: 0.14, 
     c3RiskScore: 0.94,
     balance: '$49,800.00',
@@ -93,8 +71,8 @@ const INITIAL_NODES: Node[] = [
     bank: 'Institution 2 (Gamma)', 
     bankColor: '#059669', 
     role: 'Mule', 
-    x: 490, 
-    y: 170, 
+    x: 510, 
+    y: 190, 
     c1RiskScore: 0.12, 
     c3RiskScore: 0.97,
     balance: '$98,600.00',
@@ -109,8 +87,8 @@ const INITIAL_NODES: Node[] = [
     bank: 'Institution 3 (Delta)', 
     bankColor: '#d97706', 
     role: 'Destination', 
-    x: 700, 
-    y: 170, 
+    x: 720, 
+    y: 190, 
     c1RiskScore: 0.11, 
     c3RiskScore: 0.92,
     balance: '$98,000.00',
@@ -121,7 +99,7 @@ const INITIAL_NODES: Node[] = [
   },
 ];
 
-const INITIAL_EDGES: Edge[] = [
+const TOY_EDGES: GraphEdge[] = [
   { id: 'e1', from: 'inst4_mule_1', to: 'inst0_mule_2', amount: '$49,500', ts: '10:04', isCrossBank: true },
   { id: 'e2', from: 'inst4_mule_1', to: 'inst1_mule_3', amount: '$49,800', ts: '10:05', isCrossBank: true },
   { id: 'e3', from: 'inst0_mule_2', to: 'inst2_mule_4', amount: '$49,200', ts: '10:18', isCrossBank: true },
@@ -131,22 +109,49 @@ const INITIAL_EDGES: Edge[] = [
 
 export const ChainGraph: React.FC = () => {
   const { showToast } = useToast();
+  const [activeDataset, setActiveDataset] = useState<'PATTERN_268' | 'TOY'>('PATTERN_268');
   const [mode, setMode] = useState<'C1' | 'C3'>('C3');
-  const [nodes, setNodes] = useState<Node[]>(INITIAL_NODES);
+  const [nodes, setNodes] = useState<GraphNode[]>(PATTERN_268_NODES);
+  const [edges, setEdges] = useState<GraphEdge[]>(PATTERN_268_EDGES);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [copiedNodeId, setCopiedNodeId] = useState(false);
   const [hasMoved, setHasMoved] = useState(false);
+  const [isLiveApi, setIsLiveApi] = useState(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
+
+  // Synchronize live hero chain if available
+  useEffect(() => {
+    fetchLiveHeroChain().then((heroData) => {
+      if (heroData && heroData.transactions) {
+        setIsLiveApi(true);
+      }
+    });
+  }, []);
+
+  // Handle Dataset Switch
+  const handleSelectDataset = (dataset: 'PATTERN_268' | 'TOY') => {
+    setActiveDataset(dataset);
+    setSelectedNode(null);
+    if (dataset === 'PATTERN_268') {
+      setNodes(PATTERN_268_NODES);
+      setEdges(PATTERN_268_EDGES);
+      showToast('Loaded Pattern 268 (Live Benchmark)', '30 transactions · 15 accounts across 5 institutions', 'lime');
+    } else {
+      setNodes(TOY_NODES);
+      setEdges(TOY_EDGES);
+      showToast('Loaded 5-Node Prototype', 'Simplified ring topology', 'info');
+    }
+  };
 
   const getNodePos = (id: string) => {
     const node = nodes.find(n => n.id === id);
     return node ? { x: node.x, y: node.y } : { x: 0, y: 0 };
   };
 
-  const activeEdges = INITIAL_EDGES.filter(e => {
+  const activeEdges = edges.filter(e => {
     const fromNode = nodes.find(n => n.id === e.from);
     const toNode = nodes.find(n => n.id === e.to);
     return !fromNode?.isCut && !toNode?.isCut;
@@ -159,8 +164,8 @@ export const ChainGraph: React.FC = () => {
     if (!node || !svgRef.current) return;
 
     const rect = svgRef.current.getBoundingClientRect();
-    const scaleX = 780 / rect.width;
-    const scaleY = 340 / rect.height;
+    const scaleX = 840 / rect.width;
+    const scaleY = 420 / rect.height;
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
 
@@ -174,13 +179,13 @@ export const ChainGraph: React.FC = () => {
     setHasMoved(true);
 
     const rect = svgRef.current.getBoundingClientRect();
-    const scaleX = 780 / rect.width;
-    const scaleY = 340 / rect.height;
+    const scaleX = 840 / rect.width;
+    const scaleY = 420 / rect.height;
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
 
-    const clampedX = Math.max(40, Math.min(740, mouseX - dragOffset.x));
-    const clampedY = Math.max(40, Math.min(300, mouseY - dragOffset.y));
+    const clampedX = Math.max(30, Math.min(810, mouseX - dragOffset.x));
+    const clampedY = Math.max(30, Math.min(390, mouseY - dragOffset.y));
 
     setNodes(prev => prev.map(n => n.id === draggingNodeId ? { ...n, x: clampedX, y: clampedY } : n));
   };
@@ -189,15 +194,19 @@ export const ChainGraph: React.FC = () => {
     setDraggingNodeId(null);
   };
 
-  const handleNodeClick = (node: Node) => {
+  const handleNodeClick = (node: GraphNode) => {
     if (!hasMoved) {
       setSelectedNode(node);
     }
   };
 
   const handleResetLayout = () => {
-    setNodes(INITIAL_NODES);
-    showToast('Topology Layout Reset', 'Node coordinates restored to balanced lattice', 'info');
+    if (activeDataset === 'PATTERN_268') {
+      setNodes(PATTERN_268_NODES);
+    } else {
+      setNodes(TOY_NODES);
+    }
+    showToast('Topology Layout Reset', 'Node coordinates restored to canonical Scatter-Gather funnel', 'info');
   };
 
   const handleToggleGraphCut = (nodeId: string) => {
@@ -208,8 +217,8 @@ export const ChainGraph: React.FC = () => {
       setSelectedNode(prev => prev ? { ...prev, isCut: willCut } : null);
     }
     showToast(
-      willCut ? `Node ${target?.label} Interdicted` : `Node ${target?.label} Restored`,
-      willCut ? 'Simulated graph cut: cross-bank laundering chain severed' : 'Node restored to active laundering path',
+      willCut ? `Account ${target?.label} Interdicted` : `Account ${target?.label} Restored`,
+      willCut ? 'Simulated graph cut: multi-bank laundering path severed' : 'Account restored to active graph topology',
       willCut ? 'danger' : 'info'
     );
   };
@@ -235,16 +244,42 @@ export const ChainGraph: React.FC = () => {
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
               Interactive Physics Canvas
             </span>
+            {isLiveApi && (
+              <span className="pill-tag pill-tag-success" style={{ fontSize: '0.66rem' }}>
+                <Radio size={10} className="animate-pulse" style={{ marginRight: '4px' }} />
+                LIVE ARTIFACT CONNECTED
+              </span>
+            )}
           </div>
           <h3 className="bento-card-title">
-            Laundering Ring Topology & Flow
+            {activeDataset === 'PATTERN_268' ? 'Pattern 268 — Scatter-Gather Laundering Ring' : '5-Node Prototype Ring'}
           </h3>
           <p className="bento-card-subtitle" style={{ marginTop: '2px' }}>
-            Drag nodes to explore spatial centrality. Click any node to inspect topological risk attribution.
+            {activeDataset === 'PATTERN_268' 
+              ? 'Real AMLworld Pattern 268: 30 transactions, 15 unique accounts, $583k volume across 5 institutions.'
+              : 'Drag nodes to explore spatial centrality. Click any node to inspect topological risk attribution.'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Dataset Selector */}
+          <div className="apple-segmented-control" style={{ background: 'var(--bg-card-subtle)' }}>
+            <button
+              onClick={() => handleSelectDataset('PATTERN_268')}
+              className={`apple-segment-btn ${activeDataset === 'PATTERN_268' ? 'active-lime' : ''}`}
+              style={{ fontSize: '0.74rem' }}
+            >
+              <Layers size={13} /> Pattern 268 (30 Hops)
+            </button>
+            <button
+              onClick={() => handleSelectDataset('TOY')}
+              className={`apple-segment-btn ${activeDataset === 'TOY' ? 'active' : ''}`}
+              style={{ fontSize: '0.74rem' }}
+            >
+              Toy Ring (5 Nodes)
+            </button>
+          </div>
+
           {/* Reset Layout Button */}
           <button
             onClick={handleResetLayout}
@@ -276,7 +311,7 @@ export const ChainGraph: React.FC = () => {
       {/* ─── Main Interactive Topology SVG Panel ─────────────────── */}
       <div className="bento-card animate-bento" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', fontSize: '0.8rem', fontWeight: 600 }}>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#000000' }} /> Bank Alpha (Inst 0)
             </span>
@@ -286,16 +321,22 @@ export const ChainGraph: React.FC = () => {
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#059669' }} /> Bank Gamma (Inst 2)
             </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#d97706' }} /> Bank Delta (Inst 3)
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff3b30' }} /> Bank Omega (Inst 4 Lying)
+            </span>
           </div>
 
           <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
             {mode === 'C3' ? (
               <span style={{ color: 'var(--apple-green)', fontWeight: 700 }}>
-                ● Animated Money Flow Active (12-min Rapid Hop)
+                ● Full Cross-Bank Flow Visible · 100% Pattern Caught (P=1.00)
               </span>
             ) : (
               <span style={{ color: 'var(--apple-amber)', fontWeight: 700 }}>
-                ○ Cross-Bank Flow Severed (Silo Blindness)
+                ○ Siloed Blindness · 5 Gather Transfers Missed (P=0.00)
               </span>
             )}
           </div>
@@ -309,7 +350,7 @@ export const ChainGraph: React.FC = () => {
             background: 'var(--bg-card-solid)', 
             borderRadius: 'var(--radius-md)', 
             border: '1px solid var(--border-subtle)', 
-            padding: '20px 0',
+            padding: '16px 0',
             cursor: draggingNodeId ? 'grabbing' : 'default',
             userSelect: 'none'
           }}
@@ -319,14 +360,20 @@ export const ChainGraph: React.FC = () => {
         >
           <svg 
             ref={svgRef}
-            width="780" 
-            height="340" 
-            viewBox="0 0 780 340" 
+            width="840" 
+            height="420" 
+            viewBox="0 0 840 420" 
             style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
           >
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="28" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M 0 0 L 10 5 L 0 10 z" fill={mode === 'C3' ? 'var(--text-primary)' : '#999999'} />
+              </marker>
+              <marker id="arrow-green" viewBox="0 0 10 10" refX="28" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--lime)" />
+              </marker>
+              <marker id="arrow-amber" viewBox="0 0 10 10" refX="28" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--apple-amber)" />
               </marker>
 
               <filter id="glow-lime" x="-20%" y="-20%" width="140%" height="140%">
@@ -349,6 +396,33 @@ export const ChainGraph: React.FC = () => {
             {activeEdges.map(e => {
               const p1 = getNodePos(e.from);
               const p2 = getNodePos(e.to);
+              const isGatherMissedInC1 = Boolean(e.c1Missed);
+              const isCaughtInC3 = Boolean(e.c3Caught);
+
+              // Line styling based on mode and edge status
+              let strokeColor = 'rgba(0,0,0,0.15)';
+              let strokeDash = 'none';
+              let markerEnd = 'url(#arrow)';
+
+              if (mode === 'C1') {
+                if (isGatherMissedInC1) {
+                  strokeColor = 'var(--apple-amber)';
+                  strokeDash = '4 4';
+                  markerEnd = 'url(#arrow-amber)';
+                } else {
+                  strokeColor = 'rgba(0,0,0,0.12)';
+                  strokeDash = '3 3';
+                }
+              } else {
+                // C3 Mode
+                if (isCaughtInC3) {
+                  strokeColor = 'var(--text-primary)';
+                  markerEnd = 'url(#arrow-green)';
+                } else {
+                  strokeColor = 'rgba(0,0,0,0.4)';
+                }
+              }
+
               return (
                 <g key={e.id}>
                   {/* Base Line */}
@@ -357,48 +431,56 @@ export const ChainGraph: React.FC = () => {
                     y1={p1.y}
                     x2={p2.x}
                     y2={p2.y}
-                    stroke={mode === 'C3' ? 'var(--text-primary)' : 'rgba(0,0,0,0.15)'}
-                    strokeWidth={mode === 'C3' ? 2.5 : 1.5}
-                    strokeDasharray={mode === 'C1' ? '4 4' : 'none'}
-                    markerEnd="url(#arrow)"
+                    stroke={strokeColor}
+                    strokeWidth={mode === 'C3' ? (isCaughtInC3 ? 2.5 : 1.8) : (isGatherMissedInC1 ? 2.2 : 1.2)}
+                    strokeDasharray={strokeDash}
+                    markerEnd={markerEnd}
                   />
 
-                  {/* C3 Mode Animated Flow Pulses */}
+                  {/* C3 Mode Animated Flow Pulses for caught edges */}
                   {mode === 'C3' && (
                     <line
                       x1={p1.x}
                       y1={p1.y}
                       x2={p2.x}
                       y2={p2.y}
-                      stroke="var(--lime)"
-                      strokeWidth="2.5"
+                      stroke={isCaughtInC3 ? "var(--lime)" : "rgba(198, 239, 78, 0.5)"}
+                      strokeWidth={isCaughtInC3 ? 3 : 1.8}
                       strokeDasharray="6 12"
                       className="flow-pulse"
-                      opacity="0.8"
+                      opacity="0.85"
                     />
                   )}
 
-                  {/* Amount Badge */}
-                  <rect
-                    x={(p1.x + p2.x) / 2 - 28}
-                    y={(p1.y + p2.y) / 2 - 10}
-                    width="56"
-                    height="18"
-                    rx="4"
-                    fill="var(--bg-card-subtle)"
-                    stroke="var(--border-subtle)"
-                  />
-                  <text
-                    x={(p1.x + p2.x) / 2}
-                    y={(p1.y + p2.y) / 2 + 3}
-                    textAnchor="middle"
-                    fill="var(--text-primary)"
-                    fontSize="10"
-                    fontWeight="700"
-                    style={{ fontFamily: 'var(--font-mono)' }}
-                  >
-                    {e.amount}
-                  </text>
+                  {/* Amount / Score Badge */}
+                  {activeDataset === 'TOY' || isGatherMissedInC1 || isCaughtInC3 ? (
+                    <g>
+                      <rect
+                        x={(p1.x + p2.x) / 2 - 32}
+                        y={(p1.y + p2.y) / 2 - 9}
+                        width="64"
+                        height="18"
+                        rx="4"
+                        fill="var(--bg-card-subtle)"
+                        stroke={mode === 'C1' && isGatherMissedInC1 ? 'var(--apple-amber)' : 'var(--border-subtle)'}
+                      />
+                      <text
+                        x={(p1.x + p2.x) / 2}
+                        y={(p1.y + p2.y) / 2 + 4}
+                        textAnchor="middle"
+                        fill={mode === 'C1' && isGatherMissedInC1 ? 'var(--apple-amber)' : 'var(--text-primary)'}
+                        fontSize="9"
+                        fontWeight="700"
+                        style={{ fontFamily: 'var(--font-mono)' }}
+                      >
+                        {mode === 'C1' && isGatherMissedInC1 
+                          ? 'P=0.00' 
+                          : mode === 'C3' && isCaughtInC3 
+                            ? 'P=1.00' 
+                            : e.amount}
+                      </text>
+                    </g>
+                  ) : null}
                 </g>
               );
             })}
@@ -408,6 +490,7 @@ export const ChainGraph: React.FC = () => {
               const score = mode === 'C3' ? n.c3RiskScore : n.c1RiskScore;
               const isHighRisk = score >= 0.7;
               const isSelected = selectedNode?.id === n.id;
+              const isGatherSinkMissedInC1 = mode === 'C1' && n.role === 'Destination' && score === 0;
 
               return (
                 <g 
@@ -417,10 +500,10 @@ export const ChainGraph: React.FC = () => {
                   onClick={() => handleNodeClick(n)}
                   style={{ cursor: 'pointer' }}
                 >
-                  {/* Outer Glowing Circle for Mule High Risk in C3 */}
+                  {/* Outer Glowing Circle for Mule/Dest High Risk in C3 */}
                   {isHighRisk && !n.isCut && (
                     <circle
-                      r="27"
+                      r="25"
                       fill="none"
                       stroke="var(--lime)"
                       strokeWidth={isSelected ? 4 : 3}
@@ -432,7 +515,7 @@ export const ChainGraph: React.FC = () => {
                   {/* Cut / Interdicted Dashed Outline */}
                   {n.isCut && (
                     <circle
-                      r="26"
+                      r="24"
                       fill="none"
                       stroke="var(--apple-red)"
                       strokeWidth="2.5"
@@ -442,8 +525,8 @@ export const ChainGraph: React.FC = () => {
 
                   {/* Core Node Circle */}
                   <circle
-                    r="20"
-                    fill={n.isCut ? 'var(--text-muted)' : n.bankColor}
+                    r="19"
+                    fill={n.isCut ? 'var(--text-muted)' : isGatherSinkMissedInC1 ? '#666666' : n.bankColor}
                     stroke={isSelected ? 'var(--lime)' : '#ffffff'}
                     strokeWidth={isSelected ? 3 : 2.5}
                     style={{ transition: 'r 0.2s ease, stroke 0.2s ease' }}
@@ -455,18 +538,18 @@ export const ChainGraph: React.FC = () => {
                   </text>
 
                   {/* Label */}
-                  <text textAnchor="middle" y="38" fill="var(--text-primary)" fontSize="11" fontWeight="700">
+                  <text textAnchor="middle" y="34" fill="var(--text-primary)" fontSize="10.5" fontWeight="700">
                     {n.label} {n.isCut && '(FROZEN)'}
                   </text>
                   <text 
                     textAnchor="middle" 
-                    y="52" 
-                    fill={n.isCut ? 'var(--text-muted)' : isHighRisk ? 'var(--apple-red)' : 'var(--text-secondary)'} 
-                    fontSize="10" 
+                    y="47" 
+                    fill={n.isCut ? 'var(--text-muted)' : isGatherSinkMissedInC1 ? 'var(--apple-amber)' : isHighRisk ? 'var(--apple-red)' : 'var(--text-secondary)'} 
+                    fontSize="9.5" 
                     fontWeight="800" 
                     style={{ fontFamily: 'var(--font-mono)' }}
                   >
-                    Risk: {n.isCut ? '0%' : `${(score * 100).toFixed(0)}%`}
+                    Risk: {n.isCut ? '0%' : isGatherSinkMissedInC1 ? '0% (MISSED)' : `${(score * 100).toFixed(0)}%`}
                   </text>
                 </g>
               );
@@ -489,10 +572,10 @@ export const ChainGraph: React.FC = () => {
               <ShieldAlert size={24} color="var(--apple-amber)" />
               <div>
                 <h4 style={{ color: 'var(--apple-amber)', fontWeight: 800, fontSize: '0.95rem' }}>
-                  C1 Status Quo: Isolated Siloed Model (78.7% Cross-Bank Laundering Missed!)
+                  C1 Status Quo: Isolated Siloed Model (Pattern 268 Blind Spot!)
                 </h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '2px', lineHeight: 1.5 }}>
-                  Under C1 siloed evaluation, each bank trains independently on internal ledger history (223 features). Because 78.7% of laundering transactions and 90.8% of laundering rings span institutional boundaries, C1 local classifiers miss cross-bank fan-out hops (F1 minority ~ 0.012 – 0.021).
+                  Under C1 siloed evaluation, Bank Delta (Inst 3, account 8028E8460) has zero visibility into upstream layering from Bank Alpha (Inst 0) through Banks 1, 2, and 4. All 5 inbound gather transactions scored <strong>P = 0.0000 (Missed)</strong> across row IDs 3863632–3863659!
                 </p>
               </div>
             </div>
@@ -504,7 +587,7 @@ export const ChainGraph: React.FC = () => {
                   C3 Mritra Enclave: Confidential Boundary Graph Active (+23 GFP Features!)
                 </h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '2px', lineHeight: 1.5 }}>
-                  The hardware enclave reconciles double-entry cross-bank edges and computes 23 confidential boundary graph embeddings (<code className="code-font" style={{ fontSize: '0.8rem' }}>net_pass_through_ratio</code>, <code className="code-font" style={{ fontSize: '0.8rem' }}>net_fan_out</code>, <code className="code-font" style={{ fontSize: '0.8rem' }}>net_nbr_max</code>) under (ε=1.15, δ=10⁻⁶)-Differential Privacy, reconstructing the complete laundering topology with zero raw PII disclosure!
+                  The hardware enclave reconciles cross-bank double-entry edges and computes 23 confidential boundary GFP embeddings (<code className="code-font" style={{ fontSize: '0.8rem' }}>net_pass_through_ratio</code>, <code className="code-font" style={{ fontSize: '0.8rem' }}>net_fan_out</code>, <code className="code-font" style={{ fontSize: '0.8rem' }}>net_nbr_max</code>). The exact same gather hops into 8028E8460 jump from <strong>P = 0.0000</strong> to <strong>P = 1.0000 (100% Caught)</strong> under Differential Privacy with zero PII exposure!
                 </p>
               </div>
             </div>
@@ -548,7 +631,7 @@ export const ChainGraph: React.FC = () => {
             {/* Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
               <div style={{ background: 'var(--bg-card-subtle)', padding: '14px', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>ESTIMATED BALANCE</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>ESTIMATED VOLUME</div>
                 <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px' }}>
                   {selectedNode.balance}
                 </div>

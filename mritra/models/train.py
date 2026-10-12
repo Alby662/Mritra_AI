@@ -69,7 +69,7 @@ def train_lightgbm(
     if grid_cfg is None:
         grid_cfg = cfg["model"]["grid"]
 
-    is_unbalance = cfg.get("model", {}).get("is_unbalance", False)
+    is_unbalance = kwargs.get("is_unbalance", cfg.get("model", {}).get("is_unbalance", False))
 
     # Scale positive weight for class imbalance (used when is_unbalance is False)
     n_pos = int(y_train.sum())

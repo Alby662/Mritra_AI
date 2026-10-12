@@ -127,7 +127,7 @@ run_pipeline_native() {
     echo "[INFO] Active Cluster Run ID: ${LATEST_RUN_ID}"
 
     echo "--------------------------------------------------------------------"
-    echo "[STAGE 2/3] Training Models across C1, C3, and C4..."
+    echo "[STAGE 2/3] Training Models across C1, C3, and C4 (is_unbalance=True active)..."
     echo "--------------------------------------------------------------------"
     START_TRAIN=$(date +%s)
     /usr/bin/time -v uv run python scripts/train_models.py --run-id "${LATEST_RUN_ID}" --configs C1,C3,C4

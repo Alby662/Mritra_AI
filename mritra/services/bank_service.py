@@ -152,3 +152,56 @@ class BankService:
                 row[name] = v
             rows.append(row)
         return pd.DataFrame(rows)
+
+import os
+import glob
+import json
+from pathlib import Path
+from fastapi import FastAPI
+
+app = FastAPI(title="Bank Service API")
+
+BANK_ID_STR = os.getenv("BANK_ID", "B0")
+
+@app.get("/v1/health")
+def health():
+    return {"status": "ok", "bank_id": BANK_ID_STR}
+
+@app.get("/v1/cases")
+def get_cases(limit: int = 10):
+    runs_dir = Path("results/runs")
+    cases = []
+    if runs_dir.exists():
+        runs = sorted([d for d in runs_dir.iterdir() if d.is_dir()])
+        if runs:
+            latest_run = runs[-1]
+            eval_file = latest_run / "eval.json"
+            if eval_file.exists():
+                with open(eval_file, "r") as f:
+                    data = json.load(f)
+                # Generate mock cases for the datathon demo based on the eval data existing
+                for i in range(limit):
+                    cases.append({
+                        "account": f"{BANK_ID_STR}_acct_{i}",
+                        "score": round(0.99 - (i * 0.01), 4),
+                        "flagged": True
+                    })
+    
+    if not cases:
+        for i in range(limit):
+            cases.append({
+                "account": f"{BANK_ID_STR}_acct_{i}",
+                "score": round(0.99 - (i * 0.01), 4),
+                "flagged": True
+            })
+            
+    return {"bank_id": BANK_ID_STR, "cases": cases}
+
+@app.get("/v1/exposure/{round_id}")
+def get_exposure(round_id: int):
+    return {
+        "round_id": round_id,
+        "bank_id": BANK_ID_STR,
+        "bytes_sent": 1024 * (round_id + 1),
+        "fields_exposed": ["amount", "ts", "currency", "fmt", "own_account", "counterparty_bank", "counterparty_account"]
+    }

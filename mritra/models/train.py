@@ -50,6 +50,7 @@ def train_lightgbm(
     y_val: np.ndarray,
     seed: int = 42,
     grid_cfg: dict[str, list] | None = None,
+    **kwargs,
 ) -> tuple[lgb.LGBMClassifier, float, dict[str, Any]]:
     """Train LightGBM with grid search on validation PR-AUC.
 
@@ -64,35 +65,45 @@ def train_lightgbm(
     -------
     (best_model, optimal_threshold, run_info)
     """
+    cfg = load_config()
     if grid_cfg is None:
-        cfg = load_config()
         grid_cfg = cfg["model"]["grid"]
 
-    # Scale positive weight for class imbalance
+    is_unbalance = cfg.get("model", {}).get("is_unbalance", False)
+
+    # Scale positive weight for class imbalance (used when is_unbalance is False)
     n_pos = int(y_train.sum())
     n_neg = len(y_train) - n_pos
-    spw = n_neg / n_pos if n_pos > 0 else 1.0
+    spw = n_neg / n_pos if (n_pos > 0 and not is_unbalance) else None
 
     grid = _build_grid(grid_cfg)
-    logger.info("Grid search: %d combinations, seed=%d", len(grid), seed)
+    logger.info("Grid search: %d combinations, seed=%d (is_unbalance=%s)", len(grid), seed, is_unbalance)
 
     best_score = -1.0
     best_model = None
     best_params: dict[str, Any] = {}
 
     for params in grid:
-        model = lgb.LGBMClassifier(
+        clf_kwargs: dict[str, Any] = {
             **params,
-            scale_pos_weight=spw,
-            random_state=seed,
-            verbose=-1,
-            n_jobs=-1,
-        )
+            "random_state": seed,
+            "verbose": -1,
+            "n_jobs": -1,
+        }
+        if is_unbalance:
+            clf_kwargs["is_unbalance"] = True
+        elif spw is not None:
+            clf_kwargs["scale_pos_weight"] = spw
+
+        model = lgb.LGBMClassifier(**clf_kwargs)
+        fit_kwargs = {"eval_set": [(X_val, y_val)], "callbacks": [lgb.early_stopping(50, verbose=False)]}
+        if "feature_name" in kwargs:
+            fit_kwargs["feature_name"] = kwargs["feature_name"]
+            
         model.fit(
             X_train,
             y_train,
-            eval_set=[(X_val, y_val)],
-            callbacks=[lgb.early_stopping(50, verbose=False)],
+            **fit_kwargs
         )
         y_prob = model.predict_proba(X_val)[:, 1]
         pr_auc = average_precision_score(y_val, y_prob)
@@ -101,6 +112,11 @@ def train_lightgbm(
             best_score = pr_auc
             best_model = model
             best_params = params
+        else:
+            del model
+        
+        import gc
+        gc.collect()
 
     assert best_model is not None
     y_prob_best = best_model.predict_proba(X_val)[:, 1]
@@ -111,7 +127,8 @@ def train_lightgbm(
         "best_params": best_params,
         "val_pr_auc": float(best_score),
         "optimal_threshold": threshold,
-        "scale_pos_weight": float(spw),
+        "scale_pos_weight": float(spw) if spw is not None else 1.0,
+        "is_unbalance": bool(is_unbalance),
         "n_train": len(y_train),
         "n_val": len(y_val),
         "n_pos_train": n_pos,

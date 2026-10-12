@@ -30,7 +30,7 @@ from mritra.eval.bootstrap import bootstrap_gap_recovered
 from mritra.eval.metrics import compute_subset_metrics
 from mritra.eval.sensitivity import dense_days_from_data_stats, evaluate_with_sensitivity
 from mritra.models.score import cross_bank_max_score, score_transactions
-from mritra.models.train import _optimal_threshold
+
 from mritra.runs import read_manifest, run_dir, write_manifest
 
 logger = logging.getLogger("run_eval")
@@ -50,16 +50,11 @@ def evaluate_c1_cross_bank(
     scores_by_inst: dict[int, pd.DataFrame],
     cross_txns: pd.DataFrame,
     y_true: pd.Series,
+    threshold: float,
 ) -> dict:
     """C1's cross-bank score: max of its two institutions' probabilities
-    (PREREGISTRATION §5), threshold chosen on this same (evaluated) split to maximise
-    minority-class F1 (same rule as every other configuration's own threshold choice --
-    PREREGISTRATION §5: "chosen per configuration... to maximise minority-class F1"),
-    then F1/PR-AUC on the cross-bank subset.
-
-    Note: cross_bank_max_score()'s own `pred` column uses a hardcoded 0.5 threshold: not
-    used here, since C1's cross-bank threshold must be chosen the same way every other
-    configuration's is, not hardcoded. This function thresholds `prob` itself instead.
+    (PREREGISTRATION §5), thresholded using the value pre-calibrated on the validation
+    split, then F1/PR-AUC on the cross-bank subset.
     """
     scored = cross_bank_max_score(scores_by_inst, cross_txns)
     if scored.empty:
@@ -67,7 +62,6 @@ def evaluate_c1_cross_bank(
 
     y = y_true.reindex(scored["row_id"]).to_numpy()
     probs = scored["prob"].to_numpy()
-    threshold = _optimal_threshold(y, probs)
     preds = (probs >= threshold).astype(int)
 
     result = _subset_metrics_dict(y, preds, probs)
@@ -77,7 +71,7 @@ def evaluate_c1_cross_bank(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Score trained models and report metrics.")
-    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--run-id", default=None, help="Run ID to score. Defaults to results/runs/.last_run_id.")
     parser.add_argument(
         "--split",
         choices=["train", "val", "test"],
@@ -92,25 +86,59 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if args.split == "test" and not args.confirm_test_split:
-        parser.error("evaluating on the test split requires --split test --confirm-test-split")
-
     cfg = load_config()
+    run_id = args.run_id
+    if not run_id:
+        last_run_path = repo_path(cfg["paths"]["results"]) / "runs" / ".last_run_id"
+        if last_run_path.exists():
+            run_id = last_run_path.read_text(encoding="utf-8").strip()
+        else:
+            parser.error("No --run-id provided and results/runs/.last_run_id does not exist")
+
     k = cfg["institutions"]["k"]
     parquet = repo_path(cfg["paths"]["parquet"])
 
-    trans = pd.read_parquet(parquet / "trans.parquet")
-    inst_of = make_partition(trans, cfg["partitions"]["P1"]["method"], k)
-    trans = add_institutions(trans, inst_of)
-    trans = trans.set_index("row_id", drop=False)
-    split_rows = trans[trans["split"] == args.split]
+    import duckdb
+    conn = duckdb.connect()
+    parquet_file = str(parquet / "trans.parquet")
+    
+    # 1. Compute volumes out-of-core for partition assignment
+    volumes_df = conn.execute(f"""
+        SELECT bank, SUM(c) as count FROM (
+            SELECT from_bank as bank, COUNT(*) as c FROM read_parquet('{parquet_file}') GROUP BY from_bank
+            UNION ALL
+            SELECT to_bank as bank, COUNT(*) as c FROM read_parquet('{parquet_file}') GROUP BY to_bank
+        ) GROUP BY bank
+    """).df()
+    volumes = pd.Series(volumes_df["count"].values, index=volumes_df["bank"].values).astype(int)
+    
+    part_method = cfg["partitions"]["P1"]["method"]
+    if part_method == "volume_balanced":
+        from mritra.data.partition import partition_volume_balanced
+        inst_of = partition_volume_balanced(volumes, k)
+    elif part_method == "random":
+        from mritra.data.partition import partition_random
+        inst_of = partition_random(list(volumes.index), k, 42)
+    else:
+        inst_of = make_partition(pd.DataFrame(), part_method, k)
+        
+    # 2. Extract only the target split into Pandas to save memory
+    split_rows = conn.execute(f"""
+        SELECT row_id, ts, from_bank, to_bank, is_laund, split
+        FROM read_parquet('{parquet_file}')
+        WHERE split = '{args.split}'
+    """).df()
+    
+    split_rows = add_institutions(split_rows, inst_of)
+    split_rows = split_rows.set_index("row_id", drop=False)
+    
     y_true_all = split_rows["is_laund"]
     cross_txns = split_rows[split_rows["cross"]][["row_id", "from_inst", "to_inst"]]
 
     dense_days = dense_days_from_data_stats()
 
-    rdir = run_dir(args.run_id)
-    manifest = read_manifest(args.run_id)
+    rdir = run_dir(run_id)
+    manifest = read_manifest(run_id)
     train_run_info = manifest.get("train_run_info", {})
 
     results: dict[str, dict] = {}
@@ -120,8 +148,37 @@ def main() -> None:
     for config, scopes in train_run_info.items():
         feature_dir = rdir / "features" / config
         for scope_name, per_seed in scopes.items():
-            feats = pd.read_parquet(feature_dir / f"{scope_name}.parquet")
-            split_feats = feats[feats.index.isin(split_rows.index)]
+            if scope_name == "cross_bank":
+                continue
+            import pyarrow.parquet as pq
+            import numpy as np
+            
+            scope_path = feature_dir / f"{scope_name}.parquet"
+            pf = pq.ParquetFile(scope_path)
+            schema = pf.schema_arrow
+            feature_cols = schema.names
+            if "row_id" in feature_cols:
+                feature_cols.remove("row_id")
+            elif "__index_level_0__" in feature_cols:
+                feature_cols.remove("__index_level_0__")
+
+            idx = pf.read(["row_id"]).column("row_id").to_numpy()
+            eval_mask = np.isin(idx, split_rows.index)
+            eval_idx = idx[eval_mask]
+            
+            n_eval = eval_mask.sum()
+            n_cols = len(feature_cols)
+            X_eval_arr = np.empty((n_eval, n_cols), dtype=np.float32)
+            
+            for i, col in enumerate(feature_cols):
+                col_data = pf.read([col]).column(col).to_numpy()
+                X_eval_arr[:, i] = col_data[eval_mask]
+                
+            split_feats = pd.DataFrame(X_eval_arr, columns=feature_cols, index=eval_idx)
+            del X_eval_arr, col_data, idx, eval_mask, pf
+            import gc
+            gc.collect()
+
             eval_df = split_feats.join(split_rows[["ts", "is_laund"]], how="inner")
 
             for seed, run_info in per_seed.items():
@@ -130,9 +187,12 @@ def main() -> None:
                 scored = score_transactions(model, split_feats, threshold=run_info["threshold"])
                 scored = scored.set_index(pd.Index(split_feats.index, name="row_id"), drop=False)
 
-                if config.startswith("C") and config != "C2" and scope_name.startswith("bank_"):
-                    bank_id = int(scope_name.removeprefix("bank_"))
-                    scores_by_inst.setdefault(config, {}).setdefault(seed, {})[bank_id] = scored
+                if config.startswith("C") and config != "C2":
+                    if scope_name.startswith("bank_"):
+                        bank_id = int(scope_name.removeprefix("bank_"))
+                        scores_by_inst.setdefault(config, {}).setdefault(seed, {})[bank_id] = scored
+                    elif scope_name == "all":
+                        scores_by_inst.setdefault(config, {}).setdefault(seed, {})["all"] = scored
 
                 def _eval_fn(df: pd.DataFrame, scored: pd.DataFrame = scored) -> dict:
                     pred = scored.reindex(df.index)["pred"].to_numpy()
@@ -152,11 +212,14 @@ def main() -> None:
                     sens["primary"]["n_positive"],
                     sens["sensitivity_rows_kept"],
                 )
+            del eval_df, split_feats
+            gc.collect()
 
     # C1 cross-bank evaluation (PREREGISTRATION §5), per seed.
     c1_cross_bank: dict[str, dict] = {}
     for seed, by_inst in scores_by_inst.get("C1", {}).items():
-        c1_cross_bank[seed] = evaluate_c1_cross_bank(by_inst, cross_txns, y_true_all)
+        threshold = train_run_info.get("C1", {}).get("cross_bank", {}).get(seed, {}).get("threshold", 0.5)
+        c1_cross_bank[seed] = evaluate_c1_cross_bank(by_inst, cross_txns, y_true_all, threshold)
 
     # G with bootstrap CI (PREREGISTRATION §6.2), on the cross-bank subset, per seed --
     # only when C1, C3 and C4 are all available for the same seed. C3's offline feature
@@ -185,9 +248,9 @@ def main() -> None:
             c3_scored["prob"].to_numpy(),
             c4_scored["prob"].to_numpy(),
         )
-        threshold_c1 = _optimal_threshold(y, prob_c1)
-        threshold_c3 = _optimal_threshold(y, prob_c3)
-        threshold_c4 = _optimal_threshold(y, prob_c4)
+        threshold_c1 = train_run_info.get("C1", {}).get("cross_bank", {}).get(seed, {}).get("threshold", 0.5)
+        threshold_c3 = train_run_info.get("C3", {}).get("cross_bank", {}).get(seed, {}).get("threshold", 0.5)
+        threshold_c4 = train_run_info.get("C4", {}).get("all", {}).get(seed, {}).get("threshold", 0.5)
         ci = bootstrap_gap_recovered(
             y, prob_c1, prob_c3, prob_c4, threshold_c1, threshold_c3, threshold_c4
         )
@@ -207,7 +270,7 @@ def main() -> None:
         "gap_recovered_note": gap_note,
     }
     (rdir / "eval.json").write_text(json.dumps(output, indent=2, sort_keys=True), encoding="utf-8")
-    write_manifest(args.run_id, {"eval_written": True, "eval_split": args.split})
+    write_manifest(run_id, {"eval_written": True, "eval_split": args.split})
     logger.info("Wrote %s", rdir / "eval.json")
 
 

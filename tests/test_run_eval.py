@@ -21,11 +21,11 @@ def test_c1_cross_bank_takes_max_of_two_institutions_hand_computed() -> None:
     cross_txns = pd.DataFrame({"row_id": [1, 2], "from_inst": [0, 0], "to_inst": [1, 1]})
     y_true = pd.Series({1: 1, 2: 0})
 
-    result = evaluate_c1_cross_bank(scores_by_inst, cross_txns, y_true)
+    result = evaluate_c1_cross_bank(scores_by_inst, cross_txns, y_true, threshold=0.85)
 
     assert result["n_samples"] == 2
     assert result["n_positive"] == 1
-    assert 0.8 < result["threshold"] <= 0.9
+    assert result["threshold"] == 0.85
     assert result["f1_minority"] == 1.0
     assert result["pr_auc"] == 1.0
 
@@ -41,13 +41,13 @@ def test_c1_cross_bank_missing_institution_score_defaults_to_zero() -> None:
     cross_txns = pd.DataFrame({"row_id": [1, 2], "from_inst": [0, 0], "to_inst": [1, 1]})
     y_true = pd.Series({1: 1, 2: 0})
 
-    result = evaluate_c1_cross_bank(scores_by_inst, cross_txns, y_true)
+    result = evaluate_c1_cross_bank(scores_by_inst, cross_txns, y_true, threshold=0.5)
     assert result["n_samples"] == 2
 
 
 def test_c1_cross_bank_empty_cross_txns_reports_zero_samples() -> None:
     result = evaluate_c1_cross_bank(
-        {}, pd.DataFrame(columns=["row_id", "from_inst", "to_inst"]), pd.Series(dtype=int)
+        {}, pd.DataFrame(columns=["row_id", "from_inst", "to_inst"]), pd.Series(dtype=int), threshold=0.5
     )
     assert result == {"n_samples": 0, "n_positive": 0, "f1_minority": 0.0, "pr_auc": 0.0}
 

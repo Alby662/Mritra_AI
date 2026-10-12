@@ -4,16 +4,10 @@
 Uses mritra/features/views.py as the single source of truth for which edges each
 configuration sees, then computes GFP + behavioural features on that edge scope (and
 network features, for C3, per-institution -- see note below). Writes
-results/runs/<run_id>/features/<config>/<scope>.parquet and a run manifest. Does not train
-anything (scripts/train_models.py does that) and does not compute metrics
-(scripts/run_eval.py does).
+results/runs/<run_id>/features/<config>/<scope>.parquet and a run manifest.
 
-C3's network features are NOT built here: they require a live round-by-round enclave
-exchange (mritra.services.enclave_service.EnclaveService), not a single offline batch call,
-so C3's table is C1's table only -- a config-audit / schema placeholder for the network
-feature columns it will eventually gain, not real boundary values. Building C3's network
-features offline means replaying the protocol end to end, which is future work, not part of
-this change.
+Batched Execution: Iteratively loads data in chunks, strictly preserving the
+3600-second round boundaries, to avoid OOM crashes on large datasets.
 """
 
 from __future__ import annotations
@@ -21,15 +15,20 @@ from __future__ import annotations
 import argparse
 import logging
 import tempfile
+import os
+import gc
+import pickle
 from pathlib import Path
 
 import pandas as pd
 import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from mritra.config import config_sha256, load_config, repo_path
 from mritra.data.partition import add_institutions, make_partition
 from mritra.features.behaviour import compute_behavioural_features
-from mritra.features.graph_gfp import compute_gfp_features, load_gfp_config
+from mritra.features.graph_gfp import GFPStreamer, load_gfp_config
 from mritra.features.views import feature_view
 from mritra.protocol.crypto import KeyPair
 from mritra.protocol.rounds import round_id_for_ts, round_window_sec
@@ -39,27 +38,7 @@ from mritra.services.enclave_service import EnclaveService
 
 logger = logging.getLogger("build_features")
 
-
-def _t0(df: pd.DataFrame) -> int:
-    """Global round-zero anchor: first TRAIN timestamp (PROTOCOL.md §10, offline runs).
-
-    The same t0 is used for every configuration and every institution's view so that
-    round N means the identical wall-clock window everywhere (mritra.protocol.rounds).
-    """
-    return int(df.loc[df["split"] == "train", "ts"].min())
-
-
-def _combined_features(
-    edges: pd.DataFrame, t0: int, gfp_cfg: dict, window_sec: int
-) -> pd.DataFrame:
-    gfp_feats = compute_gfp_features(edges, t0, gfp_cfg, window_sec)
-    behav_feats = compute_behavioural_features(edges)
-    return gfp_feats.join(behav_feats, how="outer")
-
-
-def _should_skip(out_path, expected_cols):
-    import os
-
+def _should_skip(out_path: Path, expected_cols: list[str]) -> bool:
     if not out_path.exists():
         return False
     out_mtime = out_path.stat().st_mtime
@@ -74,140 +53,213 @@ def _should_skip(out_path, expected_cols):
         if os.path.exists(dep) and os.stat(dep).st_mtime > out_mtime:
             return False
 
-    import pyarrow.parquet as pq
-
     schema = pq.read_schema(out_path)
-    # the index might be in the schema depending on how it's saved, but let's check if all expected cols are present
     if not set(expected_cols).issubset(set(schema.names)):
         return False
 
     return True
 
 
+def stream_transactions(parquet_path: Path, wanted_splits: set[str], inst_of: dict[int, int], t0: int, window_sec: int, chunk_size: int = 500_000, peak_ts_range: tuple[int, int] | None = None):
+    """Yield transactions in chronologically sound batches.
+    
+    Ensures that each yielded chunk is bounded by complete 3600-second rounds.
+    The final incomplete round in a batch is buffered and appended to the next batch.
+    """
+    import resource
+    
+    import pyarrow.compute as pc
+    
+    parquet_file = pq.ParquetFile(parquet_path)
+    buffer = pd.DataFrame()
+    for batch in parquet_file.iter_batches(batch_size=chunk_size):
+        if peak_ts_range:
+            mask = pc.and_kleene(
+                pc.greater_equal(batch["ts"], peak_ts_range[0]),
+                pc.less(batch["ts"], peak_ts_range[1])
+            )
+            batch = batch.filter(mask)
+            
+        if len(batch) == 0:
+            continue
+            
+        chunk = batch.to_pandas()
+        chunk = chunk[chunk["split"].isin(wanted_splits)].copy()
+        if chunk.empty:
+            continue
+            
+        chunk = add_institutions(chunk, inst_of)
+        chunk["round_id"] = round_id_for_ts(chunk["ts"], t0, window_sec)
+        
+        combined = pd.concat([buffer, chunk], ignore_index=True)
+        # Sort locally to preserve strict chronological causality for the rounds
+        combined = combined.sort_values("ts", kind="stable").reset_index(drop=True)
+        
+        max_round = combined["round_id"].max()
+        ready_mask = combined["round_id"] < max_round
+        
+        ready_df = combined[ready_mask]
+        buffer = combined[~ready_mask].copy()
+        
+        if not ready_df.empty:
+            yield ready_df
+            
+        del chunk, combined, ready_mask, ready_df
+        gc.collect()
+        
+        # Telemetry: Check Max RSS
+        max_rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        max_rss_gb = max_rss_kb / (1024 * 1024)
+        if max_rss_gb > 11.0:
+            logger.critical("Abnormal C++ Memory Spike Detected! Max RSS: %.2f GB", max_rss_gb)
+        else:
+            logger.info("Memory Telemetry: Max RSS %.2f GB", max_rss_gb)
+            
+    if not buffer.empty:
+        yield buffer
+
+
 def build_config_features(
     config: str,
-    df: pd.DataFrame,
+    parquet_path: Path,
+    wanted_splits: set[str],
+    inst_of: dict[int, int],
     t0: int,
     k: int,
-    feature_dir,
+    feature_dir: Path,
     gfp_cfg: dict,
     window_sec: int,
+    peak_ts_range: tuple[int, int] | None = None,
 ) -> dict[str, list[str]]:
     feature_columns: dict[str, list[str]] = {}
 
     if config == "C1":
         for bank_id in range(k):
             out_path = feature_dir / config / f"bank_{bank_id}.parquet"
-            view = feature_view("C1", df, bank_id=bank_id)
+            # Extract expected columns via a dummy DataFrame to satisfy feature_view schema
+            dummy_df = pd.DataFrame(columns=["row_id", "ts", "from_bank", "from_acct", "to_bank", "to_acct", "amt_paid", "from_inst", "to_inst", "cross", "split"])
+            view = feature_view("C1", dummy_df, bank_id=bank_id)
             expected_cols = view.feature_columns
+            
             if _should_skip(out_path, expected_cols):
-                import pyarrow.parquet as pq
-
                 feature_columns[str(bank_id)] = pq.read_schema(out_path).names
                 logger.info("Skipping %s bank %d: already exists and is fresh", config, bank_id)
                 continue
 
-            combined = _combined_features(view.edges, t0, gfp_cfg, window_sec)
+            logger.info("Computing %s bank %d features (streaming)...", config, bank_id)
             out_path.parent.mkdir(parents=True, exist_ok=True)
             tmp_path = out_path.with_suffix(".tmp.parquet")
-            combined.to_parquet(tmp_path)
-            tmp_path.rename(out_path)
-            feature_columns[str(bank_id)] = list(combined.columns)
-            logger.info(
-                "%s bank %d: %d rows, %d cols -> %s",
-                config,
-                bank_id,
-                len(combined),
-                combined.shape[1],
-                out_path,
-            )
-            import gc
-
-            if config == "C3":
-                del combined
-                del sub_df
-                del merge_light
-                del merged_light
+            
+            gfp_streamer = GFPStreamer(t0, window_sec, gfp_cfg)
+            writer = None
+            rows_processed = 0
+            
+            for chunk in stream_transactions(parquet_path, wanted_splits, inst_of, t0, window_sec, peak_ts_range=peak_ts_range):
+                chunk_view = feature_view("C1", chunk, bank_id=bank_id)
+                edges = chunk_view.edges
+                if edges.empty:
+                    continue
+                    
+                gfp_feats = gfp_streamer.process_chunk(edges)
+                behav_feats = compute_behavioural_features(edges)
+                
+                if gfp_feats.empty:
+                    chunk_merged = behav_feats
+                else:
+                    chunk_merged = gfp_feats.join(behav_feats, how="outer")
+                
+                for col in chunk_merged.columns:
+                    if chunk_merged[col].dtype == "float64":
+                        chunk_merged[col] = chunk_merged[col].astype("float32")
+                        
+                table = pa.Table.from_pandas(chunk_merged)
+                if writer is None:
+                    writer = pq.ParquetWriter(tmp_path, table.schema)
+                writer.write_table(table)
+                rows_processed += len(chunk_merged)
+                
+                del edges, chunk_view, gfp_feats, behav_feats, chunk_merged, table
                 gc.collect()
+                
+            if writer is not None:
+                writer.close()
+                tmp_path.rename(out_path)
+                feature_columns[str(bank_id)] = expected_cols
+                logger.info("%s bank %d: %d rows -> %s", config, bank_id, rows_processed, out_path)
+            else:
+                logger.warning("%s bank %d produced no rows", config, bank_id)
+
     elif config == "C3":
-        # Don't keep heavy local features or views in memory.
-        # We process rounds first, then load C1 features one bank at a time.
-        with tempfile.TemporaryDirectory() as d:
-            tlog_path = Path(d) / "tlog.db"
-            bank_keypairs = {i: KeyPair.generate() for i in range(k)}
-            bank_public_keys = {i: kp.public_key for i, kp in bank_keypairs.items()}
-            enclave = EnclaveService(tlog_path, bank_public_keys)
-            banks = {
-                i: BankService(i, bank_keypairs[i].private_key, enclave.public_key)
-                for i in range(k)
-            }
+        ckpt_path = feature_dir / "C3" / "c3_enclave_checkpoint.pkl"
+        bank_keypairs = {i: KeyPair.generate() for i in range(k)}
+        banks = {
+            i: BankService(i, bank_keypairs[i].private_key, bank_keypairs[i].public_key)
+            for i in range(k)
+        }
+        if ckpt_path.exists():
+            logger.info("Found C3 enclave checkpoint at %s, loading...", ckpt_path)
+            with open(ckpt_path, "rb") as f:
+                accumulated_net_features = pickle.load(f)
+        else:
+            with tempfile.TemporaryDirectory() as d:
+                tlog_path = Path(d) / "tlog.db"
+                bank_public_keys = {i: kp.public_key for i, kp in bank_keypairs.items()}
+                enclave = EnclaveService(tlog_path, bank_public_keys)
+                banks = {
+                    i: BankService(i, bank_keypairs[i].private_key, enclave.public_key)
+                    for i in range(k)
+                }
 
-            # Pre-compute round_id to avoid repeated computation
-            df_rounds = df.copy()
-            df_rounds["round_id"] = round_id_for_ts(df_rounds["ts"], t0, window_sec)
-            rounds = sorted(df_rounds["round_id"].unique())
+                accumulated_net_features = {i: [] for i in range(k)}
+                logger.info("Computing C3 enclave features (streaming)...")
+                
+                for chunk in stream_transactions(parquet_path, wanted_splits, inst_of, t0, window_sec, peak_ts_range=peak_ts_range):
+                    rounds = sorted(chunk["round_id"].unique())
+                    for r_id in rounds:
+                        round_df = chunk[chunk["round_id"] == r_id]
+                        envelopes = []
+                        for bank_id in range(k):
+                            bank_df = round_df[(round_df["from_inst"] == bank_id) | (round_df["to_inst"] == bank_id)]
+                            env = banks[bank_id].create_submission(int(r_id), bank_df, local_features=pd.DataFrame())
+                            envelopes.append(env)
+                        
+                        as_of = t0 + (r_id + 1) * window_sec
+                        responses = enclave.process_round(int(r_id), envelopes, as_of=as_of)
+                        
+                        for bank_id, resp in responses.items():
+                            if resp.features:
+                                accumulated_net_features[bank_id].extend(resp.features)
+                    del chunk
+                    gc.collect()
 
-            accumulated_net_features = {i: [] for i in range(k)}
+                enclave.close()
+                ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(ckpt_path, "wb") as f:
+                    pickle.dump(accumulated_net_features, f)
 
-            for r_id in rounds:
-                envelopes = []
-                round_df = df_rounds[df_rounds["round_id"] == r_id]
-                for bank_id in range(k):
-                    bank_df = round_df[
-                        (round_df["from_inst"] == bank_id) | (round_df["to_inst"] == bank_id)
-                    ]
-                    # Pass empty DataFrame to create 6-dim zero-vector placeholders for summaries
-                    env = banks[bank_id].create_submission(
-                        int(r_id), bank_df, local_features=pd.DataFrame()
-                    )
-                    envelopes.append(env)
+        logger.info("Loading lightweight df_meta for C3 alignment...")
+        table_c3 = pq.read_table(parquet_path, columns=["row_id", "ts", "from_acct"])
+        df_meta = table_c3.to_pandas(categories=["from_acct"])
+        df_meta = df_meta.set_index("row_id")
 
-                as_of = t0 + (r_id + 1) * window_sec
-                responses = enclave.process_round(int(r_id), envelopes, as_of=as_of)
-
-                for bank_id, resp in responses.items():
-                    if resp.features:
-                        accumulated_net_features[bank_id].extend(resp.features)
-
-            # Delete large copies
-            # del df_rounds
-            enclave.close()
-
-            # SAFEGUARD: dump Enclave state to disk so we never lose 40 mins again
-            import pickle
-
-            ckpt_path = feature_dir / "C3" / "c3_enclave_checkpoint.pkl"
-            ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(ckpt_path, "wb") as f:
-                pickle.dump(accumulated_net_features, f)
-
-        # Try to load if we skipped Enclave (this is if we added skip logic earlier, but let's just dump)
-        # Actually, let's just leave it as a dump for safety.
+        from mritra.features.network import NETWORK_SUMMARY_DIM
         for bank_id in range(k):
             out_path = feature_dir / config / f"bank_{bank_id}.parquet"
-            from mritra.features.network import NETWORK_SUMMARY_DIM
-
-            view = feature_view("C3", df, bank_id=bank_id, network_summary_dim=NETWORK_SUMMARY_DIM)
+            dummy_df = pd.DataFrame(columns=["row_id", "ts", "from_bank", "from_acct", "to_bank", "to_acct", "amt_paid", "from_inst", "to_inst", "cross", "split"])
+            view = feature_view("C3", dummy_df, bank_id=bank_id, network_summary_dim=NETWORK_SUMMARY_DIM)
             expected_cols = view.feature_columns
+            
             if _should_skip(out_path, expected_cols):
-                import pyarrow.parquet as pq
-
                 feature_columns[str(bank_id)] = pq.read_schema(out_path).names
                 logger.info("Skipping C3 bank %d: already exists and is fresh", bank_id)
                 accumulated_net_features[bank_id] = []
                 continue
 
             net_df = banks[bank_id].receive_features(accumulated_net_features[bank_id])
-            accumulated_net_features[bank_id] = []  # FREE RAM IMMEDIATELY
-
-            # Load C1 features for this bank only
-            c1_path = feature_dir / "C1" / f"bank_{bank_id}.parquet"
-            combined = pd.read_parquet(c1_path)
-
+            accumulated_net_features[bank_id] = []  # Free RAM
+            
             if not net_df.empty:
                 net_df["target_round_id"] = net_df["round_id"] + 1
-
-                # Keep only the last feature update per account per target round
                 net_df = (
                     net_df.drop(columns=["round_id"])
                     .groupby(["account", "target_round_id"])
@@ -215,179 +267,132 @@ def build_config_features(
                     .reset_index()
                 )
                 net_df = net_df.sort_values("target_round_id")
+                net_df["account"] = net_df["account"].astype(str)
 
-                # Create lightweight dataframe to avoid sorting the 1.5GB combined dataframe
-                sub_df = df[df["row_id"].isin(combined.index)].set_index("row_id")
-                merge_light = pd.DataFrame(
-                    {
-                        "row_id": combined.index,
-                        "ts": sub_df.loc[combined.index, "ts"].values,
-                        "from_acct": sub_df.loc[combined.index, "from_acct"].astype(str).values,
-                    }
-                )
-                merge_light["round_id"] = round_id_for_ts(merge_light["ts"], t0, window_sec)
-
-                # Sort the lightweight dataframe for merge_asof
-                merge_light = merge_light.sort_values("round_id")
-
-                merged_light = pd.merge_asof(
-                    merge_light,
-                    net_df,
-                    left_on="round_id",
-                    right_on="target_round_id",
-                    left_by="from_acct",
-                    right_by="account",
-                    direction="backward",
-                )
-
-                # Drop helper columns and set index back to row_id
-                merged_light = merged_light.set_index("row_id").drop(
-                    columns=["ts", "from_acct", "round_id", "target_round_id", "account"],
-                    errors="ignore",
-                )
-
-                # Assign computed features directly to the original combined dataframe (zero-copy alignment)
-                for col in merged_light.columns:
-                    combined[col] = merged_light[col]
-
-            out_path = feature_dir / config / f"bank_{bank_id}.parquet"
+            c1_path = feature_dir / "C1" / f"bank_{bank_id}.parquet"
             out_path.parent.mkdir(parents=True, exist_ok=True)
             tmp_path = out_path.with_suffix(".tmp.parquet")
-            combined.to_parquet(tmp_path)
-            tmp_path.rename(out_path)
-            feature_columns[str(bank_id)] = list(combined.columns)
-            logger.info(
-                "%s bank %d: %d rows, %d cols -> %s",
-                config,
-                bank_id,
-                len(combined),
-                combined.shape[1],
-                out_path,
-            )
-            import gc
+            
+            writer = None
+            rows_processed = 0
+            
+            logger.info("Aligning and streaming C3 features for bank %d...", bank_id)
+            c1_file = pq.ParquetFile(c1_path)
+            for batch in c1_file.iter_batches(batch_size=500_000):
+                c1_chunk = batch.to_pandas()
+                if "row_id" not in c1_chunk.columns and c1_chunk.index.name == "row_id":
+                    c1_chunk["row_id"] = c1_chunk.index
+                elif "row_id" in c1_chunk.columns:
+                    c1_chunk = c1_chunk.set_index("row_id", drop=False)
+                
+                if not net_df.empty:
+                    r_ids = c1_chunk["row_id"].to_numpy()
+                    merge_light = pd.DataFrame({
+                        "row_id": r_ids,
+                        "ts": df_meta.loc[r_ids, "ts"].values,
+                        "from_acct": df_meta.loc[r_ids, "from_acct"].astype(str).values,
+                    })
+                    merge_light["round_id"] = round_id_for_ts(merge_light["ts"], t0, window_sec)
+                    
+                    # Stable secondary sort to guarantee deterministic alignment
+                    merge_light = merge_light.sort_values(["ts", "row_id"], kind="stable")
+                    
+                    # Ensure monotonic sorting required by merge_asof
+                    if not merge_light["round_id"].is_monotonic_increasing:
+                        logger.warning("merge_light['round_id'] is not monotonic strictly, applying sort on round_id")
+                        merge_light = merge_light.sort_values("round_id", kind="stable")
+                    assert merge_light["round_id"].is_monotonic_increasing, "merge_light must be monotonically sorted by round_id for merge_asof"
+                    
+                    merged_light = pd.merge_asof(
+                        merge_light, net_df, left_on="round_id", right_on="target_round_id", left_by="from_acct", right_by="account", direction="backward"
+                    )
+                    merged_light = merged_light.set_index("row_id").drop(
+                        columns=["ts", "from_acct", "round_id", "target_round_id", "account"], errors="ignore"
+                    )
+                    
+                    for col in merged_light.columns:
+                        c1_chunk[col] = merged_light[col]
 
-            if config == "C3":
-                del combined
-                del sub_df
-                del merge_light
-                del merged_light
+                # Ensure all network columns exist (fill NaN with 0 for zeros-padding)
+                for col in expected_cols:
+                    if col not in c1_chunk.columns:
+                        c1_chunk[col] = 0.0
+
+                c1_chunk = c1_chunk[expected_cols]
+
+                table = pa.Table.from_pandas(c1_chunk)
+                if writer is None:
+                    writer = pq.ParquetWriter(tmp_path, table.schema)
+                writer.write_table(table)
+                rows_processed += len(c1_chunk)
+                
+                del c1_chunk, table
+                if not net_df.empty:
+                    del merge_light, merged_light
                 gc.collect()
+
+            if writer is not None:
+                writer.close()
+                tmp_path.rename(out_path)
+                feature_columns[str(bank_id)] = expected_cols
+                logger.info("C3 bank %d: %d rows -> %s", bank_id, rows_processed, out_path)
+            
+        del df_meta
+        gc.collect()
+
     elif config == "C4":
         out_path = feature_dir / "C4" / "all.parquet"
-        view = feature_view("C4", df)
+        dummy_df = pd.DataFrame(columns=["row_id", "ts", "from_bank", "from_acct", "to_bank", "to_acct", "amt_paid", "from_inst", "to_inst", "cross", "split"])
+        view = feature_view("C4", dummy_df)
         expected_cols = view.feature_columns
+        
         if _should_skip(out_path, expected_cols):
-            import pyarrow.parquet as pq
-
             feature_columns["all"] = pq.read_schema(out_path).names
             logger.info("Skipping C4: already exists and is fresh")
             return feature_columns
 
         logger.info("Computing C4 features (streaming)...")
-        from mritra.features.behaviour import compute_behavioural_features
-
-        behav_feats = compute_behavioural_features(view.edges)
-
-        # Free view.edges to save RAM
-        import gc
-
-        # del df
-        view = None
-        gc.collect()
-
-        from snapml import GraphFeaturePreprocessor
-        from mritra.protocol.rounds import round_id_for_ts
-        from mritra.features.graph_gfp import _prepare_edge_array, gfp_feature_names
-
-        import pandas as pd
-        import numpy as np
-
-        # Use the provided df to prepare edge array
-        df = df.sort_values("ts", kind="stable").reset_index(drop=True)
-        edge_arr = _prepare_edge_array(df)
-        batch_id = round_id_for_ts(edge_arr[:, 3], t0, window_sec).astype(np.int64)
-        # Note: df is still alive in main(), but chunking gfp removes the 9GB peak.
-
-        gfp = GraphFeaturePreprocessor()
-        gfp.set_params(dict(gfp_cfg.get("params", {})))
-
         out_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = out_path.with_suffix(".tmp.parquet")
-
-        import pyarrow as pa
-        import pyarrow.parquet as pq
-
+        
+        gfp_streamer = GFPStreamer(t0, window_sec, gfp_cfg)
         writer = None
-
-        row_ids_list = []
-        features_list = []
-        n_feat = None
-        feat_names = None
-
         rows_processed = 0
 
-        for b in np.unique(batch_id):
-            batch_edges = edge_arr[batch_id == b]
-            if len(batch_edges) == 0:
+        for chunk in stream_transactions(parquet_path, wanted_splits, inst_of, t0, window_sec, peak_ts_range=peak_ts_range):
+            chunk_view = feature_view("C4", chunk)
+            edges = chunk_view.edges
+            if edges.empty:
                 continue
-            out = gfp.transform(batch_edges)
-            row_ids_list.append(out[:, 0].astype(np.int64))
-            features_list.append(out[:, 5:].astype(np.float32))
 
-            if len(row_ids_list) >= 10:
-                c_row = np.concatenate(row_ids_list, axis=0)
-                c_feat = np.concatenate(features_list, axis=0)
-                if n_feat is None:
-                    n_feat = c_feat.shape[1]
-                    feat_names = gfp_feature_names(n_feat, gfp_cfg)
+            gfp_feats = gfp_streamer.process_chunk(edges)
+            behav_feats = compute_behavioural_features(edges)
 
-                chunk_gfp = pd.DataFrame(c_feat, columns=feat_names, copy=False)
-                chunk_gfp.insert(0, "row_id", c_row)
-                chunk_gfp = chunk_gfp.set_index("row_id")
+            if gfp_feats.empty:
+                chunk_merged = behav_feats
+            else:
+                chunk_merged = gfp_feats.join(behav_feats, how="outer")
 
-                chunk_merged = chunk_gfp.join(behav_feats)
-
-                for col in chunk_merged.columns:
-                    if chunk_merged[col].dtype == "float64":
-                        chunk_merged[col] = chunk_merged[col].astype("float32")
-
-                table = pa.Table.from_pandas(chunk_merged)
-                if writer is None:
-                    writer = pq.ParquetWriter(tmp_path, table.schema)
-                writer.write_table(table)
-
-                rows_processed += len(chunk_merged)
-                row_ids_list = []
-                features_list = []
-                del chunk_gfp, chunk_merged, table
-                gc.collect()
-
-        if len(row_ids_list) > 0:
-            c_row = np.concatenate(row_ids_list, axis=0)
-            c_feat = np.concatenate(features_list, axis=0)
-            if n_feat is None:
-                n_feat = c_feat.shape[1]
-                feat_names = gfp_feature_names(n_feat, gfp_cfg)
-
-            chunk_gfp = pd.DataFrame(c_feat, columns=feat_names, copy=False)
-            chunk_gfp.insert(0, "row_id", c_row)
-            chunk_gfp = chunk_gfp.set_index("row_id")
-            chunk_merged = chunk_gfp.join(behav_feats)
             for col in chunk_merged.columns:
                 if chunk_merged[col].dtype == "float64":
                     chunk_merged[col] = chunk_merged[col].astype("float32")
+
             table = pa.Table.from_pandas(chunk_merged)
             if writer is None:
                 writer = pq.ParquetWriter(tmp_path, table.schema)
             writer.write_table(table)
             rows_processed += len(chunk_merged)
 
+            del edges, chunk_view, gfp_feats, behav_feats, chunk_merged, table
+            gc.collect()
+
         if writer is not None:
             writer.close()
-
-        tmp_path.rename(out_path)
-        feature_columns["all"] = expected_cols
-        logger.info("C4: %d rows -> %s", rows_processed, out_path)
+            tmp_path.rename(out_path)
+            feature_columns["all"] = expected_cols
+            logger.info("C4: %d rows -> %s", rows_processed, out_path)
+        else:
+            logger.warning("C4 produced no rows")
 
     return feature_columns
 
@@ -397,6 +402,7 @@ def main() -> None:
     parser.add_argument("--partition", choices=["P1", "P2"], default="P1")
     parser.add_argument("--configs", default="C1,C3,C4")
     parser.add_argument("--run-id", default=None)
+    parser.add_argument("--dry-run-peak", action="store_true", help="Process only the densest 24-hour window for memory stress-testing.")
     parser.add_argument(
         "--splits",
         default="train,val,test",
@@ -409,14 +415,77 @@ def main() -> None:
     cfg = load_config()
     k = cfg["institutions"]["k"]
     parquet = repo_path(cfg["paths"]["parquet"])
+    parquet_path = parquet / "trans.parquet"
 
-    df = pd.read_parquet(parquet / "trans.parquet")
     wanted_splits = set(args.splits.split(","))
-    df = df[df["split"].isin(wanted_splits)].copy()
+    
+    # Lightweight metadata load to derive t0 and partitions
+    logger.info("Computing t0, partition mapping, and peak day via pyarrow batches...")
+    import pyarrow.compute as pc
+    
+    pf = pq.ParquetFile(parquet_path)
+    t0_val = float('inf')
+    from_counts_dict = {}
+    to_counts_dict = {}
+    
+    for batch in pf.iter_batches(columns=["ts", "split", "from_bank", "to_bank"], batch_size=10_000_000):
+        # Filter to wanted splits
+        mask = pc.is_in(batch["split"], value_set=pa.array(list(wanted_splits)))
+        batch = batch.filter(mask)
+        if len(batch) == 0: continue
+        
+        # t0
+        train_mask = pc.equal(batch["split"], "train")
+        train_ts = batch["ts"].filter(train_mask)
+        if len(train_ts) > 0:
+            b_min = pc.min(train_ts).as_py()
+            if b_min < t0_val: t0_val = b_min
+            
+        # from_bank
+        fb_counts = pc.value_counts(batch["from_bank"])
+        for val, count in zip(fb_counts.field("values"), fb_counts.field("counts")):
+            from_counts_dict[val.as_py()] = from_counts_dict.get(val.as_py(), 0) + count.as_py()
+            
+        # to_bank
+        tb_counts = pc.value_counts(batch["to_bank"])
+        for val, count in zip(tb_counts.field("values"), tb_counts.field("counts")):
+            to_counts_dict[val.as_py()] = to_counts_dict.get(val.as_py(), 0) + count.as_py()
+            
+    t0 = int(t0_val)
+    
+    # volumes
+    fdf = pd.Series(from_counts_dict)
+    tdf = pd.Series(to_counts_dict)
+    volumes = fdf.add(tdf, fill_value=0).astype(int)
+    
     part_cfg = cfg["partitions"][args.partition]
-    inst_of = make_partition(df, part_cfg["method"], k, seed=part_cfg.get("seed"))
-    df = add_institutions(df, inst_of)
-    t0 = _t0(df)
+    if part_cfg["method"] == "volume_balanced":
+        from mritra.data.partition import partition_volume_balanced
+        inst_of = partition_volume_balanced(volumes, k)
+    elif part_cfg["method"] == "random":
+        from mritra.data.partition import partition_random
+        inst_of = partition_random(list(volumes.index), k, part_cfg.get("seed", 42))
+    else:
+        inst_of = make_partition(pd.DataFrame(), part_cfg["method"], k) # dummy
+    
+    peak_ts_range = None
+    if args.dry_run_peak:
+        logger.info("Calculating densest 24-hour window for --dry-run-peak via batches...")
+        day_counts = {}
+        for batch in pf.iter_batches(columns=["ts", "split"], batch_size=10_000_000):
+            mask = pc.is_in(batch["split"], value_set=pa.array(list(wanted_splits)))
+            batch_ts = batch["ts"].filter(mask)
+            if len(batch_ts) == 0: continue
+            days = pc.cast(pc.divide(pc.subtract(batch_ts, t0), 86400), pa.int64())
+            dc = pc.value_counts(days)
+            for val, count in zip(dc.field("values"), dc.field("counts")):
+                day_counts[val.as_py()] = day_counts.get(val.as_py(), 0) + count.as_py()
+        
+        peak_day = max(day_counts.items(), key=lambda x: x[1])[0]
+        peak_start = int(t0 + peak_day * 86400)
+        peak_ts_range = (peak_start, peak_start + 86400)
+        logger.info(f"Dry-run peak mode enabled: Target window {peak_ts_range} (day {peak_day}, txns {day_counts[peak_day]})")
+    
 
     gfp_cfg = load_gfp_config()
     window_sec = round_window_sec()
@@ -427,7 +496,7 @@ def main() -> None:
     feature_columns_per_config = {}
     for config in args.configs.split(","):
         feature_columns_per_config[config] = build_config_features(
-            config, df, t0, k, feature_dir, gfp_cfg, window_sec
+            config, parquet_path, wanted_splits, inst_of, t0, k, feature_dir, gfp_cfg, window_sec, peak_ts_range=peak_ts_range
         )
 
     write_manifest(
@@ -448,8 +517,6 @@ def main() -> None:
     )
     logger.info("Wrote feature tables and manifest for run %s", run_id)
 
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     main()
-# noqa: E501

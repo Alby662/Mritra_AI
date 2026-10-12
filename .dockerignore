@@ -1,0 +1,11 @@
+.venv
+.git
+data/
+*.parquet
+*.pkl
+*.log
+__pycache__
+*.pyc
+.pytest_cache
+results/runs/*/features/
+results/runs/*/models/

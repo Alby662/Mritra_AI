@@ -1,7 +1,7 @@
 """Append-only hash-chained transparency log (plan §9.3).
 
-Schema: ``tlog(seq, ts, requester, query_type, input_sha256, output_sha256,
-enclave_code_sha256, prev_hash, entry_hash)``
+Schema: ``tlog(seq, ts, type, actor, round_id, input_sha256, output_sha256,
+code_sha256, prev_hash, entry_hash)``
 
 ``entry_hash = SHA256(prev_hash || canonical_json(entry_without_hash))``
 """
@@ -15,53 +15,51 @@ import sqlite3
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS tlog (
     seq                 INTEGER PRIMARY KEY AUTOINCREMENT,
-    ts                  REAL    NOT NULL,
-    requester           TEXT    NOT NULL,
-    query_type          TEXT    NOT NULL,
-    input_sha256        TEXT    NOT NULL,
-    output_sha256       TEXT    NOT NULL,
-    enclave_code_sha256 TEXT    NOT NULL,
+    ts                  INTEGER NOT NULL,
+    type                TEXT    NOT NULL,
+    actor               TEXT    NOT NULL,
+    round_id            INTEGER,
+    input_sha256        TEXT,
+    output_sha256       TEXT,
     detail              TEXT    NOT NULL DEFAULT '{}',
+    code_sha256         TEXT    NOT NULL,
     prev_hash           TEXT    NOT NULL,
     entry_hash          TEXT    NOT NULL
 );
 """
 
-GENESIS_HASH = "0" * 64  # The "previous hash" for the first entry
-
+GENESIS_HASH = "0" * 64
 
 def _canonical_json(d: dict) -> str:
     """Deterministic JSON serialisation for hashing."""
-    return json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-
+    return json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 def _compute_entry_hash(prev_hash: str, entry: dict) -> str:
     """SHA-256(prev_hash || canonical_json(entry without entry_hash))."""
     payload = prev_hash + _canonical_json(entry)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-
 @dataclass
 class LogEntry:
     """A single transparency log entry."""
-
     seq: int
-    ts: float
-    requester: str
-    query_type: str
-    input_sha256: str
-    output_sha256: str
-    enclave_code_sha256: str
+    ts: int
+    type: str
+    actor: str
+    round_id: Optional[int]
+    input_sha256: Optional[str]
+    output_sha256: Optional[str]
+    code_sha256: str
     prev_hash: str
     entry_hash: str
     detail: dict = field(default_factory=dict)
-
 
 class TransparencyLog:
     """Append-only, hash-chained SQLite transparency log."""
@@ -81,47 +79,45 @@ class TransparencyLog:
 
     def append(
         self,
-        requester: str,
-        query_type: str,
-        input_sha256: str,
-        output_sha256: str,
-        enclave_code_sha256: str,
+        type: str,
+        actor: str,
+        code_sha256: str,
+        round_id: int | None = None,
+        input_sha256: str | None = None,
+        output_sha256: str | None = None,
         detail: dict | None = None,
     ) -> LogEntry:
-        """Append a new entry to the log and return it.
-
-        ``detail`` is counts only, never identifiers (PROTOCOL.md §8 LogEntry schema) --
-        e.g. reconciliation discrepancy counts. Part of the hashed entry, so it is
-        tamper-evident like every other field.
-        """
         prev_hash = self._last_hash()
-        ts = time.time()
+        ts = int(time.time())
         detail = detail or {}
         detail_json = _canonical_json(detail)
 
         entry_dict = {
             "ts": ts,
-            "requester": requester,
-            "query_type": query_type,
+            "type": type,
+            "actor": actor,
+            "round_id": round_id,
             "input_sha256": input_sha256,
             "output_sha256": output_sha256,
-            "enclave_code_sha256": enclave_code_sha256,
+            "code_sha256": code_sha256,
             "detail": detail,
             "prev_hash": prev_hash,
         }
+        
         entry_hash = _compute_entry_hash(prev_hash, entry_dict)
 
         self._conn.execute(
-            """INSERT INTO tlog (ts, requester, query_type, input_sha256,
-               output_sha256, enclave_code_sha256, detail, prev_hash, entry_hash)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO tlog (ts, type, actor, round_id, input_sha256,
+               output_sha256, code_sha256, detail, prev_hash, entry_hash)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 ts,
-                requester,
-                query_type,
+                type,
+                actor,
+                round_id,
                 input_sha256,
                 output_sha256,
-                enclave_code_sha256,
+                code_sha256,
                 detail_json,
                 prev_hash,
                 entry_hash,
@@ -132,34 +128,35 @@ class TransparencyLog:
         return LogEntry(
             seq=seq,
             ts=ts,
-            requester=requester,
-            query_type=query_type,
+            type=type,
+            actor=actor,
+            round_id=round_id,
             input_sha256=input_sha256,
             output_sha256=output_sha256,
-            enclave_code_sha256=enclave_code_sha256,
+            code_sha256=code_sha256,
             prev_hash=prev_hash,
             entry_hash=entry_hash,
             detail=detail,
         )
 
     def entries(self) -> list[LogEntry]:
-        """Return all entries in order."""
         rows = self._conn.execute(
-            "SELECT seq, ts, requester, query_type, input_sha256, output_sha256, "
-            "enclave_code_sha256, detail, prev_hash, entry_hash FROM tlog ORDER BY seq"
+            "SELECT seq, ts, type, actor, round_id, input_sha256, output_sha256, "
+            "code_sha256, detail, prev_hash, entry_hash FROM tlog ORDER BY seq"
         ).fetchall()
         return [
             LogEntry(
                 seq=r[0],
                 ts=r[1],
-                requester=r[2],
-                query_type=r[3],
-                input_sha256=r[4],
-                output_sha256=r[5],
-                enclave_code_sha256=r[6],
-                detail=json.loads(r[7]),
-                prev_hash=r[8],
-                entry_hash=r[9],
+                type=r[2],
+                actor=r[3],
+                round_id=r[4],
+                input_sha256=r[5],
+                output_sha256=r[6],
+                code_sha256=r[7],
+                detail=json.loads(r[8]),
+                prev_hash=r[9],
+                entry_hash=r[10],
             )
             for r in rows
         ]
@@ -169,11 +166,6 @@ class TransparencyLog:
 
 
 def verify_chain(entries: list[LogEntry]) -> tuple[bool, int | None]:
-    """Verify the hash chain; return (valid, first_broken_seq).
-
-    Returns ``(True, None)`` if the chain is intact, or ``(False, seq)``
-    where ``seq`` is the first entry whose hash is wrong.
-    """
     prev_hash = GENESIS_HASH
     for entry in entries:
         if entry.prev_hash != prev_hash:
@@ -181,11 +173,12 @@ def verify_chain(entries: list[LogEntry]) -> tuple[bool, int | None]:
 
         entry_dict = {
             "ts": entry.ts,
-            "requester": entry.requester,
-            "query_type": entry.query_type,
+            "type": entry.type,
+            "actor": entry.actor,
+            "round_id": entry.round_id,
             "input_sha256": entry.input_sha256,
             "output_sha256": entry.output_sha256,
-            "enclave_code_sha256": entry.enclave_code_sha256,
+            "code_sha256": entry.code_sha256,
             "detail": entry.detail,
             "prev_hash": entry.prev_hash,
         }

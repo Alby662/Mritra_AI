@@ -1,12 +1,4 @@
-"""Verify the transparency log hash chain (plan §9.3).
-
-Usage:
-    uv run python scripts/verify_log.py [path/to/tlog.db]
-
-Recomputes the chain and reports the first broken link (if any).
-"""
-
-from __future__ import annotations
+"""Verify the transparency log hash chain."""
 
 import argparse
 import sys
@@ -48,7 +40,7 @@ def main() -> None:
         print(f"❌ Chain broken at seq {broken_seq}")
         for e in entries:
             if e.seq == broken_seq:
-                print(f"   Entry: seq={e.seq} ts={e.ts} requester={e.requester}")
+                print(f"   Entry: seq={e.seq} ts={e.ts} type={e.type} actor={e.actor}")
                 print(f"   prev_hash={e.prev_hash[:16]}...")
                 print(f"   entry_hash={e.entry_hash[:16]}...")
                 break

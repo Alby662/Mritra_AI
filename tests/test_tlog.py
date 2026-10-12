@@ -5,6 +5,7 @@ Asserts: any edited log row breaks verification.
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 
 import pytest
@@ -32,11 +33,11 @@ class TestTransparencyLog:
     def test_single_entry_chain(self, tlog_path):
         tlog = TransparencyLog(tlog_path)
         entry = tlog.append(
-            requester="bank_0",
-            query_type="boundary_exchange",
+            type="boundary_exchange",
+            actor="bank_0",
+            code_sha256="c" * 64,
             input_sha256="a" * 64,
             output_sha256="b" * 64,
-            enclave_code_sha256="c" * 64,
         )
         assert entry.prev_hash == GENESIS_HASH
         entries = tlog.entries()
@@ -49,11 +50,11 @@ class TestTransparencyLog:
         tlog = TransparencyLog(tlog_path)
         for i in range(5):
             tlog.append(
-                requester=f"bank_{i}",
-                query_type="boundary_exchange",
+                type="boundary_exchange",
+                actor=f"bank_{i}",
+                code_sha256="c" * 64,
                 input_sha256=f"{i:064x}",
                 output_sha256=f"{i + 100:064x}",
-                enclave_code_sha256="c" * 64,
             )
         entries = tlog.entries()
         assert len(entries) == 5
@@ -64,18 +65,18 @@ class TestTransparencyLog:
     def test_chain_links_correctly(self, tlog_path):
         tlog = TransparencyLog(tlog_path)
         e1 = tlog.append(
-            requester="bank_0",
-            query_type="q1",
+            type="q1",
+            actor="bank_0",
+            code_sha256="c" * 64,
             input_sha256="a" * 64,
             output_sha256="b" * 64,
-            enclave_code_sha256="c" * 64,
         )
         e2 = tlog.append(
-            requester="bank_1",
-            query_type="q2",
+            type="q2",
+            actor="bank_1",
+            code_sha256="c" * 64,
             input_sha256="d" * 64,
             output_sha256="e" * 64,
-            enclave_code_sha256="c" * 64,
         )
         assert e2.prev_hash == e1.entry_hash
         tlog.close()
@@ -88,23 +89,16 @@ class TestTamperDetection:
         tlog = TransparencyLog(tlog_path)
         for i in range(3):
             tlog.append(
-                requester=f"bank_{i}",
-                query_type="q",
+                type="q",
+                actor=f"bank_{i}",
+                code_sha256="c" * 64,
                 input_sha256=f"{i:064x}",
                 output_sha256=f"{i:064x}",
-                enclave_code_sha256="c" * 64,
             )
         entries = tlog.entries()
         # Tamper with the middle entry's hash
-        entries[1] = type(entries[1])(
-            seq=entries[1].seq,
-            ts=entries[1].ts,
-            requester=entries[1].requester,
-            query_type=entries[1].query_type,
-            input_sha256=entries[1].input_sha256,
-            output_sha256=entries[1].output_sha256,
-            enclave_code_sha256=entries[1].enclave_code_sha256,
-            prev_hash=entries[1].prev_hash,
+        entries[1] = dataclasses.replace(
+            entries[1],
             entry_hash="tampered" + "0" * 56,
         )
         valid, broken = verify_chain(entries)
@@ -116,24 +110,17 @@ class TestTamperDetection:
         tlog = TransparencyLog(tlog_path)
         for i in range(3):
             tlog.append(
-                requester=f"bank_{i}",
-                query_type="q",
+                type="q",
+                actor=f"bank_{i}",
+                code_sha256="c" * 64,
                 input_sha256=f"{i:064x}",
                 output_sha256=f"{i:064x}",
-                enclave_code_sha256="c" * 64,
             )
         entries = tlog.entries()
         # Tamper with the last entry's prev_hash
-        entries[2] = type(entries[2])(
-            seq=entries[2].seq,
-            ts=entries[2].ts,
-            requester=entries[2].requester,
-            query_type=entries[2].query_type,
-            input_sha256=entries[2].input_sha256,
-            output_sha256=entries[2].output_sha256,
-            enclave_code_sha256=entries[2].enclave_code_sha256,
+        entries[2] = dataclasses.replace(
+            entries[2],
             prev_hash="tampered" + "0" * 56,
-            entry_hash=entries[2].entry_hash,
         )
         valid, broken = verify_chain(entries)
         assert valid is False
@@ -144,24 +131,17 @@ class TestTamperDetection:
         tlog = TransparencyLog(tlog_path)
         for i in range(3):
             tlog.append(
-                requester=f"bank_{i}",
-                query_type="q",
+                type="q",
+                actor=f"bank_{i}",
+                code_sha256="c" * 64,
                 input_sha256=f"{i:064x}",
                 output_sha256=f"{i:064x}",
-                enclave_code_sha256="c" * 64,
             )
         entries = tlog.entries()
         # Tamper with content but keep hash — chain should break
-        entries[1] = type(entries[1])(
-            seq=entries[1].seq,
-            ts=entries[1].ts,
-            requester="EVIL_BANK",  # tampered
-            query_type=entries[1].query_type,
-            input_sha256=entries[1].input_sha256,
-            output_sha256=entries[1].output_sha256,
-            enclave_code_sha256=entries[1].enclave_code_sha256,
-            prev_hash=entries[1].prev_hash,
-            entry_hash=entries[1].entry_hash,
+        entries[1] = dataclasses.replace(
+            entries[1],
+            actor="EVIL_BANK",  # tampered
         )
         valid, broken = verify_chain(entries)
         assert valid is False

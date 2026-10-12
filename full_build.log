@@ -1,0 +1,44 @@
+INFO build_features: Computing t0, partition mapping, and peak day via pyarrow batches...
+INFO build_features: Computing C1 bank 0 features (streaming)...
+INFO build_features: Memory Telemetry: Max RSS 2.32 GB
+INFO build_features: Memory Telemetry: Max RSS 2.63 GB
+INFO mritra.features.behaviour: Computing behavioural features for 313666 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 4.50 GB
+INFO mritra.features.behaviour: Computing behavioural features for 160267 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 4.50 GB
+INFO mritra.features.behaviour: Computing behavioural features for 160761 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 4.50 GB
+INFO mritra.features.behaviour: Computing behavioural features for 159885 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 4.50 GB

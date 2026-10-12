@@ -63,6 +63,16 @@ def reconcile_round(
     for edge_ref, reports in by_ref.items():
         if len(reports) < 2:
             result.unmatched_refs.append(edge_ref)
+            bank_id, txn = reports[0]
+            result.mismatches.append(
+                ReconciliationMismatch(
+                    edge_ref=edge_ref,
+                    kind="missing_counterpart",
+                    fields=[],
+                    bank_a=bank_id,
+                    bank_b=txn.counterparty_bank
+                )
+            )
             continue
 
         if len(reports) > 2:
@@ -76,51 +86,34 @@ def reconcile_round(
         bank_a, txn_a = reports[0]
         bank_b, txn_b = reports[1]
 
-        matched = True
+        mismatched_fields = []
 
         # Check amount
         if abs(txn_a.amount - txn_b.amount) > amount_tolerance:
-            result.mismatches.append(
-                ReconciliationMismatch(
-                    edge_ref=edge_ref,
-                    field="amount",
-                    bank_a=bank_a,
-                    bank_b=bank_b,
-                    value_a=str(txn_a.amount),
-                    value_b=str(txn_b.amount),
-                )
-            )
-            matched = False
+            mismatched_fields.append("amount")
 
         # Check timestamp
         if txn_a.ts != txn_b.ts:
-            result.mismatches.append(
-                ReconciliationMismatch(
-                    edge_ref=edge_ref,
-                    field="ts",
-                    bank_a=bank_a,
-                    bank_b=bank_b,
-                    value_a=str(txn_a.ts),
-                    value_b=str(txn_b.ts),
-                )
-            )
-            matched = False
+            mismatched_fields.append("ts")
 
         # Check currency
         if txn_a.currency != txn_b.currency:
+            mismatched_fields.append("currency")
+
+        if mismatched_fields:
             result.mismatches.append(
                 ReconciliationMismatch(
                     edge_ref=edge_ref,
-                    field="currency",
+                    kind="field_mismatch",
+                    fields=mismatched_fields,
                     bank_a=bank_a,
                     bank_b=bank_b,
-                    value_a=txn_a.currency,
-                    value_b=txn_b.currency,
+                    value_a=str(txn_a.amount) if "amount" in mismatched_fields else None,
+                    value_b=str(txn_b.amount) if "amount" in mismatched_fields else None,
                 )
             )
-            matched = False
-
-        if matched:
+            
+        else:
             result.matched += 1
             result.matched_refs.append(edge_ref)
 

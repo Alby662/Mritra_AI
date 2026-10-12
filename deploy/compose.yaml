@@ -1,0 +1,62 @@
+x-bank-common: &bank-common
+  build:
+    context: ../
+    dockerfile: deploy/Containerfile.bank
+  volumes:
+    - ../results/runs:/app/results/runs
+    - ../secrets:/app/secrets
+  environment:
+    - PYTHONPATH=/app
+
+services:
+  enclave_service:
+    build:
+      context: ../
+      dockerfile: deploy/Containerfile.enclave
+    volumes:
+      - ../results/runs:/app/results/runs
+      - ../secrets:/app/secrets
+    environment:
+      - PYTHONPATH=/app
+    ports:
+      - "8443:8443"
+
+  bank_b0:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B0
+    ports:
+      - "8000:8000"
+
+  bank_b1:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B1
+    ports:
+      - "8001:8000"
+
+  bank_b2:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B2
+    ports:
+      - "8002:8000"
+
+  bank_b3:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B3
+    ports:
+      - "8003:8000"
+
+  bank_b4:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B4
+    ports:
+      - "8004:8000"

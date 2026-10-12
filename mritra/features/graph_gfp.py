@@ -138,7 +138,7 @@ def load_gfp_config(path: Path | None = None) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _prepare_edge_array(df: pd.DataFrame) -> np.ndarray:
+def _prepare_edge_array(df: pd.DataFrame, node_map: dict | None = None) -> np.ndarray:
     """Build the float64 edge array expected by GFP.
 
     Column order (per IBM examples):
@@ -147,32 +147,45 @@ def _prepare_edge_array(df: pd.DataFrame) -> np.ndarray:
     ``src_id`` / ``dst_id`` are integer-encoded from (bank, acct) pairs so
     that identities are unique across the dataset.
     """
-    # Create integer node IDs for (bank, acct) pairs
-    all_nodes = pd.concat(
-        [
-            df[["from_bank", "from_acct"]].rename(
-                columns={"from_bank": "bank", "from_acct": "acct"}
-            ),
-            df[["to_bank", "to_acct"]].rename(columns={"to_bank": "bank", "to_acct": "acct"}),
-        ]
-    ).drop_duplicates()
-    all_nodes["node_id"] = np.arange(len(all_nodes), dtype=np.int64)
-    node_map = dict(
-        zip(
-            zip(all_nodes["bank"], all_nodes["acct"], strict=True),
-            all_nodes["node_id"],
-            strict=True,
+    if node_map is None:
+        # Create integer node IDs for (bank, acct) pairs
+        all_nodes = pd.concat(
+            [
+                df[["from_bank", "from_acct"]].rename(
+                    columns={"from_bank": "bank", "from_acct": "acct"}
+                ),
+                df[["to_bank", "to_acct"]].rename(columns={"to_bank": "bank", "to_acct": "acct"}),
+            ]
+        ).drop_duplicates()
+        all_nodes["node_id"] = np.arange(len(all_nodes), dtype=np.int64)
+        node_map = dict(
+            zip(
+                zip(all_nodes["bank"], all_nodes["acct"], strict=True),
+                all_nodes["node_id"],
+                strict=True,
+            )
         )
-    )
 
-    src = np.array(
-        [node_map[(b, a)] for b, a in zip(df["from_bank"], df["from_acct"], strict=True)],
-        dtype=np.float64,
-    )
-    dst = np.array(
-        [node_map[(b, a)] for b, a in zip(df["to_bank"], df["to_acct"], strict=True)],
-        dtype=np.float64,
-    )
+        src = np.array(
+            [node_map[(b, a)] for b, a in zip(df["from_bank"], df["from_acct"], strict=True)],
+            dtype=np.float64,
+        )
+        dst = np.array(
+            [node_map[(b, a)] for b, a in zip(df["to_bank"], df["to_acct"], strict=True)],
+            dtype=np.float64,
+        )
+    else:
+        def map_nodes(bank_col, acct_col):
+            keys = bank_col.astype(str) + "_" + acct_col.astype(str)
+            unique_keys = keys.unique()
+            new_keys = np.setdiff1d(unique_keys, list(node_map.keys()), assume_unique=True)
+            if len(new_keys) > 0:
+                start = len(node_map)
+                node_map.update(zip(new_keys, range(start, start + len(new_keys))))
+            return keys.map(node_map).to_numpy(dtype=np.float64)
+
+        src = map_nodes(df["from_bank"], df["from_acct"])
+        dst = map_nodes(df["to_bank"], df["to_acct"])
 
     edge_id = df["row_id"].to_numpy(dtype=np.float64)
     ts = df["ts"].to_numpy(dtype=np.float64)
@@ -244,73 +257,70 @@ def gfp_feature_names(n_feat: int, gfp_cfg: dict[str, Any] | None = None) -> lis
     return names
 
 
+class GFPStreamer:
+    """Stateful wrapper for GraphFeaturePreprocessor to process data in chunks."""
+    def __init__(self, t0: int, round_window_sec: int, gfp_cfg: dict[str, Any] | None = None):
+        if gfp_cfg is None:
+            gfp_cfg = load_gfp_config()
+            
+        from snapml import GraphFeaturePreprocessor
+        self.gfp = GraphFeaturePreprocessor()
+        self.gfp.set_params(dict(gfp_cfg.get("params", {})))
+        self.t0 = t0
+        self.round_window_sec = round_window_sec
+        self.gfp_cfg = gfp_cfg
+        self.n_feat = None
+        self.feat_names = None
+        self.node_map = {}
+
+    def process_chunk(self, df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty:
+            return pd.DataFrame()
+            
+        from mritra.protocol.rounds import round_id_for_ts
+        
+        # Ensure chunk is sorted by time for correct round generation
+        df = df.sort_values("ts", kind="stable").reset_index(drop=True)
+        edge_arr = _prepare_edge_array(df, node_map=self.node_map)
+        batch_id = round_id_for_ts(edge_arr[:, 3], self.t0, self.round_window_sec).astype(np.int64)
+        
+        row_ids_list = []
+        features_list = []
+        n_input_cols = 5
+        
+        # Process round by round
+        for b in np.unique(batch_id):
+            batch_edges = edge_arr[batch_id == b]
+            if len(batch_edges) == 0:
+                continue
+            out = self.gfp.transform(batch_edges)
+            row_ids_list.append(out[:, 0].astype(np.int64))
+            features_list.append(out[:, n_input_cols:].astype(np.float32))
+            
+        if not row_ids_list:
+            return pd.DataFrame()
+            
+        row_ids = np.concatenate(row_ids_list, axis=0)
+        features = np.concatenate(features_list, axis=0)
+        
+        if self.n_feat is None:
+            self.n_feat = features.shape[1]
+            self.feat_names = gfp_feature_names(self.n_feat, self.gfp_cfg)
+            
+        feat_df = pd.DataFrame(features, columns=self.feat_names, copy=False)
+        feat_df.insert(0, "row_id", row_ids)
+        return feat_df.set_index("row_id")
+
 def compute_gfp_features(
     df: pd.DataFrame,
     t0: int = 0,
     gfp_cfg: dict[str, Any] | None = None,
     round_window_sec: int | None = None,
 ) -> pd.DataFrame:
-    """Run Graph Feature Preprocessor streaming in round-window batches.
-
-    Parameters
-    ----------
-    df : DataFrame
-        Transaction table (must have row_id, from_bank, from_acct, to_bank,
-        to_acct, ts, amt_paid). Sorted by ``ts`` internally; need not be
-        pre-sorted by the caller.
-    t0 : int, default 0
-        Round-zero anchor (PROTOCOL.md §10): the same value must be passed by
-        every configuration (C1, C3, C4) computing features for one
-        experiment, so round *N* means the identical wall-clock window
-        everywhere, regardless of what slice of the timeline a particular
-        call happens to see.
-    gfp_cfg : dict, optional
-        Overrides from ``configs/gfp.yaml``.
-    round_window_sec : int, optional
-        Batch width in seconds. Defaults to ``configs/experiment.yaml:
-        protocol.round_window_sec`` (one simulated hour) via
-        ``mritra.protocol.rounds.round_window_sec()``.
-
-    Returns
-    -------
-    DataFrame with ``row_id`` as index and one column per GFP feature.
-    """
-    if gfp_cfg is None:
-        gfp_cfg = load_gfp_config()
-
-    from snapml import GraphFeaturePreprocessor
-
-    from mritra.protocol.rounds import round_id_for_ts
+    """Run Graph Feature Preprocessor streaming in round-window batches."""
     from mritra.protocol.rounds import round_window_sec as _default_round_window_sec
-
     if round_window_sec is None:
         round_window_sec = _default_round_window_sec()
-
-    df = df.sort_values("ts", kind="stable").reset_index(drop=True)
-    edge_arr = _prepare_edge_array(df)
-    batch_id = round_id_for_ts(edge_arr[:, 3], t0, round_window_sec).astype(np.int64)
-
-    gfp = GraphFeaturePreprocessor()
-    gfp.set_params(dict(gfp_cfg.get("params", {})))
-
-    n_input_cols = 5
-    row_ids_list = []
-    features_list = []
-
-    for b in np.unique(batch_id):  # ascending; edge_arr is ts-sorted so this is time order
-        batch_edges = edge_arr[batch_id == b]
-        if len(batch_edges) == 0:
-            continue
-        out = gfp.transform(batch_edges)
-        row_ids_list.append(out[:, 0].astype(np.int64))
-        features_list.append(out[:, n_input_cols:].astype(np.float32))
-
-    row_ids = np.concatenate(row_ids_list, axis=0)
-    features = np.concatenate(features_list, axis=0)
-
-    n_feat = features.shape[1]
-    feat_names = gfp_feature_names(n_feat, gfp_cfg)
-
-    feat_df = pd.DataFrame(features, columns=feat_names, copy=False)
-    feat_df.insert(0, "row_id", row_ids)
-    return feat_df.set_index("row_id")
+        
+    streamer = GFPStreamer(t0, round_window_sec, gfp_cfg)
+    return streamer.process_chunk(df)

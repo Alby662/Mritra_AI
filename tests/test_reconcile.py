@@ -52,21 +52,21 @@ class TestReconciliation:
         result = reconcile_round({0: [bank_0_txn], 1: [bank_1_txn]})
         assert result.matched == 0
         assert len(result.mismatches) == 1
-        assert result.mismatches[0].field == "amount"
+        assert "amount" in result.mismatches[0].fields
 
     def test_timestamp_mismatch_detected(self):
         """Different timestamps should be flagged."""
         bank_0_txn = _make_txn(edge_ref=1, ts=1000000)
         bank_1_txn = _make_txn(edge_ref=1, ts=1000001)
         result = reconcile_round({0: [bank_0_txn], 1: [bank_1_txn]})
-        assert any(m.field == "ts" for m in result.mismatches)
+        assert any("ts" in m.fields for m in result.mismatches)
 
     def test_currency_mismatch_detected(self):
         """Different currencies should be flagged."""
         bank_0_txn = _make_txn(edge_ref=1, currency="USD")
         bank_1_txn = _make_txn(edge_ref=1, currency="EUR")
         result = reconcile_round({0: [bank_0_txn], 1: [bank_1_txn]})
-        assert any(m.field == "currency" for m in result.mismatches)
+        assert any("currency" in m.fields for m in result.mismatches)
 
     def test_unmatched_ref_detected(self):
         """A transaction reported by only one bank should be unmatched."""
@@ -80,7 +80,7 @@ class TestReconciliation:
         bank_0_txn = _make_txn(edge_ref=1, amount=500.0, ts=1000000, currency="USD")
         bank_1_txn = _make_txn(edge_ref=1, amount=450.0, ts=1000001, currency="EUR")
         result = reconcile_round({0: [bank_0_txn], 1: [bank_1_txn]})
-        fields = {m.field for m in result.mismatches}
+        fields = {f for m in result.mismatches for f in m.fields}
         assert fields == {"amount", "ts", "currency"}
 
     def test_amount_tolerance(self):
@@ -88,7 +88,7 @@ class TestReconciliation:
         bank_0_txn = _make_txn(edge_ref=1, amount=500.0)
         bank_1_txn = _make_txn(edge_ref=1, amount=500.005)
         result = reconcile_round({0: [bank_0_txn], 1: [bank_1_txn]}, amount_tolerance=0.01)
-        assert not any(m.field == "amount" for m in result.mismatches)
+        assert not any("amount" in m.fields for m in result.mismatches)
 
     def test_mixed_batch(self):
         """Mix of matching, mismatching, and unmatched transactions."""
@@ -105,5 +105,8 @@ class TestReconciliation:
         }
         result = reconcile_round(submissions)
         assert result.matched == 1
-        assert len(result.mismatches) == 1
+        field_mismatches = [m for m in result.mismatches if m.kind == "field_mismatch"]
+        assert len(field_mismatches) == 1
+        assert field_mismatches[0].edge_ref == 2
+        assert "amount" in field_mismatches[0].fields
         assert 3 in result.unmatched_refs

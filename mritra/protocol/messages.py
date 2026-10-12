@@ -89,8 +89,9 @@ class ReconciliationMismatch(BaseModel):
     """A single mismatch found during double-entry reconciliation."""
 
     edge_ref: int
-    field: str = Field(description="Which field mismatched (amount, ts, etc.)")
+    kind: Literal["missing_counterpart", "field_mismatch"]
+    fields: list[str] = Field(default_factory=list)
     bank_a: int
     bank_b: int
-    value_a: str
-    value_b: str
+    value_a: str | None = None
+    value_b: str | None = None

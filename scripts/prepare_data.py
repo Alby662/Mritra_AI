@@ -222,6 +222,7 @@ def main() -> None:
         raw / files["trans"], fmt, drop_exact_duplicates=drop_exact_duplicates
     )
     df["split"] = temporal_split(df["ts"], cfg["split"]["train"], cfg["split"]["val"])
+    df = df.sort_values(["ts", "row_id"], kind="stable").reset_index(drop=True)
     df.to_parquet(out / "trans.parquet", index=False)
 
     patterns = parse_patterns(raw / files["patterns"], fmt)

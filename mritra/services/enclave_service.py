@@ -229,13 +229,13 @@ class EnclaveService:
         ).hexdigest()
 
         self.tlog.append(
-            requester=f"round_{round_id}",
-            query_type="boundary_exchange",
+            type="ROUND_COMPUTED",
+            actor="ENCLAVE",
+            round_id=round_id,
             input_sha256=input_hash,
             output_sha256=output_hash,
-            enclave_code_sha256=_get_code_hash(),
+            code_sha256=_get_code_hash(),
             detail={
-                "round_id": round_id,
                 "banks": len(submissions),
                 "matched_edges_added": len(edge_rows),
                 "unmatched_refs": len(recon.unmatched_refs),
@@ -260,3 +260,175 @@ class EnclaveService:
 
     def close(self) -> None:
         self.tlog.close()
+
+from fastapi import FastAPI, HTTPException
+from typing import Any, Dict, List
+import yaml
+from mritra.protocol.crypto import KeyPair
+from mritra.protocol.messages import NetworkFeatures, RoundResponse, SealedEnvelope, ReconciliationMismatch
+import json
+import hashlib
+import nacl.encoding
+
+# Global state for the API
+enclave: EnclaveService | None = None
+_round_envelopes: dict[int, list[SealedEnvelope]] = {}
+
+app = FastAPI(title="Enclave Service API")
+
+@app.on_event("startup")
+def startup_event():
+    global enclave
+    # Load bank public keys
+    bank_pks = {}
+    config_path = Path("configs/banks.yaml")
+    if config_path.exists():
+        with open(config_path, "r") as f:
+            cfg = yaml.safe_load(f)
+            for bank, pk_b64 in cfg.get("banks", {}).items():
+                if bank.startswith("B"):
+                    bid = int(bank[1:])
+                    bank_pks[bid] = PublicKey(pk_b64.encode(), encoder=nacl.encoding.Base64Encoder)
+                    
+    enclave = EnclaveService(Path("results/tlog.db"), bank_pks)
+    
+    enclave.tlog.append(
+        type="ENCLAVE_STARTED",
+        actor="ENCLAVE",
+        code_sha256=_get_code_hash(),
+        detail={
+            "attestation_type": "simulated",
+            "evidence": "dummy"
+        }
+    )
+
+@app.on_event("shutdown")
+def shutdown_event():
+    if enclave:
+        enclave.close()
+
+@app.get("/v1/health")
+def health():
+    return {"status": "ok", "service": "enclave"}
+
+@app.get("/v1/enclave/info")
+def enclave_info():
+    return {
+        "protocol_version": "0.1",
+        "enclave_pk_b64": enclave.public_key.encode(encoder=nacl.encoding.Base64Encoder).decode() if enclave else "dummy",
+        "code_sha256": _get_code_hash(),
+        "attestation": {
+            "type": "simulated",
+            "evidence": "dummy"
+        }
+    }
+
+@app.post("/v1/rounds/{round_id}/submissions", status_code=202)
+def submit_round(round_id: int, envelope: SealedEnvelope):
+    _round_envelopes.setdefault(round_id, []).append(envelope)
+    
+    entry = enclave.tlog.append(
+        type="SUBMISSION_RECEIVED",
+        actor=f"B{envelope.bank_id}",
+        round_id=round_id,
+        input_sha256=envelope.payload_sha256,
+        code_sha256=_get_code_hash(),
+        detail={"status": "accepted"}
+    )
+    return {"receipt_entry_hash": entry.entry_hash}
+
+@app.get("/v1/rounds/{round_id}/features/{bank_id}")
+def get_features(round_id: int, bank_id: int) -> RoundResponse:
+    # Trigger round processing if not done yet
+    envs = _round_envelopes.get(round_id, [])
+    responses = enclave.process_round(round_id, envs)
+    
+    if bank_id in responses:
+        return responses[bank_id]
+        
+    return RoundResponse(bank_id=bank_id, round_id=round_id, features=[], reconciliation_mismatches=0)
+
+@app.get("/v1/rounds/{round_id}/reconciliation/{bank_id}")
+def get_reconciliation(round_id: int, bank_id: int) -> Dict[str, Any]:
+    # We do the reconciliation dynamically here since process_round returns a response 
+    # but the API requires retrieving the specific mismatch list
+    envs = _round_envelopes.get(round_id, [])
+    submissions = {}
+    for env in envs:
+        sender_pk = enclave.bank_public_keys.get(env.bank_id)
+        sub = decrypt_submission(env, enclave.keypair.private_key, sender_pk)
+        submissions[sub.bank_id] = sub.txns
+        
+    recon = reconcile_round(submissions)
+    
+    bank_mismatches = [m for m in recon.mismatches if m.bank_a == bank_id or m.bank_b == bank_id]
+    
+    return {
+        "kind": "reconciliation",
+        "round_id": round_id,
+        "bank_id": bank_id,
+        "mismatches": [m.model_dump() for m in bank_mismatches]
+    }
+
+@app.get("/v1/rounds/{round_id}/reconciliation/summary")
+def get_reconciliation_summary(round_id: int):
+    envs = _round_envelopes.get(round_id, [])
+    submissions = {}
+    for env in envs:
+        if enclave and env.bank_id in enclave.bank_public_keys:
+            sender_pk = enclave.bank_public_keys.get(env.bank_id)
+            sub = decrypt_submission(env, enclave.keypair.private_key, sender_pk)
+            submissions[sub.bank_id] = sub.txns
+            
+    recon = reconcile_round(submissions)
+    
+    summary_counts = {}
+    for m in recon.mismatches:
+        pair = f"{min(m.bank_a, m.bank_b)}-{max(m.bank_a, m.bank_b)}"
+        if pair not in summary_counts:
+            summary_counts[pair] = {"matched": 0, "mismatched": 0}
+        summary_counts[pair]["mismatched"] += 1
+        
+    for ref in recon.matched_refs:
+        # Just an approximation since we don't track pair for matched in the result
+        pass
+        
+    return {
+        "round_id": round_id,
+        "summary": summary_counts,
+        "total_mismatches": len(recon.mismatches),
+        "total_unmatched": len(recon.unmatched_refs),
+        "total_issues": recon.total_issues
+    }
+
+@app.get("/v1/log/head")
+def get_log_head():
+    if not enclave:
+        return {"seq": 0, "entry_hash": "0"*64}
+    entries = enclave.tlog.entries()
+    if not entries:
+        return {"seq": 0, "entry_hash": "0"*64}
+    last = entries[-1]
+    return {"seq": last.seq, "entry_hash": last.entry_hash}
+
+@app.get("/v1/log/entries")
+def get_log_entries(from_seq: int = 0):
+    if not enclave:
+        return []
+    entries = enclave.tlog.entries()
+    return [
+        {
+            "seq": e.seq,
+            "ts": e.ts,
+            "type": e.type,
+            "actor": e.actor,
+            "round_id": e.round_id,
+            "input_sha256": e.input_sha256,
+            "output_sha256": e.output_sha256,
+            "code_sha256": e.code_sha256,
+            "detail": e.detail,
+            "prev_hash": e.prev_hash,
+            "entry_hash": e.entry_hash
+        }
+        for e in entries if e.seq >= from_seq
+    ]

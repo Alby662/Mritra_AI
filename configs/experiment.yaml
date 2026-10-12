@@ -55,6 +55,7 @@ labels:
 
 model:
   family: lightgbm
+  is_unbalance: true  # Prevents threshold collapse and restores continuous probability spread on IBM LinuxONE
   seeds: [42, 52, 62]
   # Same grid for every configuration; searched on validation PR-AUC. Review before freezing.
   grid:

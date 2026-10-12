@@ -1,0 +1,658 @@
+====================================================================
+[Sun Oct 11 07:51:46 PM UTC 2026] Pipeline Watcher Started. Waiting for task-3432 (build_features.py)...
+====================================================================
+[Sun Oct 11 08:25:20 PM UTC 2026] Feature extraction completed! Proceeding to automated handoff.
+[INFO] Target Run ID: 20261005T210833Z
+--------------------------------------------------------------------
+[1/3] Training Models across C1, C3, and C4...
+--------------------------------------------------------------------
+WARNING train_models: No feature tables for C1 at /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261005T210833Z/features/C1 -- skipping
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0042 threshold=0.010 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261005T210833Z/models/C3/bank_0/seed_42.txt
+Traceback (most recent call last):
+  File "/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/scripts/train_models.py", line 172, in <module>
+    main()
+  File "/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/scripts/train_models.py", line 124, in main
+    scored_val = pd.DataFrame({"row_id": idx[val_mask], "prob": val_prob})
+                                         ^^^
+UnboundLocalError: cannot access local variable 'val_mask' where it is not associated with a value
+====================================================================
+[Sun Oct 11 08:27:18 PM UTC 2026] Starting Automated Pipeline Execution for Run: 20261011T161246Z
+====================================================================
+--------------------------------------------------------------------
+[1/4] Resuming Feature Extraction (C3 alignment & C4 oracle)...
+--------------------------------------------------------------------
+INFO build_features: Computing t0, partition mapping, and peak day via pyarrow batches...
+INFO build_features: Computing C1 bank 0 features (streaming)...
+====================================================================
+[Sun Oct 11 08:28:43 PM UTC 2026] Starting Automated Pipeline Execution for Run: 20261011T161246Z
+====================================================================
+--------------------------------------------------------------------
+[1/4] Resuming Feature Extraction (C3 alignment & C4 oracle)...
+--------------------------------------------------------------------
+INFO build_features: Computing t0, partition mapping, and peak day via pyarrow batches...
+INFO build_features: Skipping C1 bank 0: already exists and is fresh
+INFO build_features: Skipping C1 bank 1: already exists and is fresh
+INFO build_features: Skipping C1 bank 2: already exists and is fresh
+INFO build_features: Skipping C1 bank 3: already exists and is fresh
+INFO build_features: Skipping C1 bank 4: already exists and is fresh
+INFO build_features: Found C3 enclave checkpoint at /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C3/c3_enclave_checkpoint.pkl, loading...
+INFO build_features: Loading lightweight df_meta for C3 alignment...
+INFO build_features: Aligning and streaming C3 features for bank 0...
+INFO build_features: C3 bank 0: 1740101 rows -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C3/bank_0.parquet
+INFO build_features: Aligning and streaming C3 features for bank 1...
+INFO build_features: C3 bank 1: 1716776 rows -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C3/bank_1.parquet
+INFO build_features: Aligning and streaming C3 features for bank 2...
+INFO build_features: C3 bank 2: 1724208 rows -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C3/bank_2.parquet
+INFO build_features: Aligning and streaming C3 features for bank 3...
+INFO build_features: C3 bank 3: 1719139 rows -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C3/bank_3.parquet
+INFO build_features: Aligning and streaming C3 features for bank 4...
+INFO build_features: C3 bank 4: 1722249 rows -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C3/bank_4.parquet
+INFO build_features: Computing C4 features (streaming)...
+INFO mritra.features.behaviour: Computing behavioural features for 478084 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 502456 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 66695 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 452704 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 495958 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 80853 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 418019 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 501001 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 136514 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 365586 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 501695 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 176090 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 321017 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 500608 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 81055 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: Memory Telemetry: Max RSS 7.16 GB
+INFO mritra.features.behaviour: Computing behavioural features for 1 transactions
+INFO mritra.features.behaviour:   velocity 1h done
+INFO mritra.features.behaviour:   velocity 24h done
+INFO mritra.features.behaviour:   velocity 7d done
+INFO mritra.features.behaviour:   pass_through_ratio done
+INFO mritra.features.behaviour:   cross_inst_share done
+INFO mritra.features.behaviour:   format_diversity done
+INFO mritra.features.behaviour:   currency_diversity done
+INFO mritra.features.behaviour:   baseline_deviation done
+INFO build_features: C4: 5078336 rows -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C4/all.parquet
+INFO build_features: Wrote feature tables and manifest for run 20261011T161246Z
+--------------------------------------------------------------------
+[2/4] Training Models across C1, C3, and C4...
+--------------------------------------------------------------------
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0044 threshold=0.720 params={'num_leaves': 31, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_0/seed_42.txt
+INFO train_models: C1/bank_0 seed=42: pr_auc=0.0044 threshold=0.720 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_0/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0041 threshold=0.950 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_0/seed_52.txt
+INFO train_models: C1/bank_0 seed=52: pr_auc=0.0041 threshold=0.950 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_0/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0095 threshold=0.910 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_0/seed_62.txt
+INFO train_models: C1/bank_0 seed=62: pr_auc=0.0095 threshold=0.910 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_0/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0112 threshold=0.970 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_1/seed_42.txt
+INFO train_models: C1/bank_1 seed=42: pr_auc=0.0112 threshold=0.970 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_1/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0084 threshold=0.970 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_1/seed_52.txt
+INFO train_models: C1/bank_1 seed=52: pr_auc=0.0084 threshold=0.970 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_1/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0071 threshold=0.990 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_1/seed_62.txt
+INFO train_models: C1/bank_1 seed=62: pr_auc=0.0071 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_1/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0104 threshold=0.010 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_2/seed_42.txt
+INFO train_models: C1/bank_2 seed=42: pr_auc=0.0104 threshold=0.010 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_2/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0099 threshold=0.990 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_2/seed_52.txt
+INFO train_models: C1/bank_2 seed=52: pr_auc=0.0099 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_2/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0121 threshold=0.010 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_2/seed_62.txt
+INFO train_models: C1/bank_2 seed=62: pr_auc=0.0121 threshold=0.010 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_2/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0091 threshold=0.110 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_3/seed_42.txt
+INFO train_models: C1/bank_3 seed=42: pr_auc=0.0091 threshold=0.110 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_3/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0093 threshold=0.010 params={'num_leaves': 31, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_3/seed_52.txt
+INFO train_models: C1/bank_3 seed=52: pr_auc=0.0093 threshold=0.010 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_3/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0088 threshold=0.960 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_3/seed_62.txt
+INFO train_models: C1/bank_3 seed=62: pr_auc=0.0088 threshold=0.960 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_3/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0076 threshold=0.990 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_4/seed_42.txt
+INFO train_models: C1/bank_4 seed=42: pr_auc=0.0076 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_4/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0042 threshold=0.990 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_4/seed_52.txt
+INFO train_models: C1/bank_4 seed=52: pr_auc=0.0042 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_4/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0081 threshold=0.460 params={'num_leaves': 31, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_4/seed_62.txt
+INFO train_models: C1/bank_4 seed=62: pr_auc=0.0081 threshold=0.460 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C1/bank_4/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0030 threshold=0.970 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_0/seed_42.txt
+INFO train_models: C3/bank_0 seed=42: pr_auc=0.0030 threshold=0.970 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_0/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0104 threshold=0.980 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_0/seed_52.txt
+INFO train_models: C3/bank_0 seed=52: pr_auc=0.0104 threshold=0.980 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_0/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0022 threshold=0.990 params={'num_leaves': 31, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_0/seed_62.txt
+INFO train_models: C3/bank_0 seed=62: pr_auc=0.0022 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_0/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0048 threshold=0.970 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_1/seed_42.txt
+INFO train_models: C3/bank_1 seed=42: pr_auc=0.0048 threshold=0.970 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_1/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0023 threshold=0.970 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_1/seed_52.txt
+INFO train_models: C3/bank_1 seed=52: pr_auc=0.0023 threshold=0.970 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_1/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0020 threshold=0.400 params={'num_leaves': 63, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_1/seed_62.txt
+INFO train_models: C3/bank_1 seed=62: pr_auc=0.0020 threshold=0.400 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_1/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0048 threshold=0.970 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_2/seed_42.txt
+INFO train_models: C3/bank_2 seed=42: pr_auc=0.0048 threshold=0.970 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_2/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0047 threshold=0.990 params={'num_leaves': 63, 'learning_rate': 0.1, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_2/seed_52.txt
+INFO train_models: C3/bank_2 seed=52: pr_auc=0.0047 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_2/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0074 threshold=0.970 params={'num_leaves': 63, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_2/seed_62.txt
+INFO train_models: C3/bank_2 seed=62: pr_auc=0.0074 threshold=0.970 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_2/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0067 threshold=0.990 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_3/seed_42.txt
+INFO train_models: C3/bank_3 seed=42: pr_auc=0.0067 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_3/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0068 threshold=0.990 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_3/seed_52.txt
+INFO train_models: C3/bank_3 seed=52: pr_auc=0.0068 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_3/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0067 threshold=0.990 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_3/seed_62.txt
+INFO train_models: C3/bank_3 seed=62: pr_auc=0.0067 threshold=0.990 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_3/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0055 threshold=0.940 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_4/seed_42.txt
+INFO train_models: C3/bank_4 seed=42: pr_auc=0.0055 threshold=0.940 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_4/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0052 threshold=0.940 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_4/seed_52.txt
+INFO train_models: C3/bank_4 seed=52: pr_auc=0.0052 threshold=0.940 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_4/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0054 threshold=0.940 params={'num_leaves': 31, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_4/seed_62.txt
+INFO train_models: C3/bank_4 seed=62: pr_auc=0.0054 threshold=0.940 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C3/bank_4/seed_62.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=42
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0327 threshold=0.720 params={'num_leaves': 63, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C4/all/seed_42.txt
+INFO train_models: C4/all seed=42: pr_auc=0.0327 threshold=0.720 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C4/all/seed_42.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=52
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0320 threshold=0.460 params={'num_leaves': 63, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C4/all/seed_52.txt
+INFO train_models: C4/all seed=52: pr_auc=0.0320 threshold=0.460 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C4/all/seed_52.txt
+INFO mritra.models.train: Grid search: 4 combinations, seed=62
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/lightgbm/sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+INFO mritra.models.train: Best: pr_auc=0.0316 threshold=0.540 params={'num_leaves': 63, 'learning_rate': 0.05, 'n_estimators': 500, 'min_child_samples': 20}
+INFO mritra.models.train: Saved model to /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C4/all/seed_62.txt
+INFO train_models: C4/all seed=62: pr_auc=0.0316 threshold=0.540 -> /home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/models/C4/all/seed_62.txt
+INFO train_models: C1 cross_bank seed=42: optimal_threshold=0.990
+INFO train_models: C1 cross_bank seed=52: optimal_threshold=0.990
+INFO train_models: C1 cross_bank seed=62: optimal_threshold=0.990
+INFO train_models: C3 cross_bank seed=42: optimal_threshold=0.990
+INFO train_models: C3 cross_bank seed=52: optimal_threshold=0.990
+INFO train_models: C3 cross_bank seed=62: optimal_threshold=0.990
+INFO train_models: Training complete for run 20261011T161246Z
+--------------------------------------------------------------------
+[3/4] Scoring and Evaluating Static Blind Test Split...
+--------------------------------------------------------------------
+INFO run_eval: C1/bank_0 seed=42: F1=0.0132 PR-AUC=0.0050 (n=365397, pos=574); sensitivity n=365197
+INFO run_eval: C1/bank_0 seed=52: F1=0.0128 PR-AUC=0.0048 (n=365397, pos=574); sensitivity n=365197
+INFO run_eval: C1/bank_0 seed=62: F1=0.0171 PR-AUC=0.0057 (n=365397, pos=574); sensitivity n=365197
+INFO run_eval: C1/bank_1 seed=42: F1=0.0175 PR-AUC=0.0079 (n=357486, pos=591); sensitivity n=357162
+INFO run_eval: C1/bank_1 seed=52: F1=0.0177 PR-AUC=0.0060 (n=357486, pos=591); sensitivity n=357162
+INFO run_eval: C1/bank_1 seed=62: F1=0.0161 PR-AUC=0.0060 (n=357486, pos=591); sensitivity n=357162
+INFO run_eval: C1/bank_2 seed=42: F1=0.0268 PR-AUC=0.0108 (n=360177, pos=659); sensitivity n=359857
+INFO run_eval: C1/bank_2 seed=52: F1=0.0159 PR-AUC=0.0072 (n=360177, pos=659); sensitivity n=359857
+INFO run_eval: C1/bank_2 seed=62: F1=0.0280 PR-AUC=0.0096 (n=360177, pos=659); sensitivity n=359857
+INFO run_eval: C1/bank_3 seed=42: F1=0.0192 PR-AUC=0.0079 (n=358675, pos=661); sensitivity n=358335
+INFO run_eval: C1/bank_3 seed=52: F1=0.0216 PR-AUC=0.0082 (n=358675, pos=661); sensitivity n=358335
+INFO run_eval: C1/bank_3 seed=62: F1=0.0217 PR-AUC=0.0076 (n=358675, pos=661); sensitivity n=358335
+INFO run_eval: C1/bank_4 seed=42: F1=0.0232 PR-AUC=0.0090 (n=359319, pos=705); sensitivity n=358854
+INFO run_eval: C1/bank_4 seed=52: F1=0.0109 PR-AUC=0.0050 (n=359319, pos=705); sensitivity n=358854
+INFO run_eval: C1/bank_4 seed=62: F1=0.0209 PR-AUC=0.0092 (n=359319, pos=705); sensitivity n=358854
+Traceback (most recent call last):
+  File "/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/scripts/run_eval.py", line 277, in <module>
+    main()
+  File "/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/scripts/run_eval.py", line 155, in main
+    pf = pq.ParquetFile(scope_path)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/.venv/lib/python3.11/site-packages/pyarrow/parquet/core.py", line 327, in __init__
+    source = filesystem.open_input_file(source)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pyarrow/_fs.pyx", line 815, in pyarrow._fs.FileSystem.open_input_file
+  File "pyarrow/error.pxi", line 155, in pyarrow.lib.pyarrow_internal_check_status
+  File "pyarrow/error.pxi", line 92, in pyarrow.lib.check_status
+FileNotFoundError: [Errno 2] Failed to open local file '/home/rehan/Desktop/Project/IBM Z Hackathon/Mritra_AI/results/runs/20261011T161246Z/features/C1/cross_bank.parquet'. Detail: [errno 2] No such file or directory

@@ -12,13 +12,15 @@ import {
   HelpCircle,
   Shield,
   Moon,
-  Sun
+  Sun,
+  Compass
 } from 'lucide-react';
 import { Overview } from './components/Overview';
 import { ChainGraph } from './components/ChainGraph';
 import { TransparencyLog } from './components/TransparencyLog';
 import { Reconciliation } from './components/Reconciliation';
 import { ConfigAudit } from './components/ConfigAudit';
+import { GuidedWalkthrough } from './components/GuidedWalkthrough';
 import { RUN_CATALOG } from './data/telemetryData';
 import { useToast } from './context/ToastContext';
 import { getEnclaveInfo, getBankHealth } from './api/mritraApi';
@@ -32,6 +34,11 @@ export function App() {
   const [showRunDropdown, setShowRunDropdown] = useState(false);
   const [enclaveInfo, setEnclaveInfo] = useState<EnclaveInfo | null>(null);
   const [bankHealth, setBankHealth] = useState<BankHealth | null>(null);
+  
+  // Single-time Guided Walkthrough for first-time visitors (persisted in localStorage)
+  const [showTour, setShowTour] = useState(() => {
+    return localStorage.getItem('mritra_walkthrough_completed') !== 'true';
+  });
 
   useEffect(() => {
     getEnclaveInfo().then(setEnclaveInfo);
@@ -89,6 +96,13 @@ export function App() {
 
   return (
     <>
+      {/* ─── Single-Time First-Visit Guided Tour ──────────────────── */}
+      <GuidedWalkthrough 
+        isOpen={showTour} 
+        onClose={() => setShowTour(false)} 
+        onNavigateTab={(tab) => setActiveTab(tab)} 
+      />
+
       {/* ─── Ambient Organic Backdrop ─────────────────────────────── */}
       <div className="ambient-bg">
         <div className="ambient-blob-1"></div>
@@ -167,6 +181,14 @@ export function App() {
           <div className="nav-icon-group">
             <button 
               className="nav-icon-btn" 
+              onClick={() => setShowTour(true)}
+              aria-label="Start Guided Tour"
+            >
+              <Compass size={19} color="#c6ef4e" />
+              <span className="nav-tooltip">Interactive Tour</span>
+            </button>
+            <button 
+              className="nav-icon-btn" 
               onClick={() => setActiveTab('audit')}
               aria-label="System Documentation"
             >
@@ -222,6 +244,21 @@ export function App() {
 
             {/* Header Actions & Live Partition Switcher */}
             <div className="header-actions">
+              {/* Interactive Guided Tour Button */}
+              <button 
+                className="selector-pill"
+                onClick={() => setShowTour(true)}
+                title="Launch Interactive Walkthrough"
+                style={{ 
+                  background: 'var(--lime-soft)', 
+                  border: '1px solid var(--lime-border)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Compass size={14} color="var(--text-primary)" />
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Guided Tour</span>
+              </button>
+
               {/* Partition / Run Dropdown Selector */}
               <div style={{ position: 'relative' }}>
                 <button 

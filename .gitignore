@@ -39,3 +39,9 @@ Thumbs.db
 # Dashboard build
 dashboard/node_modules/
 dashboard/dist/
+
+# Documentation & Markdown files
+Docs/
+docs/
+md_files/
+

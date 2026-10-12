@@ -12,12 +12,20 @@ def main() -> None:
     parser.add_argument(
         "db_path",
         nargs="?",
-        default="results/tlog.db",
+        default=None,
         help="Path to the transparency log SQLite database (default: results/tlog.db)",
+    )
+    parser.add_argument(
+        "--db",
+        dest="db_flag",
+        default=None,
+        help="Alias for db_path (for backward compatibility)",
     )
     args = parser.parse_args()
 
-    db_path = Path(args.db_path)
+    # --db flag takes precedence, then positional, then default
+    raw_path = args.db_flag or args.db_path or "results/tlog.db"
+    db_path = Path(raw_path)
     if not db_path.exists():
         print(f"ERROR: {db_path} not found", file=sys.stderr)
         sys.exit(1)

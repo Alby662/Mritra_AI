@@ -71,12 +71,30 @@ jobs:
 
       - name: Configure SSH Key
         env:
-          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
+          SSH_KEY_RAW: ${{ secrets.EC2_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          if [ -n "$SSH_KEY_B64" ]; then
+            echo "Decoding base64-encoded SSH key..."
+            printf '%s' "$SSH_KEY_B64" | base64 --decode > ~/.ssh/id_rsa
+          elif [ -n "$SSH_KEY_RAW" ]; then
+            echo "Writing raw SSH key..."
+            printf '%s\n' "$SSH_KEY_RAW" > ~/.ssh/id_rsa
+          else
+            echo "::error::Neither EC2_SSH_KEY_B64 nor EC2_SSH_KEY secret is configured!"
+            exit 1
+          fi
+
           printf "\n" >> ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+
+          # Validate key syntax with ssh-keygen before connecting
+          ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null || {
+            echo "::error::The configured SSH key failed validation! Check your GitHub secret."
+            exit 1
+          }
+          echo "SSH key verified successfully."
 
       - name: Register Known Hosts
         env:

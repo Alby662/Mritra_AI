@@ -86,7 +86,7 @@ jobs:
       - name: Verify Transparency Log (tlog)
         run: |
           if [ -f "results/tlog.db" ]; then
-            uv run python scripts/verify_log.py --db results/tlog.db
+            uv run python scripts/verify_log.py results/tlog.db
           fi
 
   leakage-and-governance:

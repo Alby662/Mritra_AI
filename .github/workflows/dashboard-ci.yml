@@ -69,7 +69,29 @@ jobs:
           name: dashboard-dist
           path: ./dist
 
+      - name: Check Deployment Secrets
+        id: deploy-guard
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
+          SSH_KEY_RAW: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          missing=()
+          [ -z "$EC2_HOST" ] && missing+=("EC2_HOST")
+          if [ -z "$SSH_KEY_B64" ] && [ -z "$SSH_KEY_RAW" ]; then
+            missing+=("EC2_SSH_KEY or EC2_SSH_KEY_B64")
+          fi
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::warning::Skipping EC2 deploy because required secrets are missing: ${missing[*]}"
+            echo "deploy_enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
+
       - name: Configure SSH Key
+        if: steps.deploy-guard.outputs.deploy_enabled == 'true'
         env:
           SSH_KEY_B64: ${{ secrets.EC2_SSH_KEY_B64 }}
           SSH_KEY_RAW: ${{ secrets.EC2_SSH_KEY }}
@@ -131,17 +153,15 @@ jobs:
           PYEOF
 
       - name: Register Known Hosts
+        if: steps.deploy-guard.outputs.deploy_enabled == 'true'
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          if [ -z "$EC2_HOST" ]; then
-            echo "::error::GitHub secret 'EC2_HOST' is not configured! Please go to Settings -> Secrets and variables -> Actions and add EC2_HOST."
-            exit 1
-          fi
           mkdir -p ~/.ssh
           ssh-keyscan -H -T 10 "${EC2_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Sync Build Artifacts via Rsync
+        if: steps.deploy-guard.outputs.deploy_enabled == 'true'
         env:
           EC2_USER: ${{ secrets.EC2_USER || 'ec2-user' }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -153,6 +173,7 @@ jobs:
             ./dist/ "${EC2_USER}@${EC2_HOST}:${TARGET_DIR}/"
 
       - name: Reload Nginx Service on EC2
+        if: steps.deploy-guard.outputs.deploy_enabled == 'true'
         env:
           EC2_USER: ${{ secrets.EC2_USER || 'ec2-user' }}
           EC2_HOST: ${{ secrets.EC2_HOST }}

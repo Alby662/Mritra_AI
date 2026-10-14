@@ -2,7 +2,7 @@
 name = "mritra"
 version = "0.1.0"
 description = "Privacy-preserving cross-bank money-mule detection on IBM LinuxONE (IBM Z Datathon 2026)"
-readme = "Docs/README.md"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",

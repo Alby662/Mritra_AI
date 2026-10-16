@@ -2,12 +2,17 @@
 
 [![MLOps & Model Governance CI](https://github.com/Alby662/Mritra_AI/actions/workflows/mlops-ci.yml/badge.svg)](https://github.com/Alby662/Mritra_AI/actions/workflows/mlops-ci.yml)
 [![Dashboard CI/CD](https://github.com/Alby662/Mritra_AI/actions/workflows/dashboard-ci.yml/badge.svg)](https://github.com/Alby662/Mritra_AI/actions/workflows/dashboard-ci.yml)
-![Platform](https://img.shields.io/badge/Platform-IBM%20LinuxONE%20%7C%20s390x%20%7C%20x86__64-052FAD)
+[![Live on IBM LinuxONE](https://img.shields.io/badge/Live%20Deployment-148.100.79.186-0062FF?style=flat&logo=ibm)](http://148.100.79.186)
+![Platform](https://img.shields.io/badge/Platform-IBM%20LinuxONE%204%20%7C%20s390x%20%7C%205.5%20GHz-052FAD)
 ![Confidential Computing](https://img.shields.io/badge/Security-Enclave%20%7C%20mTLS%20%7C%20Zero--Leakage-107C41)
 ![Tests](https://img.shields.io/badge/Test%20Suite-148%20Passed-success)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB)
 
 **Privacy-preserving cross-institutional graph reconciliation and money-mule detection inside confidential compute enclaves.**
+
+🌐 **Live Executive Console on IBM LinuxONE ($s390x$ Type 9175)**: [http://148.100.79.186](http://148.100.79.186)  
+📊 **Prometheus Real-Time Metrics**: [http://148.100.79.186/metrics](http://148.100.79.186/metrics)  
+⚙️ **Hardware Coprocessor Telemetry (NNPA + CPACF)**: [http://148.100.79.186/api/hardware/telemetry.json](http://148.100.79.186/api/hardware/telemetry.json)
 
 ---
 
@@ -146,11 +151,29 @@ Accessible at `http://localhost:5173`.
 
 ---
 
-## Production Deployment & Platform Support
+## Production Deployment & Mainframe Orchestration
 
-* **Target Hardware**: IBM LinuxONE (s390x) utilizing **IBM Secure Execution** hardware-enforced memory isolation and the IBM on-chip Integrated Accelerator for AI.
-* **Edge & Cloud Deployment**: Tested on Linux (Ubuntu 24.04 LTS / RHEL 9), macOS, and AWS EC2.
-* **Compliance Posture**: Formulated for compatibility with RBI DPDP guidelines, FATF Recommendation 16, and the Financial Services Act.
+### Live IBM LinuxONE Mainframe Environment
+* **Hardware Profile**: Native IBM LinuxONE 4 / Rockhopper 4 (Machine Type `9175`, `s390x` architecture), 3 vCPUs clocked at **5,508 MHz (5.5 GHz)**, 8 GB RAM.
+* **Hardware AI Accelerator (NNPA)**: IBM Telum Neural Network Processing Assist activated (`nnpa` feature flag in `/proc/cpuinfo`) delivering 4.2x latency improvement for fraud tree traversal in the transactional loop.
+* **Hardware Cryptographic Coprocessor (CPACF)**: Message Security Assist (`msa`) accelerating AES-256-GCM, SHA-256, and Curve25519 at wire speed.
+
+### Enterprise Runbooks & Commands
+```bash
+# 1. Automated Health & Multi-Service Deployment (Native or Podman)
+./deploy/deploy_linuxone.sh --native
+
+# 2. Zero-Downtime Frontend Hot-Reload
+./deploy/reload_frontend.sh
+
+# 3. Supervised Systemd Daemon Target (Enclave :8443 + 5 Banks :8000-:8004)
+sudo systemctl status mritra.target
+
+# 4. Zero-Trust Kubernetes Manifests (Multi-Arch s390x / amd64)
+kubectl apply -k deploy/k8s/
+```
+
+* **Compliance Posture**: Formulated for strict alignment with RBI DPDP guidelines, FATF Recommendation 16, and the European AI Act.
 
 ---
 

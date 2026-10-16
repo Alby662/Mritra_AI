@@ -1,0 +1,23 @@
+# ==============================================================================
+# deploy/Containerfile.dashboard
+# Lightweight multi-architecture (s390x / amd64 / arm64) Nginx container for Mritra Dashboard
+# ==============================================================================
+FROM nginx:alpine
+
+# Remove default nginx html
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy prebuilt static dashboard assets and generated API artifacts
+COPY dashboard/dist /usr/share/nginx/html
+
+# Copy custom Nginx configuration with SPA routing and API fallbacks
+COPY dashboard/deploy/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Re-point root to /usr/share/nginx/html in nginx.conf
+RUN sed -i 's|/var/www/dashboard|/usr/share/nginx/html|g' /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+STOPSIGNAL SIGQUIT
+
+CMD ["nginx", "-g", "daemon off;"]

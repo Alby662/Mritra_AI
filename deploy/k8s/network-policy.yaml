@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: enclave-zero-trust-isolation
+  namespace: mritra-aml
+spec:
+  podSelector:
+    matchLabels:
+      component: confidential-compute
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow incoming mTLS traffic from verified bank pods on port 8443
+    - from:
+        - podSelector:
+            matchLabels:
+              component: bank-node
+        - podSelector:
+            matchLabels:
+              component: frontend
+      ports:
+        - protocol: TCP
+          port: 8443
+  egress:
+    # Restrict egress strictly to bank response endpoints
+    - to:
+        - podSelector:
+            matchLabels:
+              component: bank-node
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bank-to-bank-isolation
+  namespace: mritra-aml
+spec:
+  podSelector:
+    matchLabels:
+      component: bank-node
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow incoming traffic ONLY from Enclave pod
+    - from:
+        - podSelector:
+            matchLabels:
+              component: confidential-compute
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Bank nodes may NEVER connect to another bank node directly!
+    # They can only transmit to the Enclave
+    - to:
+        - podSelector:
+            matchLabels:
+              component: confidential-compute
+      ports:
+        - protocol: TCP
+          port: 8443

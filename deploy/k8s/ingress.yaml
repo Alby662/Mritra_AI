@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mritra-ingress
+  namespace: mritra-aml
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "64m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mritra-dashboard-service
+                port:
+                  number: 80
+          - path: /api/enclave
+            pathType: Prefix
+            backend:
+              service:
+                name: mritra-enclave-service
+                port:
+                  number: 8443

@@ -1,0 +1,107 @@
+name: IBM LinuxONE (s390x) & Kubernetes CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/**'
+      - 'mritra/**'
+      - 'dashboard/**'
+      - '.github/workflows/deploy-linuxone.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ─── 1. Kubernetes Manifest Validation ──────────────────────────────────────
+  k8s-validate:
+    name: Validate Kubernetes / OpenShift Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Kustomize & Kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Test Kustomize Build
+        run: |
+          kubectl kustomize deploy/k8s/ > deploy/k8s/rendered.yaml
+          echo "Rendered K8s manifests successfully (Lines: $(wc -l < deploy/k8s/rendered.yaml))"
+
+      - name: Validate Manifest Syntax (Client Dry-Run)
+        run: |
+          kubectl apply -k deploy/k8s/ --dry-run=client
+          echo "Kubernetes manifests are syntactically and structurally valid."
+
+  # ─── 2. Multi-Arch Docker Build (s390x + amd64) ─────────────────────────────
+  multiarch-docker-build:
+    name: Multi-Arch Build (s390x / amd64)
+    runs-on: ubuntu-latest
+    needs: k8s-validate
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for s390x emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/s390x,linux/amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Dashboard Dist
+        working-directory: dashboard
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Dashboard Image for s390x and amd64
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Containerfile.dashboard
+          platforms: linux/s390x,linux/amd64
+          push: false
+          tags: mritra-dashboard:latest
+
+      - name: Build Enclave Image for s390x and amd64
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deploy/Containerfile.enclave
+          platforms: linux/s390x,linux/amd64
+          push: false
+          tags: mritra-enclave:latest
+
+  # ─── 3. Automated CD Deploy to IBM LinuxONE VM ──────────────────────────────
+  deploy-to-linuxone:
+    name: CD Deploy to IBM LinuxONE VM
+    runs-on: ubuntu-latest
+    needs: multiarch-docker-build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Deploy to Remote LinuxONE via SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.LINUXONE_SSH_KEY }}
+          LINUXONE_HOST: ${{ secrets.LINUXONE_HOST || '148.100.79.186' }}
+          LINUXONE_USER: ${{ secrets.LINUXONE_USER || 'linux1' }}
+        run: |
+          if [ -z "${SSH_PRIVATE_KEY}" ]; then
+            echo "Notice: LINUXONE_SSH_KEY secret not configured in GitHub repository."
+            echo "Skipping automated remote SSH deployment. Local and manual SSH deployment active."
+            exit 0
+          fi
+
+          mkdir -p ~/.ssh
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          ssh -o StrictHostKeyChecking=no "${LINUXONE_USER}@${LINUXONE_HOST}" \
+            "cd ~/Mritra_AI && git pull origin main && ./deploy/deploy_linuxone.sh --check-only"

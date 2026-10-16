@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mritra-enclave
+  namespace: mritra-aml
+  labels:
+    app: mritra-enclave
+    component: confidential-compute
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mritra-enclave
+  template:
+    metadata:
+      labels:
+        app: mritra-enclave
+        component: confidential-compute
+    spec:
+      containers:
+        - name: enclave
+          image: mritra-enclave:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: mritra-config
+          ports:
+            - containerPort: 8443
+              name: https-mtls
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "4000m"
+              memory: "6Gi"
+          volumeMounts:
+            - name: secrets-volume
+              mountPath: /app/secrets
+              readOnly: true
+            - name: results-volume
+              mountPath: /app/results
+      volumes:
+        - name: secrets-volume
+          secret:
+            secretName: mritra-mtls-secrets
+        - name: results-volume
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mritra-enclave-service
+  namespace: mritra-aml
+  labels:
+    app: mritra-enclave
+spec:
+  type: ClusterIP
+  selector:
+    app: mritra-enclave
+  ports:
+    - name: https-mtls
+      port: 8443
+      targetPort: 8443

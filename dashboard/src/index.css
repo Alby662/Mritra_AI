@@ -487,6 +487,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .apple-segment-btn:hover {
   color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .apple-segment-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .apple-segment-btn:active {
@@ -504,7 +509,146 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--lime);
   color: #000000;
   font-weight: 800;
-  box-shadow: 0 2px 10px rgba(198, 239, 78, 0.4);
+  box-shadow: 0 2px 12px rgba(198, 239, 78, 0.45);
+}
+
+/* ─── Apple Executive Button Suite ─────────────────────────── */
+.apple-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.apple-btn-primary:hover {
+  background: #1c1c1e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.apple-btn-primary:active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.apple-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: var(--bg-card-solid);
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.apple-btn-secondary:hover {
+  background: var(--bg-card-subtle);
+  border-color: var(--text-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+}
+
+.apple-btn-secondary:active {
+  transform: scale(0.96);
+}
+
+.apple-btn-lime {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: var(--lime);
+  color: #000000;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(198, 239, 78, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.apple-btn-lime:hover {
+  background: var(--lime-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(198, 239, 78, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.apple-btn-lime:active {
+  transform: scale(0.96);
+}
+
+.apple-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: rgba(255, 59, 48, 0.10);
+  color: var(--apple-red);
+  border: 1px solid rgba(255, 59, 48, 0.28);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apple-btn-danger:hover {
+  background: var(--apple-red);
+  color: #ffffff;
+  border-color: var(--apple-red);
+  box-shadow: 0 4px 16px rgba(255, 59, 48, 0.35);
+  transform: translateY(-1px);
+}
+
+.apple-btn-danger:active {
+  transform: scale(0.96);
+}
+
+[data-theme="dark"] .apple-btn-primary {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 14px rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .apple-btn-primary:hover {
+  background: #f0f0f2;
+  box-shadow: 0 4px 22px rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="dark"] .apple-btn-secondary {
+  background: #18181d;
+  color: #f5f5f7;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .apple-btn-secondary:hover {
+  background: #24242c;
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 /* ─── Apple Style Pill & Circle Buttons ────────────────────── */

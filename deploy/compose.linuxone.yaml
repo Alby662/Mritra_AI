@@ -1,0 +1,94 @@
+# ==============================================================================
+# deploy/compose.linuxone.yaml
+# Production Multi-Service Stack for IBM LinuxONE (s390x) & Podman/Docker
+# Runs:
+#  - 1x Confidential Enclave Service (mTLS :8443)
+#  - 5x Consortium Bank Services (mTLS :8000-:8004)
+#  - 1x Executive Dashboard (Nginx :80)
+# ==============================================================================
+
+x-bank-common: &bank-common
+  build:
+    context: ../
+    dockerfile: deploy/Containerfile.bank
+  volumes:
+    - ../results:/app/results
+    - ../secrets:/app/secrets
+  restart: unless-stopped
+  environment:
+    - PYTHONPATH=/app
+
+services:
+  # ─── Executive Intelligence Dashboard ──────────────────────────────────────
+  dashboard:
+    build:
+      context: ../
+      dockerfile: deploy/Containerfile.dashboard
+    ports:
+      - "80:80"
+      - "3000:80"
+    restart: unless-stopped
+    depends_on:
+      - enclave_service
+
+  # ─── Confidential Compute Enclave Service ──────────────────────────────────
+  enclave_service:
+    build:
+      context: ../
+      dockerfile: deploy/Containerfile.enclave
+    volumes:
+      - ../results:/app/results
+      - ../secrets:/app/secrets
+    ports:
+      - "8443:8443"
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+      - ENCLAVE_TARGET=IBM_SECURE_EXECUTION_S390X
+
+  # ─── 5 Consortium Participating Banks ─────────────────────────────────────
+  bank_b0:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B0
+      - BANK_NAME=State Bank of India (SBI)
+    ports:
+      - "8000:8000"
+
+  bank_b1:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B1
+      - BANK_NAME=HDFC Bank
+    ports:
+      - "8001:8000"
+
+  bank_b2:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B2
+      - BANK_NAME=ICICI Bank
+    ports:
+      - "8002:8000"
+
+  bank_b3:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B3
+      - BANK_NAME=Axis Bank
+    ports:
+      - "8003:8000"
+
+  bank_b4:
+    <<: *bank-common
+    environment:
+      - PYTHONPATH=/app
+      - BANK_ID=B4
+      - BANK_NAME=Punjab National Bank (PNB)
+      - ADVERSARIAL_MODE=true
+    ports:
+      - "8004:8000"

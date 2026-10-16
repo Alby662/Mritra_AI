@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mritra-config
+  namespace: mritra-aml
+data:
+  ENCLAVE_TARGET: "IBM_SECURE_EXECUTION_S390X"
+  PYTHONPATH: "/app"
+  DP_EPSILON: "1.15"
+  DP_DELTA: "1e-6"
+  CONSORTIUM_BANKS: |
+    B0: State Bank of India (SBI)
+    B1: HDFC Bank
+    B2: ICICI Bank
+    B3: Axis Bank
+    B4: Punjab National Bank (PNB)

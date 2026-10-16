@@ -432,70 +432,31 @@ export const EntityIntelligence: React.FC<EntityIntelligenceProps> = ({ onNaviga
           </div>
 
           {/* Compliance Action Buttons */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '8px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '8px' }}>
             <button
               onClick={() => handleAction('lien')}
-              className="apple-segment-btn"
-              style={{
-                flex: 1,
-                minWidth: '130px',
-                padding: '9px 12px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                background: actionDone === 'lien' ? 'var(--apple-green)' : 'rgba(255, 59, 48, 0.10)',
-                color: actionDone === 'lien' ? '#ffffff' : 'var(--apple-red)',
-                border: '1px solid rgba(255, 59, 48, 0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
+              className={actionDone === 'lien' ? "apple-btn-secondary" : "apple-btn-danger"}
+              style={{ flex: 1, minWidth: '130px', fontSize: '0.80rem' }}
             >
-              {actionDone === 'lien' ? <CheckCircle2 size={14} /> : <ShieldAlert size={14} />}
+              {actionDone === 'lien' ? <CheckCircle2 size={15} color="var(--apple-green)" /> : <ShieldAlert size={15} />}
               <span>{actionDone === 'lien' ? 'Lien Placed' : 'Place Lien'}</span>
             </button>
 
             <button
               onClick={() => setShowSarModal(true)}
-              className="apple-segment-btn"
-              style={{
-                flex: 1,
-                minWidth: '130px',
-                padding: '9px 12px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                background: 'var(--bg-canvas-subtle)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-medium)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
+              className="apple-btn-secondary"
+              style={{ flex: 1, minWidth: '130px', fontSize: '0.80rem' }}
             >
-              <FileText size={14} />
+              <FileText size={15} />
               <span>Export SAR</span>
             </button>
 
             <button
               onClick={() => onNavigateTab && onNavigateTab('chain')}
-              className="apple-segment-btn active-lime"
-              style={{
-                flex: 1,
-                minWidth: '140px',
-                padding: '9px 12px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                cursor: 'pointer'
-              }}
+              className="apple-btn-lime"
+              style={{ flex: 1, minWidth: '140px', fontSize: '0.80rem' }}
             >
-              <Network size={14} />
+              <Network size={15} />
               <span>Trace Money Flow</span>
             </button>
           </div>

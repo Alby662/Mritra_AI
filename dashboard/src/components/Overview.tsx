@@ -346,8 +346,8 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             </div>
             <button
               onClick={handleToggleQuarantine}
-              className={`apple-btn-${quarantined ? 'secondary' : 'primary'}`}
-              style={{ width: '100%', justifyContent: 'center', fontSize: '0.8rem' }}
+              className={quarantined ? 'apple-btn-secondary' : 'apple-btn-danger'}
+              style={{ width: '100%', justifyContent: 'center', fontSize: '0.82rem' }}
             >
               {quarantined ? 'Lift PNB Quarantine' : 'Quarantine Punjab National Bank'}
             </button>

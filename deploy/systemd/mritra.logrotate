@@ -1,0 +1,10 @@
+/var/log/mritra/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+    create 0640 linux1 linux1
+}

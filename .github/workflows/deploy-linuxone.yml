@@ -59,23 +59,34 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build Dashboard Image for s390x and amd64
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Dashboard Image for s390x and amd64
         uses: docker/build-push-action@v5
         with:
           context: .
           file: deploy/Containerfile.dashboard
           platforms: linux/s390x,linux/amd64
-          push: false
-          tags: mritra-dashboard:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ghcr.io/${{ github.repository }}/mritra-dashboard:latest
+            ghcr.io/${{ github.repository }}/mritra-dashboard:${{ github.sha }}
 
-      - name: Build Enclave Image for s390x and amd64
+      - name: Build and Push Enclave Image for s390x and amd64
         uses: docker/build-push-action@v5
         with:
           context: .
           file: deploy/Containerfile.enclave
           platforms: linux/s390x,linux/amd64
-          push: false
-          tags: mritra-enclave:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ghcr.io/${{ github.repository }}/mritra-enclave:latest
+            ghcr.io/${{ github.repository }}/mritra-enclave:${{ github.sha }}
 
   # ─── 3. Automated CD Deploy to IBM LinuxONE VM ──────────────────────────────
   deploy-to-linuxone:

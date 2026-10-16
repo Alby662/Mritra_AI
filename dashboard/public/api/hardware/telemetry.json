@@ -1,0 +1,53 @@
+{
+  "status": "online",
+  "timestamp": 1792161142.077556,
+  "node": "mitra-ai.linuxone",
+  "architecture": "s390x",
+  "hardware": {
+    "vendor": "IBM/S390",
+    "machine_type": "IBM LinuxONE Type 9175",
+    "cores": 10,
+    "frequency_mhz": 5508,
+    "cpacf_crypto_acceleration": {
+      "active": false,
+      "algorithms": [
+        "AES-256-GCM",
+        "SHA-256",
+        "SHA-512",
+        "Curve25519"
+      ],
+      "hardware_module": "CPACF Message Security Assist (MSA)"
+    },
+    "nnpa_ai_accelerator": {
+      "active": false,
+      "purpose": "Hardware Neural Network Processing Assist for Real-Time AML Inference",
+      "acceleration_factor": "4.2x vs generic CPU"
+    }
+  },
+  "system": {
+    "memory": {
+      "total_mb": 7968,
+      "available_mb": 5120,
+      "used_percent": 35.7
+    },
+    "load_average": [
+      0.15,
+      0.22,
+      0.18
+    ]
+  },
+  "services": {
+    "mritra_enclave_8443": "HEALTHY",
+    "bank_b0_8000": "HEALTHY",
+    "bank_b1_8001": "HEALTHY",
+    "bank_b2_8002": "HEALTHY",
+    "bank_b3_8003": "HEALTHY",
+    "bank_b4_8004": "HEALTHY",
+    "nginx_web_80_443": "HEALTHY"
+  },
+  "security": {
+    "zero_trust_network_policy": "ACTIVE (Strict Ingress/Egress Isolation)",
+    "mutual_tls": "ACTIVE (X.509 CA-Enforced)",
+    "confidential_enclave": "ACTIVE (Hardware Isolated Memory)"
+  }
+}

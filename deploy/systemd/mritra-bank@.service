@@ -1,0 +1,28 @@
+[Unit]
+Description=Mritra AI - Consortium Bank Node B%i Service (mTLS :800%i)
+Documentation=https://github.com/Alby662/Mritra_AI
+After=network.target network-online.target mritra-enclave.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=linux1
+Group=linux1
+WorkingDirectory=/home/linux1/Mritra_AI
+Environment="PYTHONPATH=/home/linux1/Mritra_AI"
+Environment="PATH=/home/linux1/Mritra_AI/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+Environment="BANK_ID=B%i"
+ExecStart=/bin/bash -c 'exec /home/linux1/Mritra_AI/.venv/bin/uvicorn mritra.services.bank_service:app \
+    --host 0.0.0.0 --port $((8000 + %i)) \
+    --ssl-keyfile /home/linux1/Mritra_AI/secrets/B%i.key \
+    --ssl-certfile /home/linux1/Mritra_AI/secrets/B%i.crt \
+    --ssl-ca-certs /home/linux1/Mritra_AI/secrets/ca.crt \
+    --ssl-cert-reqs 2'
+Restart=always
+RestartSec=5s
+LimitNOFILE=65536
+StandardOutput=append:/var/log/mritra/bank_b%i.log
+StandardError=append:/var/log/mritra/bank_b%i.error.log
+
+[Install]
+WantedBy=multi-user.target

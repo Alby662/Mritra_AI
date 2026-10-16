@@ -1,0 +1,23 @@
+# HELP mritra_up Service operational status
+# TYPE mritra_up gauge
+mritra_up 1
+
+# HELP mritra_cpu_frequency_mhz Processor clock speed in MHz
+# TYPE mritra_cpu_frequency_mhz gauge
+mritra_cpu_frequency_mhz{arch="s390x",machine="IBM LinuxONE Type 9175"} 5508
+
+# HELP mritra_memory_used_percent System memory utilization percent
+# TYPE mritra_memory_used_percent gauge
+mritra_memory_used_percent 35.7
+
+# HELP mritra_system_load_1m 1-minute system load average
+# TYPE mritra_system_load_1m gauge
+mritra_system_load_1m 0.15
+
+# HELP mritra_cpacf_enabled Central Processor Assist for Cryptographic Function active
+# TYPE mritra_cpacf_enabled gauge
+mritra_cpacf_enabled 0
+
+# HELP mritra_nnpa_enabled IBM z16 Neural Network Processing Assist active
+# TYPE mritra_nnpa_enabled gauge
+mritra_nnpa_enabled 0

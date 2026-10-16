@@ -1,0 +1,7 @@
+[Unit]
+Description=Mritra AI - Enterprise AML Multi-Bank Consortium Target
+Wants=mritra-enclave.service mritra-bank@0.service mritra-bank@1.service mritra-bank@2.service mritra-bank@3.service mritra-bank@4.service nginx.service
+After=network.target
+
+[Install]
+WantedBy=multi-user.target

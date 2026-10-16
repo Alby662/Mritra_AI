@@ -16,6 +16,7 @@ import { TransparencyLog } from './components/TransparencyLog';
 import { Reconciliation } from './components/Reconciliation';
 import { ConfigAudit } from './components/ConfigAudit';
 import { EntityIntelligence } from './components/EntityIntelligence';
+import { IBMHardwareModal } from './components/IBMHardwareModal';
 import { getEnclaveInfo, getBankHealth } from './api/mritraApi';
 import type { EnclaveInfo, BankHealth } from './api/mritraApi';
 
@@ -159,6 +160,9 @@ export const App: React.FC = () => {
 
           {/* Right Status & Appearance Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {/* Live IBM LinuxONE Hardware Coprocessor Pill */}
+            <IBMHardwareModal />
+
             {/* Live Bank Network Status */}
             <div 
               style={{ 

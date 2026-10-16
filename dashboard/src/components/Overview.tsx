@@ -185,6 +185,72 @@ export const Overview: React.FC<OverviewProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
+      {/* ─── "What happened today" Summary Strip ─────────────────── */}
+      <div
+        className="animate-bento"
+        style={{
+          background: 'var(--bg-card-solid)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-bento)',
+          padding: '18px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0',
+          flexWrap: 'wrap',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {/* Lime accent bar */}
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0,
+          width: '4px', background: 'var(--lime)', borderRadius: '4px 0 0 4px'
+        }} />
+
+        <div style={{ paddingLeft: '12px', flex: 1, minWidth: '200px' }}>
+          <div style={{ fontSize: '0.70rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: '4px' }}>
+            What happened today — {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+          <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            Mritra detected <strong style={{ color: 'var(--apple-red)' }}>4 critical alerts</strong> and{' '}
+            <strong style={{ color: 'var(--apple-amber)' }}>1 high-risk pattern</strong> across 5 institutions.{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>₹3.95 Cr</strong> in suspicious cross-bank flows intercepted.{' '}
+            Settlement verification caught <strong style={{ color: 'var(--apple-red)' }}>
+              {REAL_RECONCILIATION_REPORT.injectedIssues.toLocaleString()} withheld transactions
+            </strong> from Institution #4. All audit log entries verified — no tampering detected.
+          </div>
+        </div>
+
+        {/* Quick KPI pills */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', paddingLeft: '24px' }}>
+          {[
+            { label: 'New Alerts', value: '5', color: 'var(--apple-red)', bg: 'rgba(255,59,48,0.08)' },
+            { label: 'Under Review', value: '3', color: 'var(--apple-amber)', bg: 'rgba(255,149,0,0.08)' },
+            { label: 'Cases Closed', value: '12', color: 'var(--apple-green)', bg: 'rgba(52,199,89,0.08)' },
+            { label: 'SARs Filed', value: '2', color: 'var(--apple-indigo)', bg: 'rgba(88,86,214,0.08)' },
+          ].map((kpi) => (
+            <div
+              key={kpi.label}
+              style={{
+                background: kpi.bg,
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 16px',
+                textAlign: 'center',
+                minWidth: '80px',
+              }}
+            >
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: kpi.color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                {kpi.value}
+              </div>
+              <div style={{ fontSize: '0.67rem', color: 'var(--text-muted)', fontWeight: 700, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {kpi.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ─── Top Masonry Stat Strip (Pure Model Metrics) ──────────── */}
       <div 
         style={{ 

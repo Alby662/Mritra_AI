@@ -12,13 +12,15 @@ import {
   HelpCircle,
   Shield,
   Moon,
-  Sun
+  Sun,
+  Building2
 } from 'lucide-react';
 import { Overview } from './components/Overview';
 import { ChainGraph } from './components/ChainGraph';
 import { TransparencyLog } from './components/TransparencyLog';
 import { Reconciliation } from './components/Reconciliation';
 import { ConfigAudit } from './components/ConfigAudit';
+import { EntityIntelligence } from './components/EntityIntelligence';
 import { RUN_CATALOG } from './data/telemetryData';
 import { useToast } from './context/ToastContext';
 import { getEnclaveInfo, getBankHealth } from './api/mritraApi';
@@ -26,7 +28,7 @@ import type { EnclaveInfo, BankHealth } from './api/mritraApi';
 
 export function App() {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'chain' | 'tlog' | 'recon' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'chain' | 'tlog' | 'recon' | 'audit' | 'entity'>('overview');
   const [selectedRunId, setSelectedRunId] = useState<string>('20261004T092741Z');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showRunDropdown, setShowRunDropdown] = useState(false);
@@ -75,6 +77,7 @@ export function App() {
       if (e.key === '3') setActiveTab('tlog');
       if (e.key === '4') setActiveTab('recon');
       if (e.key === '5') setActiveTab('audit');
+      if (e.key === '6') setActiveTab('entity');
       if (e.key === 't' || e.key === 'T') toggleTheme();
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -112,54 +115,64 @@ export function App() {
 
           {/* Primary Nav Icons */}
           <div className="nav-icon-group">
-            {/* Overview / Bento */}
+            {/* Alert Dashboard */}
             <button
               onClick={() => setActiveTab('overview')}
               className={`nav-icon-btn ${activeTab === 'overview' ? 'active' : ''}`}
-              aria-label="Executive Bento Dashboard"
+              aria-label="Alert Dashboard"
             >
               <LayoutGrid size={20} />
-              <span className="nav-tooltip">Dashboard (Key 1)</span>
+              <span className="nav-tooltip">Alert Dashboard (Key 1)</span>
             </button>
 
-            {/* Topology Graph */}
+            {/* Money Flow Map */}
             <button
               onClick={() => setActiveTab('chain')}
               className={`nav-icon-btn ${activeTab === 'chain' ? 'active' : ''}`}
-              aria-label="Topology Graph"
+              aria-label="Money Flow Map"
             >
               <Network size={20} />
-              <span className="nav-tooltip">Topology (Key 2)</span>
+              <span className="nav-tooltip">Money Flow Map (Key 2)</span>
             </button>
 
-            {/* Transparency Log */}
+            {/* Audit Log */}
             <button
               onClick={() => setActiveTab('tlog')}
               className={`nav-icon-btn ${activeTab === 'tlog' ? 'active' : ''}`}
-              aria-label="Transparency Log"
+              aria-label="Audit Log"
             >
               <FileText size={20} />
-              <span className="nav-tooltip">Merkle Log (Key 3)</span>
+              <span className="nav-tooltip">Audit Log (Key 3)</span>
             </button>
 
-            {/* Double-Entry Audit */}
+            {/* Settlement Verification */}
             <button
               onClick={() => setActiveTab('recon')}
               className={`nav-icon-btn ${activeTab === 'recon' ? 'active' : ''}`}
-              aria-label="Double-Entry Audit"
+              aria-label="Settlement Verification"
             >
               <CheckCircle2 size={20} />
-              <span className="nav-tooltip">Reconciliation (Key 4)</span>
+              <span className="nav-tooltip">Settlement Verification (Key 4)</span>
             </button>
 
-            {/* Parity Audit */}
+            {/* Compliance Checks */}
             <button
               onClick={() => setActiveTab('audit')}
               className={`nav-icon-btn ${activeTab === 'audit' ? 'active' : ''}`}
-              aria-label="Parity & Tests"
+              aria-label="Compliance Checks"
             >
               <Sliders size={20} />
-              <span className="nav-tooltip">Parity Audit §5 (Key 5)</span>
+              <span className="nav-tooltip">Compliance Checks (Key 5)</span>
+            </button>
+
+            {/* Entity Intelligence */}
+            <button
+              onClick={() => setActiveTab('entity')}
+              className={`nav-icon-btn ${activeTab === 'entity' ? 'active' : ''}`}
+              aria-label="Entity Intelligence"
+            >
+              <Building2 size={20} />
+              <span className="nav-tooltip">Entity Intelligence (Key 6)</span>
             </button>
           </div>
 
@@ -191,11 +204,12 @@ export function App() {
           <header className="top-header animate-bento">
             <div className="header-title-section">
               <h1 className="header-title">
-                {activeTab === 'overview' && 'Dashboard'}
-                {activeTab === 'chain' && 'Topology Graph'}
-                {activeTab === 'tlog' && 'Transparency Log'}
-                {activeTab === 'recon' && 'Reconciliation'}
-                {activeTab === 'audit' && 'Parity Audit'}
+                {activeTab === 'overview' && 'Alert Dashboard'}
+                {activeTab === 'chain' && 'Money Flow Map'}
+                {activeTab === 'tlog' && 'Audit Log'}
+                {activeTab === 'recon' && 'Settlement Verification'}
+                {activeTab === 'audit' && 'Compliance Checks'}
+                {activeTab === 'entity' && 'Entity Intelligence'}
               </h1>
               <span className="header-badge">
                 {activeRun.partition}
@@ -342,36 +356,42 @@ export function App() {
                 onClick={() => setActiveTab('overview')} 
                 className={`apple-segment-btn ${activeTab === 'overview' ? 'active-lime' : ''}`}
               >
-                <LayoutGrid size={15} /> Executive Bento
+                <LayoutGrid size={15} /> Alert Dashboard
               </button>
               <button 
                 onClick={() => setActiveTab('chain')} 
                 className={`apple-segment-btn ${activeTab === 'chain' ? 'active-lime' : ''}`}
               >
-                <Network size={15} /> Ring Topology
+                <Network size={15} /> Money Flow
               </button>
               <button 
                 onClick={() => setActiveTab('tlog')} 
                 className={`apple-segment-btn ${activeTab === 'tlog' ? 'active-lime' : ''}`}
               >
-                <FileText size={15} /> Merkle Ledger
+                <FileText size={15} /> Audit Log
               </button>
               <button 
                 onClick={() => setActiveTab('recon')} 
                 className={`apple-segment-btn ${activeTab === 'recon' ? 'active-lime' : ''}`}
               >
-                <CheckCircle2 size={15} /> Double-Entry Audit
+                <CheckCircle2 size={15} /> Settlement
               </button>
               <button 
                 onClick={() => setActiveTab('audit')} 
                 className={`apple-segment-btn ${activeTab === 'audit' ? 'active-lime' : ''}`}
               >
-                <Sliders size={15} /> Pre-reg Parity (§5)
+                <Sliders size={15} /> Compliance
+              </button>
+              <button 
+                onClick={() => setActiveTab('entity')} 
+                className={`apple-segment-btn ${activeTab === 'entity' ? 'active-lime' : ''}`}
+              >
+                <Building2 size={15} /> Entity Intel
               </button>
             </div>
 
             <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <span>Shortcuts: <kbd style={{ background: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontWeight: 700 }}>1–5</kbd></span>
+              <span>Shortcuts: <kbd style={{ background: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontWeight: 700 }}>1–6</kbd></span>
               <span className="pill-tag pill-tag-success" style={{ fontSize: '0.66rem' }}>
                 LIVE ENCLAVE STREAMING
               </span>
@@ -380,6 +400,68 @@ export function App() {
 
           {/* ─── Main Viewport Component ───────────────────────────── */}
           <main style={{ flex: 1 }}>
+            {/* ─── Per-tab Context Banner ───────────────────────── */}
+            {activeTab === 'overview' && (
+              <div style={{
+                padding: '10px 18px', marginBottom: '4px',
+                background: 'rgba(198,239,78,0.10)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid rgba(198,239,78,0.25)',
+                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
+              }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Alert Dashboard —</strong> Live summary of today's suspicious activity across all participating banks. New alerts appear at the top. Click any alert to see the full evidence trail and take action.
+              </div>
+            )}
+            {activeTab === 'chain' && (
+              <div style={{
+                padding: '10px 18px', marginBottom: '4px',
+                background: 'rgba(79,70,229,0.07)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid rgba(79,70,229,0.15)',
+                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
+              }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Money Flow Map —</strong> Visual map of how funds moved across banks in a detected laundering chain. Each node is an account; each arrow is a cross-bank transfer. Red paths were missed by individual banks; green paths were caught by the shared enclave.
+              </div>
+            )}
+            {activeTab === 'tlog' && (
+              <div style={{
+                padding: '10px 18px', marginBottom: '4px',
+                background: 'rgba(52,199,89,0.07)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid rgba(52,199,89,0.18)',
+                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
+              }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Audit Log —</strong> Every action the enclave took is recorded here in tamper-proof sequence. This log is your regulator-ready evidence trail. Any retroactive alteration breaks the cryptographic chain and is immediately visible.
+              </div>
+            )}
+            {activeTab === 'recon' && (
+              <div style={{
+                padding: '10px 18px', marginBottom: '4px',
+                background: 'rgba(255,149,0,0.07)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid rgba(255,149,0,0.18)',
+                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
+              }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Settlement Verification —</strong> Every cross-bank transfer must be reported by both the sending and receiving bank. This screen shows where those reports match — and where one bank's account does not match the other's, which is a fraud signal in itself.
+              </div>
+            )}
+            {activeTab === 'audit' && (
+              <div style={{
+                padding: '10px 18px', marginBottom: '4px',
+                background: 'rgba(0,0,0,0.04)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
+              }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Compliance Checks —</strong> Pre-registered test gates that verify the system meets regulatory parity requirements (RBI DPDP, FATF R.16). Green means the system is operating within approved parameters. Red means a configuration drift that requires review.
+              </div>
+            )}
+            {activeTab === 'entity' && (
+              <div style={{
+                padding: '10px 18px', marginBottom: '4px',
+                background: 'rgba(232,65,66,0.07)', borderRadius: 'var(--radius-sm)',
+                border: '1px solid rgba(232,65,66,0.18)',
+                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
+              }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Entity Intelligence —</strong> Look up any company or account to see its fraud verdict, ownership structure, and related-party connections. Family-linked shell companies and UBO-shared entities are automatically surfaced — even when they hold accounts at different banks.
+              </div>
+            )}
+
             {activeTab === 'overview' && (
               <Overview 
                 onNavigateTab={(t: string) => setActiveTab(t as any)} 
@@ -391,6 +473,7 @@ export function App() {
             {activeTab === 'tlog' && <TransparencyLog />}
             {activeTab === 'recon' && <Reconciliation />}
             {activeTab === 'audit' && <ConfigAudit />}
+            {activeTab === 'entity' && <EntityIntelligence onNavigateTab={(t: string) => setActiveTab(t as any)} />}
           </main>
 
           {/* ─── Sub-footer Telemetry Bar (Apple Calibrated) ───────── */}

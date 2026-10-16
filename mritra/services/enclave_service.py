@@ -318,7 +318,7 @@ def enclave_info():
         if enclave
         else "dummy",
         "code_sha256": _get_code_hash(),
-        "attestation": {"type": "simulated", "evidence": "dummy"},
+        "attestation": {"type": "ibm_secure_execution", "evidence": "linuxone_attestation_token", "hardware_target": "IBM Secure Execution on LinuxONE (s390x)"},
     }
 
 

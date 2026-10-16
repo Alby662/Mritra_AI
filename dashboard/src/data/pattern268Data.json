@@ -3,7 +3,7 @@
     {
       "id": "8019C0990",
       "label": "Src: 8019C0990",
-      "bank": "Institution 0 (Alpha)",
+      "bank": "State Bank of India (SBI)",
       "bankColor": "#000000",
       "role": "Source",
       "x": 75,
@@ -19,7 +19,7 @@
     {
       "id": "80514DE20",
       "label": "Mule: 80514..",
-      "bank": "Institution 1 (Beta)",
+      "bank": "HDFC Bank",
       "bankColor": "#4f46e5",
       "role": "Mule",
       "x": 275,
@@ -35,7 +35,7 @@
     {
       "id": "80145D1D0",
       "label": "Mule: 80145..",
-      "bank": "Institution 2 (Gamma)",
+      "bank": "ICICI Bank",
       "bankColor": "#059669",
       "role": "Mule",
       "x": 275,
@@ -51,7 +51,7 @@
     {
       "id": "800F24BE0",
       "label": "Mule: 800F2..",
-      "bank": "Institution 2 (Gamma)",
+      "bank": "ICICI Bank",
       "bankColor": "#059669",
       "role": "Mule",
       "x": 275,
@@ -67,7 +67,7 @@
     {
       "id": "8006A6CF0",
       "label": "Mule: 8006A..",
-      "bank": "Institution 2 (Gamma)",
+      "bank": "ICICI Bank",
       "bankColor": "#059669",
       "role": "Mule",
       "x": 275,
@@ -83,7 +83,7 @@
     {
       "id": "806E5B990",
       "label": "Mule: 806E5..",
-      "bank": "Institution 2 (Gamma)",
+      "bank": "ICICI Bank",
       "bankColor": "#059669",
       "role": "Mule",
       "x": 275,
@@ -99,7 +99,7 @@
     {
       "id": "80779F730",
       "label": "Mule: 80779..",
-      "bank": "Institution 2 (Gamma)",
+      "bank": "ICICI Bank",
       "bankColor": "#059669",
       "role": "Mule",
       "x": 275,
@@ -115,7 +115,7 @@
     {
       "id": "8016EFD70",
       "label": "Mule: 8016E..",
-      "bank": "Institution 4 (Lying Bank)",
+      "bank": "Punjab National Bank (PNB)",
       "bankColor": "#ff3b30",
       "role": "Mule",
       "x": 275,
@@ -131,7 +131,7 @@
     {
       "id": "80381C7A0",
       "label": "Mule: 80381..",
-      "bank": "Institution 4 (Lying Bank)",
+      "bank": "Punjab National Bank (PNB)",
       "bankColor": "#ff3b30",
       "role": "Mule",
       "x": 485,
@@ -147,7 +147,7 @@
     {
       "id": "800459750",
       "label": "Mule: 80045..",
-      "bank": "Institution 3 (Delta)",
+      "bank": "Axis Bank",
       "bankColor": "#d97706",
       "role": "Mule",
       "x": 485,
@@ -163,7 +163,7 @@
     {
       "id": "802FBEBC0",
       "label": "Mule: 802FB..",
-      "bank": "Institution 3 (Delta)",
+      "bank": "Axis Bank",
       "bankColor": "#d97706",
       "role": "Mule",
       "x": 485,
@@ -179,7 +179,7 @@
     {
       "id": "803616220",
       "label": "Mule: 80361..",
-      "bank": "Institution 3 (Delta)",
+      "bank": "Axis Bank",
       "bankColor": "#d97706",
       "role": "Mule",
       "x": 485,
@@ -195,7 +195,7 @@
     {
       "id": "805A16080",
       "label": "Mule: 805A1..",
-      "bank": "Institution 3 (Delta)",
+      "bank": "Axis Bank",
       "bankColor": "#d97706",
       "role": "Mule",
       "x": 485,
@@ -211,7 +211,7 @@
     {
       "id": "8053BE3E0",
       "label": "Mule: 8053B..",
-      "bank": "Institution 3 (Delta)",
+      "bank": "Axis Bank",
       "bankColor": "#d97706",
       "role": "Mule",
       "x": 485,
@@ -227,7 +227,7 @@
     {
       "id": "8028E8460",
       "label": "Dest: 8028E8460",
-      "bank": "Institution 3 (Delta)",
+      "bank": "Axis Bank",
       "bankColor": "#d97706",
       "role": "Destination",
       "x": 695,

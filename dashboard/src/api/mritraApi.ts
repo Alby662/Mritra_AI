@@ -74,6 +74,8 @@ export interface HeroChainTransaction {
   to_account: string;
   from_institution: number;
   to_institution: number;
+  from_bank_name?: string;
+  to_bank_name?: string;
   amount: number;
   format: string;
   c1_siloed_prob: number;
@@ -91,6 +93,7 @@ export interface HeroChainData {
   max_c3_score: number;
   detection_gap: number;
   transactions: HeroChainTransaction[];
+  nodes?: any[];
 }
 
 export interface ResultsSummary {

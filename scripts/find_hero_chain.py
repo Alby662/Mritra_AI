@@ -208,7 +208,129 @@ def main() -> None:
         logger.warning("No candidate chains evaluated. Generating fallback hero chain.")
         return
 
+    INSTITUTION_NAMES = {
+        0: "State Bank of India (SBI)",
+        1: "HDFC Bank",
+        2: "ICICI Bank",
+        3: "Axis Bank",
+        4: "Punjab National Bank (PNB)",
+    }
+    INSTITUTION_COLORS = {
+        0: "#000000",
+        1: "#4f46e5",
+        2: "#059669",
+        3: "#d97706",
+        4: "#ff3b30",
+    }
+
     hero = scored_candidates[0]
+    for tx in hero["transactions"]:
+        tx["from_bank_name"] = INSTITUTION_NAMES.get(tx["from_institution"], f"Bank {tx['from_institution']}")
+        tx["to_bank_name"] = INSTITUTION_NAMES.get(tx["to_institution"], f"Bank {tx['to_institution']}")
+
+    # Build dynamic nodes from model transactions
+    acct_map = {}
+    for tx in hero["transactions"]:
+        fa = tx["from_account"]
+        ta = tx["to_account"]
+        if fa not in acct_map:
+            acct_map[fa] = {
+                "id": fa, "inst": tx["from_institution"],
+                "in_deg": 0, "out_deg": 0, "in_amt": 0.0, "out_amt": 0.0,
+                "c1_scores": [], "c3_scores": [],
+            }
+        acct_map[fa]["out_deg"] += 1
+        acct_map[fa]["out_amt"] += tx["amount"]
+        acct_map[fa]["c1_scores"].append(tx["c1_siloed_prob"])
+        acct_map[fa]["c3_scores"].append(tx["c3_enclave_prob"])
+
+        if ta not in acct_map:
+            acct_map[ta] = {
+                "id": ta, "inst": tx["to_institution"],
+                "in_deg": 0, "out_deg": 0, "in_amt": 0.0, "out_amt": 0.0,
+                "c1_scores": [], "c3_scores": [],
+            }
+        acct_map[ta]["in_deg"] += 1
+        acct_map[ta]["in_amt"] += tx["amount"]
+        acct_map[ta]["c1_scores"].append(tx["c1_siloed_prob"])
+        acct_map[ta]["c3_scores"].append(tx["c3_enclave_prob"])
+
+    layer1_mules = []
+    layer2_mules = []
+    for aid, a in acct_map.items():
+        if a["in_deg"] > 0 and a["out_deg"] > 0:
+            is_l1 = any(tx["to_account"] == aid and acct_map[tx["from_account"]]["in_deg"] == 0 for tx in hero["transactions"])
+            if is_l1:
+                layer1_mules.append(aid)
+            else:
+                layer2_mules.append(aid)
+    layer1_mules.sort()
+    layer2_mules.sort()
+
+    CLEAN_COORDINATES = {
+        # Lane 0: State Bank of India (SBI)
+        "8019C0990": (84, 210),
+        # Lane 1: HDFC Bank
+        "80514DE20": (252, 210),
+        # Lane 2: ICICI Bank
+        "80145D1D0": (420, 65),
+        "800F24BE0": (420, 135),
+        "8006A6CF0": (420, 210),
+        "806E5B990": (420, 285),
+        "80779F730": (420, 355),
+        # Lane 3: Axis Bank
+        "800459750": (588, 65),
+        "802FBEBC0": (588, 135),
+        "803616220": (588, 210),
+        "805A16080": (588, 285),
+        "8053BE3E0": (588, 355),
+        # Lane 4: Punjab National Bank (PNB)
+        "8016EFD70": (756, 110),
+        "80381C7A0": (756, 210),
+        "8028E8460": (756, 310),
+    }
+
+    nodes = []
+    for aid, a in acct_map.items():
+        inst = a["inst"]
+        b_name = INSTITUTION_NAMES.get(inst, f"Bank {inst}")
+        b_color = INSTITUTION_COLORS.get(inst, "#64748b")
+        if a["in_deg"] == 0:
+            role = "Source"
+            label = f"Src: {aid}"
+        elif a["out_deg"] == 0:
+            role = "Destination"
+            label = f"Dest: {aid}"
+        else:
+            role = "Mule"
+            label = f"Mule: {aid[:5]}.."
+
+        x, y = CLEAN_COORDINATES.get(aid, (420, 210))
+
+        total_vol = a["in_amt"] + a["out_amt"]
+        pass_through = round(a["out_amt"] / max(1.0, a["in_amt"]), 2) if a["in_amt"] > 0 else 0.0
+        c1_max = round(float(np.max(a["c1_scores"])), 4) if a["c1_scores"] else 0.0
+        c3_max = round(float(np.max(a["c3_scores"])), 4) if a["c3_scores"] else 0.0
+
+        nodes.append({
+            "id": aid,
+            "label": label,
+            "bank": b_name,
+            "bankColor": b_color,
+            "role": role,
+            "x": x,
+            "y": y,
+            "c1RiskScore": c1_max,
+            "c3RiskScore": c3_max,
+            "balance": f"${total_vol:,.2f}",
+            "passThroughRatio": min(pass_through, 1.0),
+            "velocityMin": 12,
+            "inDegree": a["in_deg"],
+            "outDegree": a["out_deg"],
+        })
+
+    hero["nodes"] = nodes
+
     out_file = repo_path("results/demo_hero_chain.json")
     out_file.parent.mkdir(parents=True, exist_ok=True)
     out_file.write_text(json.dumps(hero, indent=2), encoding="utf-8")

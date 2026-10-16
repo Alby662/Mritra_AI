@@ -265,19 +265,44 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: translate(-24px, 36px) scale(0.96); }
 }
 
-/* ─── Main App Frame ───────────────────────────────────────── */
+/* ─── Main App Frame (Unified Minimalist Layout) ──────────── */
 .app-container {
   position: relative;
   z-index: 1;
-  max-width: 1520px;
-  margin: 16px auto;
-  padding: 0 18px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 24px 32px;
   display: flex;
-  gap: 18px;
-  min-height: calc(100vh - 32px);
+  flex-direction: column;
+  gap: 20px;
+  min-height: 100vh;
 }
 
-/* ─── Left Slim Obsidian Sidebar (Apple Dock Style) ────────── */
+/* ─── Minimal Unified Header Bar ────────────────────────────── */
+.minimal-header {
+  position: sticky;
+  top: 12px;
+  z-index: 50;
+  background: var(--bg-card);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-radius: var(--radius-lg);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-bento);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ring-row-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-medium) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Left Slim Obsidian Sidebar (Apple Dock Style - Deprecated / Backward-compat) ── */
 .nav-sidebar {
   width: 68px;
   background: var(--bg-dark);

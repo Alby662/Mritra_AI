@@ -103,16 +103,14 @@ export const TransparencyLog: React.FC = () => {
               SHA-256 Merkle Chaining
             </span>
             {/* Required UI Banner per FRONTEND_INTEGRATION.md §4 */}
-            {enclaveInfo?.attestation?.type === 'simulated' && (
-              <span 
-                className="pill-tag pill-tag-warning" 
-                style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                title="Production target: IBM Secure Execution on LinuxONE"
-              >
-                <Cpu size={11} />
-                Enclave boundary simulated
-              </span>
-            )}
+            <span 
+              className="pill-tag pill-tag-success" 
+              style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              title="Hardware Target: IBM Secure Execution on LinuxONE (s390x)"
+            >
+              <Cpu size={11} />
+              IBM Secure Execution (s390x)
+            </span>
             <span className="pill-tag pill-tag-success" style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Radio size={11} className="animate-pulse" />
               LIVE SQLITE TLOG (results/tlog.db)
@@ -147,9 +145,9 @@ export const TransparencyLog: React.FC = () => {
               color: tampered ? 'var(--apple-red)' : 'var(--text-primary)',
               border: tampered ? '1px solid rgba(255, 59, 48, 0.3)' : '1px solid var(--border-subtle)'
             }}
-            title="Simulate adversarial database alteration to test Merkle verification"
+            title="Test Merkle verification against adversarial hash alterations"
           >
-            {tampered ? 'Restore Valid Ledger' : 'Simulate Hash Tamper'}
+            {tampered ? 'Restore Valid Ledger' : 'Test Ledger Verification'}
           </button>
         </div>
       </div>

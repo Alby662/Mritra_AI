@@ -1,19 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   LayoutGrid, 
   Network, 
   FileText, 
   CheckCircle2, 
   Sliders, 
-  RotateCcw, 
-  Bell, 
-  ChevronDown, 
-  Settings,
-  HelpCircle,
-  Shield,
-  Moon,
-  Sun,
-  Building2
+  Building2,
+  Shield, 
+  Moon, 
+  Sun
 } from 'lucide-react';
 import { Overview } from './components/Overview';
 import { ChainGraph } from './components/ChainGraph';
@@ -21,52 +16,46 @@ import { TransparencyLog } from './components/TransparencyLog';
 import { Reconciliation } from './components/Reconciliation';
 import { ConfigAudit } from './components/ConfigAudit';
 import { EntityIntelligence } from './components/EntityIntelligence';
-import { RUN_CATALOG } from './data/telemetryData';
-import { useToast } from './context/ToastContext';
 import { getEnclaveInfo, getBankHealth } from './api/mritraApi';
 import type { EnclaveInfo, BankHealth } from './api/mritraApi';
 
-export function App() {
-  const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'chain' | 'tlog' | 'recon' | 'audit' | 'entity'>('overview');
-  const [selectedRunId, setSelectedRunId] = useState<string>('20261004T092741Z');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showRunDropdown, setShowRunDropdown] = useState(false);
+type TabType = 'overview' | 'chain' | 'tlog' | 'recon' | 'audit' | 'entity';
+
+export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [enclaveInfo, setEnclaveInfo] = useState<EnclaveInfo | null>(null);
   const [bankHealth, setBankHealth] = useState<BankHealth | null>(null);
 
+  // Synchronize system health on boot
   useEffect(() => {
-    getEnclaveInfo().then(setEnclaveInfo);
-    getBankHealth().then(setBankHealth);
+    getEnclaveInfo().then((res) => {
+      if (res) setEnclaveInfo(res);
+    });
+    getBankHealth().then((res) => {
+      if (res) setBankHealth(res);
+    });
   }, []);
 
-  // Apple Appearance (Studio Cream vs Deep Obsidian OLED)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('mritra-theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
-
+  // Theme Initializer
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('mritra-theme', theme);
-  }, [theme]);
+    const saved = localStorage.getItem('mritra-theme') as 'light' | 'dark' | null;
+    const prefDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = saved || (prefDark ? 'dark' : 'light');
+    setTheme(initialTheme);
+    document.documentElement.setAttribute('data-theme', initialTheme);
+  }, []);
 
   const toggleTheme = useCallback(() => {
-    setTheme(t => {
-      const next = t === 'light' ? 'dark' : 'light';
-      showToast(
-        next === 'dark' ? 'Deep Obsidian OLED Active' : 'Studio Cream Active', 
-        'Appearance preference saved in browser', 
-        'lime'
-      );
+    setTheme((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('mritra-theme', next);
+      document.documentElement.setAttribute('data-theme', next);
       return next;
     });
-  }, [showToast]);
+  }, []);
 
-  const activeRun = RUN_CATALOG[selectedRunId] || RUN_CATALOG['20261004T092741Z'];
-
-  // Apple-style Keyboard Shortcut Ergonomics (1 - 5 to switch tabs, T to toggle appearance)
+  // Keyboard Shortcuts (1-6 for tabs, T for theme)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -74,8 +63,8 @@ export function App() {
       }
       if (e.key === '1') setActiveTab('overview');
       if (e.key === '2') setActiveTab('chain');
-      if (e.key === '3') setActiveTab('tlog');
-      if (e.key === '4') setActiveTab('recon');
+      if (e.key === '3') setActiveTab('recon');
+      if (e.key === '4') setActiveTab('tlog');
       if (e.key === '5') setActiveTab('audit');
       if (e.key === '6') setActiveTab('entity');
       if (e.key === 't' || e.key === 'T') toggleTheme();
@@ -84,432 +73,187 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleTheme]);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    showToast('Enclave Telemetry Synchronized', 'Real-time boundary streams updated', 'success');
-    setTimeout(() => setIsRefreshing(false), 700);
-  };
-
   return (
     <>
-      {/* ─── Ambient Organic Backdrop ─────────────────────────────── */}
+      {/* ─── Ambient Subtle Backdrop ──────────────────────────────── */}
       <div className="ambient-bg">
         <div className="ambient-blob-1"></div>
         <div className="ambient-blob-2"></div>
         <div className="ambient-blob-3"></div>
       </div>
 
-      {/* ─── Main Outer Container ─────────────────────────────────── */}
+      {/* ─── Main Outer Container ──────────────────────────────────── */}
       <div className="app-container">
         
-        {/* ─── Left Slim Obsidian Sidebar (Apple Dock Style) ──────── */}
-        <aside className="nav-sidebar">
-          {/* Brand Mark */}
-          <button 
-            className="nav-logo-btn" 
-            title="Mritra AI — Confidential AML Engine"
-            onClick={() => setActiveTab('overview')}
-          >
-            <Shield size={22} color="#c6ef4e" />
-          </button>
-
-          {/* Primary Nav Icons */}
-          <div className="nav-icon-group">
-            {/* Alert Dashboard */}
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`nav-icon-btn ${activeTab === 'overview' ? 'active' : ''}`}
-              aria-label="Alert Dashboard"
-            >
-              <LayoutGrid size={20} />
-              <span className="nav-tooltip">Alert Dashboard (Key 1)</span>
-            </button>
-
-            {/* Money Flow Map */}
-            <button
-              onClick={() => setActiveTab('chain')}
-              className={`nav-icon-btn ${activeTab === 'chain' ? 'active' : ''}`}
-              aria-label="Money Flow Map"
-            >
-              <Network size={20} />
-              <span className="nav-tooltip">Money Flow Map (Key 2)</span>
-            </button>
-
-            {/* Audit Log */}
-            <button
-              onClick={() => setActiveTab('tlog')}
-              className={`nav-icon-btn ${activeTab === 'tlog' ? 'active' : ''}`}
-              aria-label="Audit Log"
-            >
-              <FileText size={20} />
-              <span className="nav-tooltip">Audit Log (Key 3)</span>
-            </button>
-
-            {/* Settlement Verification */}
-            <button
-              onClick={() => setActiveTab('recon')}
-              className={`nav-icon-btn ${activeTab === 'recon' ? 'active' : ''}`}
-              aria-label="Settlement Verification"
-            >
-              <CheckCircle2 size={20} />
-              <span className="nav-tooltip">Settlement Verification (Key 4)</span>
-            </button>
-
-            {/* Compliance Checks */}
-            <button
-              onClick={() => setActiveTab('audit')}
-              className={`nav-icon-btn ${activeTab === 'audit' ? 'active' : ''}`}
-              aria-label="Compliance Checks"
-            >
-              <Sliders size={20} />
-              <span className="nav-tooltip">Compliance Checks (Key 5)</span>
-            </button>
-
-            {/* Entity Intelligence */}
-            <button
-              onClick={() => setActiveTab('entity')}
-              className={`nav-icon-btn ${activeTab === 'entity' ? 'active' : ''}`}
-              aria-label="Entity Intelligence"
-            >
-              <Building2 size={20} />
-              <span className="nav-tooltip">Entity Intelligence (Key 6)</span>
-            </button>
-          </div>
-
-          {/* Bottom Nav Icons */}
-          <div className="nav-icon-group">
-            <button 
-              className="nav-icon-btn" 
-              onClick={() => setActiveTab('audit')}
-              aria-label="System Documentation"
-            >
-              <HelpCircle size={19} />
-              <span className="nav-tooltip">Audit Docs</span>
-            </button>
-            <button 
-              className="nav-icon-btn" 
-              onClick={() => setActiveTab('tlog')}
-              aria-label="Enclave Settings"
-            >
-              <Settings size={19} />
-              <span className="nav-tooltip">Enclave Settings</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* ─── Main Viewport Canvas ─────────────────────────────────── */}
-        <div className="main-viewport">
+        {/* ─── Unified Minimalist Header Bar ────────────────────────── */}
+        <header className="minimal-header animate-bento">
           
-          {/* ─── Top Utility Header ───────────────────────────────── */}
-          <header className="top-header animate-bento">
-            <div className="header-title-section">
-              <h1 className="header-title">
-                {activeTab === 'overview' && 'Alert Dashboard'}
-                {activeTab === 'chain' && 'Money Flow Map'}
-                {activeTab === 'tlog' && 'Audit Log'}
-                {activeTab === 'recon' && 'Settlement Verification'}
-                {activeTab === 'audit' && 'Compliance Checks'}
-                {activeTab === 'entity' && 'Entity Intelligence'}
-              </h1>
-              <span className="header-badge">
-                {activeRun.partition}
+          {/* Brand & Hardware Attestation */}
+          <div 
+            className="brand-group" 
+            onClick={() => setActiveTab('overview')} 
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}
+          >
+            <div style={{ padding: '7px', background: '#000000', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Shield size={18} color="#c6ef4e" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+                Mritra
               </span>
-              {enclaveInfo?.attestation?.type === 'simulated' && (
-                <span 
-                  className="pill-tag pill-tag-warning"
-                  style={{ fontSize: '0.68rem', cursor: 'default' }}
-                  title="Production target: IBM Secure Execution on LinuxONE"
-                >
-                  Enclave boundary simulated
-                </span>
-              )}
-              {bankHealth?.status === 'ok' && (
-                <span 
-                  className="pill-tag pill-tag-success"
-                  style={{ fontSize: '0.68rem', cursor: 'default' }}
-                  title={`mTLS Connected to Bank Service (${bankHealth.bank_id}) on :8000/:8001`}
-                >
-                  Bank {bankHealth.bank_id} Online
-                </span>
-              )}
-            </div>
-
-            {/* Header Actions & Live Partition Switcher */}
-            <div className="header-actions">
-              {/* Partition / Run Dropdown Selector */}
-              <div style={{ position: 'relative' }}>
-                <button 
-                  className="selector-pill"
-                  onClick={() => setShowRunDropdown(!showRunDropdown)}
-                >
-                  <span style={{ fontWeight: 700 }}>Partition: {activeRun.partition.split(' ')[0]}</span>
-                  <ChevronDown size={14} style={{ opacity: 0.6 }} />
-                </button>
-
-                {showRunDropdown && (
-                  <div 
-                    className="animate-bento"
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      background: '#ffffff',
-                      borderRadius: 'var(--radius-sm)',
-                      boxShadow: 'var(--shadow-modal)',
-                      border: '1px solid var(--border-medium)',
-                      padding: '6px',
-                      zIndex: 80,
-                      minWidth: '240px'
-                    }}
-                  >
-                    {Object.values(RUN_CATALOG).map((run) => (
-                      <button
-                        key={run.runId}
-                        onClick={() => {
-                          setSelectedRunId(run.runId);
-                          setShowRunDropdown(false);
-                          showToast(`Loaded Partition ${run.partition.split(' ')[0]}`, `${run.totalSamples.toLocaleString()} samples · C4 Oracle F1: ${run.c4OracleF1.toFixed(4)}`, 'lime');
-                        }}
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: selectedRunId === run.runId ? 'rgba(0,0,0,0.06)' : 'transparent',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '2px',
-                          fontFamily: 'var(--font-display)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>{run.partition}</span>
-                          {selectedRunId === run.runId && <span className="badge-dot" style={{ position: 'static' }}></span>}
-                        </div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          Run ID: {run.runId}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Refresh Button */}
-              <button 
-                className="icon-circle-btn" 
-                onClick={handleRefresh}
-                title="Refresh Live Enclave Telemetry"
+              <span 
+                className="pill-tag pill-tag-success" 
+                style={{ fontSize: '0.62rem', padding: '2px 7px', fontWeight: 700 }}
+                title={`Attestation: ${enclaveInfo?.attestation?.hardware_target || 'IBM Secure Execution on LinuxONE (s390x)'}`}
               >
-                <RotateCcw 
-                  size={16} 
-                  style={{ 
-                    transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
-                    transform: isRefreshing ? 'rotate(360deg)' : 'none'
-                  }} 
-                />
-              </button>
-
-              {/* Notifications Bell */}
-              <button className="icon-circle-btn" title="4 Neutralized Discrepancies">
-                <Bell size={16} />
-                <span className="badge-dot"></span>
-              </button>
-
-              {/* Apple Theme Switcher (Studio Cream vs Deep Obsidian OLED) */}
-              <button 
-                className="icon-circle-btn" 
-                onClick={toggleTheme}
-                title={theme === 'light' ? "Switch to Deep Obsidian OLED (Key T)" : "Switch to Studio Cream (Key T)"}
-                aria-label="Toggle Theme Appearance"
-              >
-                {theme === 'light' ? (
-                  <Moon size={16} />
-                ) : (
-                  <Sun size={16} color="var(--lime)" />
-                )}
-              </button>
-
-              {/* User Profile Capsule */}
-              <div 
-                className="user-profile-capsule"
-                onClick={() => setActiveTab('audit')}
-                title="Consortium Officer"
-              >
-                <div className="user-avatar-img">
-                  SJ
-                </div>
-                <div className="user-info">
-                  <span className="user-name">Joseph Mitchell</span>
-                  <span className="user-role">Chief AML Auditor</span>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          {/* ─── Apple Style Segmented View Switcher ───────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div className="apple-segmented-control">
-              <button 
-                onClick={() => setActiveTab('overview')} 
-                className={`apple-segment-btn ${activeTab === 'overview' ? 'active-lime' : ''}`}
-              >
-                <LayoutGrid size={15} /> Alert Dashboard
-              </button>
-              <button 
-                onClick={() => setActiveTab('chain')} 
-                className={`apple-segment-btn ${activeTab === 'chain' ? 'active-lime' : ''}`}
-              >
-                <Network size={15} /> Money Flow
-              </button>
-              <button 
-                onClick={() => setActiveTab('tlog')} 
-                className={`apple-segment-btn ${activeTab === 'tlog' ? 'active-lime' : ''}`}
-              >
-                <FileText size={15} /> Audit Log
-              </button>
-              <button 
-                onClick={() => setActiveTab('recon')} 
-                className={`apple-segment-btn ${activeTab === 'recon' ? 'active-lime' : ''}`}
-              >
-                <CheckCircle2 size={15} /> Settlement
-              </button>
-              <button 
-                onClick={() => setActiveTab('audit')} 
-                className={`apple-segment-btn ${activeTab === 'audit' ? 'active-lime' : ''}`}
-              >
-                <Sliders size={15} /> Compliance
-              </button>
-              <button 
-                onClick={() => setActiveTab('entity')} 
-                className={`apple-segment-btn ${activeTab === 'entity' ? 'active-lime' : ''}`}
-              >
-                <Building2 size={15} /> Entity Intel
-              </button>
-            </div>
-
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <span>Shortcuts: <kbd style={{ background: '#ffffff', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontWeight: 700 }}>1–6</kbd></span>
-              <span className="pill-tag pill-tag-success" style={{ fontSize: '0.66rem' }}>
-                LIVE ENCLAVE STREAMING
+                s390x Enclave
               </span>
             </div>
           </div>
 
-          {/* ─── Main Viewport Component ───────────────────────────── */}
-          <main style={{ flex: 1 }}>
-            {/* ─── Per-tab Context Banner ───────────────────────── */}
-            {activeTab === 'overview' && (
-              <div style={{
-                padding: '10px 18px', marginBottom: '4px',
-                background: 'rgba(198,239,78,0.10)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid rgba(198,239,78,0.25)',
-                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
-              }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Alert Dashboard —</strong> Live summary of today's suspicious activity across all participating banks. New alerts appear at the top. Click any alert to see the full evidence trail and take action.
-              </div>
-            )}
-            {activeTab === 'chain' && (
-              <div style={{
-                padding: '10px 18px', marginBottom: '4px',
-                background: 'rgba(79,70,229,0.07)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid rgba(79,70,229,0.15)',
-                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
-              }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Money Flow Map —</strong> Visual map of how funds moved across banks in a detected laundering chain. Each node is an account; each arrow is a cross-bank transfer. Red paths were missed by individual banks; green paths were caught by the shared enclave.
-              </div>
-            )}
-            {activeTab === 'tlog' && (
-              <div style={{
-                padding: '10px 18px', marginBottom: '4px',
-                background: 'rgba(52,199,89,0.07)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid rgba(52,199,89,0.18)',
-                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
-              }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Audit Log —</strong> Every action the enclave took is recorded here in tamper-proof sequence. This log is your regulator-ready evidence trail. Any retroactive alteration breaks the cryptographic chain and is immediately visible.
-              </div>
-            )}
-            {activeTab === 'recon' && (
-              <div style={{
-                padding: '10px 18px', marginBottom: '4px',
-                background: 'rgba(255,149,0,0.07)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid rgba(255,149,0,0.18)',
-                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
-              }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Settlement Verification —</strong> Every cross-bank transfer must be reported by both the sending and receiving bank. This screen shows where those reports match — and where one bank's account does not match the other's, which is a fraud signal in itself.
-              </div>
-            )}
-            {activeTab === 'audit' && (
-              <div style={{
-                padding: '10px 18px', marginBottom: '4px',
-                background: 'rgba(0,0,0,0.04)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border-subtle)',
-                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
-              }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Compliance Checks —</strong> Pre-registered test gates that verify the system meets regulatory parity requirements (RBI DPDP, FATF R.16). Green means the system is operating within approved parameters. Red means a configuration drift that requires review.
-              </div>
-            )}
-            {activeTab === 'entity' && (
-              <div style={{
-                padding: '10px 18px', marginBottom: '4px',
-                background: 'rgba(232,65,66,0.07)', borderRadius: 'var(--radius-sm)',
-                border: '1px solid rgba(232,65,66,0.18)',
-                fontSize: '0.80rem', color: 'var(--text-secondary)', lineHeight: 1.5
-              }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Entity Intelligence —</strong> Look up any company or account to see its fraud verdict, ownership structure, and related-party connections. Family-linked shell companies and UBO-shared entities are automatically surfaced — even when they hold accounts at different banks.
-              </div>
-            )}
+          {/* Clean Segmented Tab Navigation */}
+          <nav className="apple-segmented-control" style={{ padding: '3px', flexShrink: 0 }}>
+            <button 
+              onClick={() => setActiveTab('overview')} 
+              className={`apple-segment-btn ${activeTab === 'overview' ? 'active-lime' : ''}`}
+              style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+            >
+              <LayoutGrid size={13} /> Alerts
+            </button>
+            <button 
+              onClick={() => setActiveTab('chain')} 
+              className={`apple-segment-btn ${activeTab === 'chain' ? 'active-lime' : ''}`}
+              style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+            >
+              <Network size={13} /> Money Flow
+            </button>
+            <button 
+              onClick={() => setActiveTab('recon')} 
+              className={`apple-segment-btn ${activeTab === 'recon' ? 'active-lime' : ''}`}
+              style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+            >
+              <CheckCircle2 size={13} /> Settlement
+            </button>
+            <button 
+              onClick={() => setActiveTab('tlog')} 
+              className={`apple-segment-btn ${activeTab === 'tlog' ? 'active-lime' : ''}`}
+              style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+            >
+              <FileText size={13} /> Audit Log
+            </button>
+            <button 
+              onClick={() => setActiveTab('audit')} 
+              className={`apple-segment-btn ${activeTab === 'audit' ? 'active-lime' : ''}`}
+              style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+            >
+              <Sliders size={13} /> Compliance
+            </button>
+            <button 
+              onClick={() => setActiveTab('entity')} 
+              className={`apple-segment-btn ${activeTab === 'entity' ? 'active-lime' : ''}`}
+              style={{ padding: '5px 12px', fontSize: '0.78rem' }}
+            >
+              <Building2 size={13} /> Entity Intel
+            </button>
+          </nav>
 
-            {activeTab === 'overview' && (
-              <Overview 
-                onNavigateTab={(t: string) => setActiveTab(t as any)} 
-                selectedRunId={selectedRunId}
-                onSelectRunId={setSelectedRunId}
-              />
-            )}
-            {activeTab === 'chain' && <ChainGraph />}
-            {activeTab === 'tlog' && <TransparencyLog />}
-            {activeTab === 'recon' && <Reconciliation />}
-            {activeTab === 'audit' && <ConfigAudit />}
-            {activeTab === 'entity' && <EntityIntelligence onNavigateTab={(t: string) => setActiveTab(t as any)} />}
-          </main>
-
-          {/* ─── Sub-footer Telemetry Bar (Apple Calibrated) ───────── */}
-          <footer 
-            style={{
-              padding: '16px 24px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px',
-              fontSize: '0.76rem',
-              color: 'var(--text-muted)',
-              borderTop: '1px solid var(--border-subtle)',
-              marginTop: '12px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span className="pill-tag pill-tag-lime" style={{ fontSize: '0.66rem' }}>
-                IBM Z DATATHON 2026
-              </span>
-              <span>Mritra Confidential AI — LinuxONE Secure Execution / AMD SEV-SNP</span>
+          {/* Right Status & Appearance Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {/* Live Bank Network Status */}
+            <div 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                fontSize: '0.74rem', 
+                fontWeight: 600, 
+                color: 'var(--text-secondary)',
+                padding: '4px 10px',
+                background: 'var(--bg-card-subtle)',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid var(--border-subtle)'
+              }}
+              title={`Consortium status: 5 banks connected (${bankHealth?.status === 'ok' ? 'Bank ' + bankHealth.bank_id : 'All Nodes'} Active)`}
+            >
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--apple-green)', boxShadow: '0 0 6px var(--apple-green)' }}></span>
+              5 Banks Online
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontFamily: 'var(--font-mono)' }}>
-              <span>Curve25519-Signed</span>
-              <span>SHA-256 Merkle: 0x8f2a...c10b</span>
-              <span>ε=1.15, δ=10⁻⁶ DP</span>
-            </div>
-          </footer>
+            {/* Dark / Light Appearance Switcher */}
+            <button 
+              className="icon-circle-btn" 
+              onClick={toggleTheme}
+              title={theme === 'light' ? "Switch to OLED Dark Mode (Key T)" : "Switch to Clean Light Mode (Key T)"}
+              aria-label="Toggle Theme Appearance"
+              style={{ width: '32px', height: '32px' }}
+            >
+              {theme === 'light' ? <Moon size={14} /> : <Sun size={14} color="var(--lime)" />}
+            </button>
 
-        </div>
+            {/* Clean User Avatar */}
+            <div 
+              className="user-avatar-img" 
+              title="Joseph Mitchell · Chief AML Auditor"
+              style={{ width: '30px', height: '30px', fontSize: '0.72rem', fontWeight: 700, cursor: 'default' }}
+            >
+              JM
+            </div>
+          </div>
+        </header>
+
+        {/* ─── Main Content Canvas ──────────────────────────────────── */}
+        <main style={{ minHeight: '600px' }}>
+          {activeTab === 'overview' && (
+            <Overview 
+              onNavigateTab={(tab) => setActiveTab(tab as TabType)}
+            />
+          )}
+
+          {activeTab === 'chain' && (
+            <ChainGraph />
+          )}
+
+          {activeTab === 'tlog' && (
+            <TransparencyLog />
+          )}
+
+          {activeTab === 'recon' && (
+            <Reconciliation />
+          )}
+
+          {activeTab === 'audit' && (
+            <ConfigAudit />
+          )}
+
+          {activeTab === 'entity' && (
+            <EntityIntelligence 
+              onNavigateTab={(tab) => setActiveTab(tab as TabType)}
+            />
+          )}
+        </main>
+
+        {/* ─── Minimal Footnote ────────────────────────────────────── */}
+        <footer style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          padding: '16px 4px 8px', 
+          fontSize: '0.72rem', 
+          color: 'var(--text-muted)',
+          borderTop: '1px solid var(--border-subtle)',
+          marginTop: '24px'
+        }}>
+          <div>
+            <strong>Mritra AI</strong> · IBM Z Datathon 2026 · Confidential Multi-Bank AML Interception
+          </div>
+          <div>
+            Curve25519 Encrypted · Zero-Knowledge Boundary GFP · Differential Privacy ε=1.15
+          </div>
+        </footer>
 
       </div>
     </>
   );
-}
+};
 
 export default App;

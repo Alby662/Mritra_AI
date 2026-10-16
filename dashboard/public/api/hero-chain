@@ -21,7 +21,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": false,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "ICICI Bank"
     },
     {
       "row_id": 3863628,
@@ -37,7 +39,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "HDFC Bank"
     },
     {
       "row_id": 3863630,
@@ -53,7 +57,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863634,
@@ -69,7 +75,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863638,
@@ -85,7 +93,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "ICICI Bank"
     },
     {
       "row_id": 3863642,
@@ -101,7 +111,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "ICICI Bank"
     },
     {
       "row_id": 3863645,
@@ -117,7 +129,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863648,
@@ -133,7 +147,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": false,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863652,
@@ -149,7 +165,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "ICICI Bank"
     },
     {
       "row_id": 3863656,
@@ -165,7 +183,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863661,
@@ -181,7 +201,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "Punjab National Bank (PNB)"
     },
     {
       "row_id": 3863665,
@@ -197,7 +219,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "ICICI Bank"
     },
     {
       "row_id": 3863668,
@@ -213,7 +237,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "State Bank of India (SBI)",
+      "to_bank_name": "Punjab National Bank (PNB)"
     },
     {
       "row_id": 3863627,
@@ -229,7 +255,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 0.9999,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "ICICI Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863629,
@@ -245,7 +273,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "HDFC Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863631,
@@ -261,7 +291,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": true,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863632,
@@ -277,7 +309,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": true,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863636,
@@ -293,7 +327,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": true,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863640,
@@ -309,7 +345,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "ICICI Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863641,
@@ -325,7 +363,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "ICICI Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863643,
@@ -341,7 +381,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": false,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "ICICI Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863647,
@@ -357,7 +399,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": true,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863650,
@@ -373,7 +417,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": true,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863649,
@@ -389,7 +435,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": true,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863654,
@@ -405,7 +453,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": false,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "ICICI Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863658,
@@ -421,7 +471,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": true,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863659,
@@ -437,7 +489,9 @@
       "c1_siloed_prob": 0.0,
       "c3_enclave_prob": 1.0,
       "c1_missed": true,
-      "c3_caught": true
+      "c3_caught": true,
+      "from_bank_name": "Axis Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863663,
@@ -453,7 +507,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": false,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "Punjab National Bank (PNB)",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863667,
@@ -469,7 +525,9 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 0.5432,
       "c1_missed": false,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "ICICI Bank",
+      "to_bank_name": "Axis Bank"
     },
     {
       "row_id": 3863669,
@@ -485,7 +543,251 @@
       "c1_siloed_prob": 1.0,
       "c3_enclave_prob": 0.0,
       "c1_missed": false,
-      "c3_caught": false
+      "c3_caught": false,
+      "from_bank_name": "Punjab National Bank (PNB)",
+      "to_bank_name": "Axis Bank"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "8019C0990",
+      "label": "Src: 8019C0990",
+      "bank": "State Bank of India (SBI)",
+      "bankColor": "#000000",
+      "role": "Source",
+      "x": 84,
+      "y": 210,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$583,762.40",
+      "passThroughRatio": 0.0,
+      "velocityMin": 12,
+      "inDegree": 0,
+      "outDegree": 13
+    },
+    {
+      "id": "80145D1D0",
+      "label": "Mule: 80145..",
+      "bank": "ICICI Bank",
+      "bankColor": "#059669",
+      "role": "Mule",
+      "x": 420,
+      "y": 65,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 0.9999,
+      "balance": "$40,747.59",
+      "passThroughRatio": 1.0,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "80514DE20",
+      "label": "Mule: 80514..",
+      "bank": "HDFC Bank",
+      "bankColor": "#4f46e5",
+      "role": "Mule",
+      "x": 252,
+      "y": 210,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$28,991.85",
+      "passThroughRatio": 1.0,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "800459750",
+      "label": "Mule: 80045..",
+      "bank": "Axis Bank",
+      "bankColor": "#d97706",
+      "role": "Mule",
+      "x": 588,
+      "y": 65,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$39,940.35",
+      "passThroughRatio": 1.0,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 2
+    },
+    {
+      "id": "802FBEBC0",
+      "label": "Mule: 802FB..",
+      "bank": "Axis Bank",
+      "bankColor": "#d97706",
+      "role": "Mule",
+      "x": 588,
+      "y": 135,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$105,230.40",
+      "passThroughRatio": 0.15,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "800F24BE0",
+      "label": "Mule: 800F2..",
+      "bank": "ICICI Bank",
+      "bankColor": "#059669",
+      "role": "Mule",
+      "x": 420,
+      "y": 135,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$46,764.77",
+      "passThroughRatio": 1.0,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 2
+    },
+    {
+      "id": "8006A6CF0",
+      "label": "Mule: 8006A..",
+      "bank": "ICICI Bank",
+      "bankColor": "#059669",
+      "role": "Mule",
+      "x": 420,
+      "y": 210,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$32,790.50",
+      "passThroughRatio": 0.87,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "803616220",
+      "label": "Mule: 80361..",
+      "bank": "Axis Bank",
+      "bankColor": "#d97706",
+      "role": "Mule",
+      "x": 588,
+      "y": 210,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$124,262.53",
+      "passThroughRatio": 0.14,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "805A16080",
+      "label": "Mule: 805A1..",
+      "bank": "Axis Bank",
+      "bankColor": "#d97706",
+      "role": "Mule",
+      "x": 588,
+      "y": 285,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$19,110.00",
+      "passThroughRatio": 1.0,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 2
+    },
+    {
+      "id": "806E5B990",
+      "label": "Mule: 806E5..",
+      "bank": "ICICI Bank",
+      "bankColor": "#059669",
+      "role": "Mule",
+      "x": 420,
+      "y": 285,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$117,779.78",
+      "passThroughRatio": 0.02,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "8053BE3E0",
+      "label": "Mule: 8053B..",
+      "bank": "Axis Bank",
+      "bankColor": "#d97706",
+      "role": "Mule",
+      "x": 588,
+      "y": 355,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$121,355.78",
+      "passThroughRatio": 0.03,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 2
+    },
+    {
+      "id": "80381C7A0",
+      "label": "Mule: 80381..",
+      "bank": "Punjab National Bank (PNB)",
+      "bankColor": "#ff3b30",
+      "role": "Mule",
+      "x": 756,
+      "y": 210,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$46,558.77",
+      "passThroughRatio": 0.13,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "80779F730",
+      "label": "Mule: 80779..",
+      "bank": "ICICI Bank",
+      "bankColor": "#059669",
+      "role": "Mule",
+      "x": 420,
+      "y": 355,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$36,680.21",
+      "passThroughRatio": 1.0,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "8016EFD70",
+      "label": "Mule: 8016E..",
+      "bank": "Punjab National Bank (PNB)",
+      "bankColor": "#ff3b30",
+      "role": "Mule",
+      "x": 756,
+      "y": 110,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$12,094.06",
+      "passThroughRatio": 0.83,
+      "velocityMin": 12,
+      "inDegree": 1,
+      "outDegree": 1
+    },
+    {
+      "id": "8028E8460",
+      "label": "Dest: 8028E8460",
+      "bank": "Axis Bank",
+      "bankColor": "#d97706",
+      "role": "Destination",
+      "x": 756,
+      "y": 310,
+      "c1RiskScore": 1.0,
+      "c3RiskScore": 1.0,
+      "balance": "$188,544.19",
+      "passThroughRatio": 0.0,
+      "velocityMin": 12,
+      "inDegree": 17,
+      "outDegree": 0
     }
   ]
 }

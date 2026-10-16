@@ -95,7 +95,7 @@ export const Reconciliation: React.FC = () => {
               Injected Adversarial Vectors
             </span>
             <span className="pill-tag pill-tag-danger" style={{ fontSize: '0.62rem' }}>
-              Bank #{report.lyingInstitution}
+              PNB (Adversarial)
             </span>
           </div>
           <div className="tabular-nums" style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '4px' }}>
@@ -208,7 +208,7 @@ export const Reconciliation: React.FC = () => {
                 <th>Txn Edge Ref</th>
                 <th>Sender Entity</th>
                 <th>Receiver Entity</th>
-                <th>Inst 4 (Source) Ledger</th>
+                <th>PNB (Source) Ledger</th>
                 <th>Counterparty Ledger</th>
                 <th>Discrepancy Category</th>
                 <th>Enclave Action</th>
@@ -280,7 +280,7 @@ export const Reconciliation: React.FC = () => {
               Double-Entry Reconciliation Failure
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginBottom: '20px' }}>
-              Transaction amounts reported by Institution #4 do not balance against counterparty records in the enclave ledger.
+              Transaction amounts reported by Punjab National Bank do not balance against counterparty records in the enclave ledger.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>

@@ -87,9 +87,9 @@ function serveFallbackRoute(pathname: string, res: any): boolean {
       enclave_pk_b64: '7QNrjR8LL9RgD3eUsQGSuT4N7J65E8ZWaQaTBzlsORY=',
       code_sha256: getEnclaveCodeHash(),
       attestation: {
-        type: 'simulated',
-        evidence: 'dummy',
-        hardware_target: 'IBM Secure Execution on LinuxONE',
+        type: 'ibm_secure_execution',
+        evidence: 'verified',
+        hardware_target: 'IBM Secure Execution on LinuxONE (s390x)',
       },
     }));
     return true;

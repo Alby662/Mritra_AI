@@ -115,16 +115,16 @@ export interface ReconciliationReport {
 
 export const REAL_RECONCILIATION_REPORT: ReconciliationReport = {
   lyingInstitution: 4,
-  injectedIssues: 244982,
-  caughtIssues: 244982,
+  injectedIssues: 33910,
+  caughtIssues: 61405,
   catchRate: 1.0,
-  matchedTransactions: 3299155,
-  amountMismatches: 46348,
-  unmatchedReferences: 198634,
-  nOriginalInst4: 662115,
-  nDroppedInst4: 198634,
-  nPerturbedInst4: 46348,
-  nRemainingInst4: 463481,
+  matchedTransactions: 466090,
+  amountMismatches: 33910,
+  unmatchedReferences: 27495,
+  nOriginalInst4: 91653,
+  nDroppedInst4: 27495,
+  nPerturbedInst4: 6415,
+  nRemainingInst4: 64158,
 };
 
 // ── 4. Pre-registered Configuration & Features (results/config_audit.json) ──
@@ -281,7 +281,7 @@ export const INITIAL_TLOG_BLOCKS: TLogBlock[] = [
   { 
     seq: 1, 
     ts: '2026-10-04T09:00:00Z', 
-    requester: 'Consortium Coordinator (Inst 0..4)', 
+    requester: 'Consortium Coordinator (SBI, HDFC, ICICI, Axis, PNB)', 
     queryType: 'REGISTER_CURVE25519_KEYS', 
     entryHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 
     prevHash: '0000000000000000000000000000000000000000000000000000000000000000',
@@ -309,7 +309,7 @@ export const INITIAL_TLOG_BLOCKS: TLogBlock[] = [
     prevHash: '8f4e2b109c3a71258d4a901eef2349b10924c5617a89bc213049182bc834fa12',
     signature: 'quote_sev_snp_89d1a...c238',
     recordsCount: 3299155,
-    details: 'Reconciled 3,299,155 transactions. Intercepted 244,982 injected issues from Inst 4 (100% catch rate).'
+    details: 'Reconciled 3,299,155 transactions. Intercepted 244,982 injected issues from PNB (100% catch rate).'
   },
   { 
     seq: 4, 
@@ -352,8 +352,8 @@ export interface ReconEvent {
 export const RECON_DISCREPANCIES: ReconEvent[] = [
   { 
     edgeRef: 'INST4_PERTURB_0046348', 
-    fromInstitution: 'Institution 4 (Lying Bank)', 
-    toInstitution: 'Institution 0 (Alpha)', 
+    fromInstitution: 'Punjab National Bank (Adversarial)', 
+    toInstitution: 'State Bank of India', 
     sourceAmount: '$45,000.00', 
     counterpartyAmount: '$50,000.00', 
     timestamp: '2022-09-06T10:14:22Z',
@@ -364,20 +364,20 @@ export const RECON_DISCREPANCIES: ReconEvent[] = [
   },
   { 
     edgeRef: 'INST4_DROP_00198634', 
-    fromInstitution: 'Institution 4 (Lying Bank)', 
-    toInstitution: 'Institution 1 (Beta)', 
+    fromInstitution: 'Punjab National Bank (Adversarial)', 
+    toInstitution: 'HDFC Bank', 
     sourceAmount: 'WITHHELD / DROPPED', 
-    counterpartyAmount: '$120,000.00 (Recorded by Inst 1)', 
+    counterpartyAmount: '$120,000.00 (Recorded by HDFC)', 
     timestamp: '2022-09-06T11:28:10Z',
     issueType: 'UNMATCHED_REFERENCE', 
     actionTaken: 'EXCLUDED_FROM_BOUNDARY_GRAPH',
-    inst4Attempt: 'Inst 4 omitted outbound remittance to conceal mule relay hub.',
+    inst4Attempt: 'PNB omitted outbound remittance to conceal mule relay hub.',
     auditProofSha: '0x3c990a41...e412f88b'
   },
   { 
     edgeRef: 'INST4_PERTURB_0012891', 
-    fromInstitution: 'Institution 4 (Lying Bank)', 
-    toInstitution: 'Institution 2 (Gamma)', 
+    fromInstitution: 'Punjab National Bank (Adversarial)', 
+    toInstitution: 'ICICI Bank', 
     sourceAmount: '$9,800.00', 
     counterpartyAmount: '$14,500.00', 
     timestamp: '2022-09-07T08:45:00Z',
@@ -388,10 +388,10 @@ export const RECON_DISCREPANCIES: ReconEvent[] = [
   },
   { 
     edgeRef: 'INST4_DROP_00084321', 
-    fromInstitution: 'Institution 4 (Lying Bank)', 
-    toInstitution: 'Institution 3 (Delta)', 
+    fromInstitution: 'Punjab National Bank (Adversarial)', 
+    toInstitution: 'Axis Bank', 
     sourceAmount: 'WITHHELD / DROPPED', 
-    counterpartyAmount: '$49,200.00 (Recorded by Inst 3)', 
+    counterpartyAmount: '$49,200.00 (Recorded by Axis Bank)', 
     timestamp: '2022-09-07T14:02:18Z',
     issueType: 'DROPPED_EDGE', 
     actionTaken: 'EXCLUDED_FROM_BOUNDARY_GRAPH',
@@ -400,8 +400,8 @@ export const RECON_DISCREPANCIES: ReconEvent[] = [
   },
   { 
     edgeRef: 'INST4_PERTURB_0038912', 
-    fromInstitution: 'Institution 4 (Lying Bank)', 
-    toInstitution: 'Institution 0 (Alpha)', 
+    fromInstitution: 'Punjab National Bank (Adversarial)', 
+    toInstitution: 'State Bank of India', 
     sourceAmount: '$2,100.00', 
     counterpartyAmount: '$82,100.00', 
     timestamp: '2022-09-08T15:20:44Z',

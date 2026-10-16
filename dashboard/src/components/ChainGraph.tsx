@@ -1,20 +1,41 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
-  Eye, 
   EyeOff, 
   RotateCcw, 
   Scissors, 
   Copy, 
-  Check,
-  Radio,
-  Sparkles,
-  Info
+  Check, 
+  Sparkles
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { PATTERN_268_NODES, PATTERN_268_EDGES } from '../data/pattern268Data';
 import type { GraphNode, GraphEdge } from '../data/pattern268Data';
 import { getHeroChain } from '../api/mritraApi';
 import type { HeroChainData } from '../api/mritraApi';
+
+// Exact column coordinates aligned with the 5 institutional bank lanes (width: 840px / 5 = 168px each)
+const CLEAN_COORDINATES: Record<string, { x: number; y: number }> = {
+  // Lane 0: State Bank of India (SBI) - Center ~84px
+  '8019C0990': { x: 84, y: 210 },
+  // Lane 1: HDFC Bank - Center ~252px
+  '80514DE20': { x: 252, y: 210 },
+  // Lane 2: ICICI Bank - Center ~420px (generously spaced vertically)
+  '80145D1D0': { x: 420, y: 65 },
+  '800F24BE0': { x: 420, y: 135 },
+  '8006A6CF0': { x: 420, y: 210 },
+  '806E5B990': { x: 420, y: 285 },
+  '80779F730': { x: 420, y: 355 },
+  // Lane 3: Axis Bank - Center ~588px (generously spaced vertically)
+  '800459750': { x: 588, y: 65 },
+  '802FBEBC0': { x: 588, y: 135 },
+  '803616220': { x: 588, y: 210 },
+  '805A16080': { x: 588, y: 285 },
+  '8053BE3E0': { x: 588, y: 355 },
+  // Lane 4: Punjab National Bank (PNB) - Center ~756px
+  '8016EFD70': { x: 756, y: 110 },
+  '80381C7A0': { x: 756, y: 210 },
+  '8028E8460': { x: 756, y: 310 },
+};
 
 export const ChainGraph: React.FC = () => {
   const { showToast } = useToast();
@@ -25,9 +46,9 @@ export const ChainGraph: React.FC = () => {
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [copiedNodeId, setCopiedNodeId] = useState(false);
   const [hasMoved, setHasMoved] = useState(false);
-  const [isLiveApi, setIsLiveApi] = useState(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -37,9 +58,16 @@ export const ChainGraph: React.FC = () => {
       const heroData = await getHeroChain();
       if (heroData && heroData.transactions && heroData.transactions.length > 0) {
         setHeroMeta(heroData);
-        setIsLiveApi(true);
 
-        // Map live API transactions to graph edges
+        const BANK_MAPPING: Record<number, { name: string; color: string }> = {
+          0: { name: 'State Bank of India (SBI)', color: '#000000' },
+          1: { name: 'HDFC Bank', color: '#4f46e5' },
+          2: { name: 'ICICI Bank', color: '#059669' },
+          3: { name: 'Axis Bank', color: '#d97706' },
+          4: { name: 'Punjab National Bank (PNB)', color: '#ff3b30' },
+        };
+
+        // 1. Map live API transactions to graph edges
         const liveEdges: GraphEdge[] = heroData.transactions.map((tx, idx) => ({
           id: `tx_${tx.row_id || idx}`,
           from: String(tx.from_account),
@@ -53,6 +81,104 @@ export const ChainGraph: React.FC = () => {
           c3Prob: tx.c3_enclave_prob,
         }));
         setEdges(liveEdges);
+
+        // 2. Set live nodes directly from model data with lane alignment
+        if (heroData.nodes && heroData.nodes.length > 0) {
+          const mappedNodes = (heroData.nodes as GraphNode[]).map(n => ({
+            ...n,
+            x: CLEAN_COORDINATES[n.id]?.x ?? n.x,
+            y: CLEAN_COORDINATES[n.id]?.y ?? n.y,
+          }));
+          setNodes(mappedNodes);
+        } else {
+          const acctMap: Record<string, {
+            id: string;
+            inst: number;
+            inDeg: number;
+            outDeg: number;
+            inAmt: number;
+            outAmt: number;
+            c1Scores: number[];
+            c3Scores: number[];
+          }> = {};
+
+          heroData.transactions.forEach((tx) => {
+            const fa = String(tx.from_account);
+            const ta = String(tx.to_account);
+
+            if (!acctMap[fa]) {
+              acctMap[fa] = {
+                id: fa,
+                inst: tx.from_institution,
+                inDeg: 0,
+                outDeg: 0,
+                inAmt: 0,
+                outAmt: 0,
+                c1Scores: [],
+                c3Scores: [],
+              };
+            }
+            acctMap[fa].outDeg += 1;
+            acctMap[fa].outAmt += Number(tx.amount);
+            acctMap[fa].c1Scores.push(tx.c1_siloed_prob);
+            acctMap[fa].c3Scores.push(tx.c3_enclave_prob);
+
+            if (!acctMap[ta]) {
+              acctMap[ta] = {
+                id: ta,
+                inst: tx.to_institution,
+                inDeg: 0,
+                outDeg: 0,
+                inAmt: 0,
+                outAmt: 0,
+                c1Scores: [],
+                c3Scores: [],
+              };
+            }
+            acctMap[ta].inDeg += 1;
+            acctMap[ta].inAmt += Number(tx.amount);
+            acctMap[ta].c1Scores.push(tx.c1_siloed_prob);
+            acctMap[ta].c3Scores.push(tx.c3_enclave_prob);
+          });
+
+          const dynamicNodes: GraphNode[] = Object.values(acctMap).map((a) => {
+            const bankInfo = BANK_MAPPING[a.inst] || { name: `Bank ${a.inst}`, color: '#64748b' };
+            let role: 'Source' | 'Mule' | 'Destination' = 'Mule';
+            let label = `Mule: ${a.id.slice(0, 5)}..`;
+            if (a.inDeg === 0) {
+              role = 'Source';
+              label = `Src: ${a.id}`;
+            } else if (a.outDeg === 0) {
+              role = 'Destination';
+              label = `Dest: ${a.id}`;
+            }
+
+            const pos = CLEAN_COORDINATES[a.id] || { x: 420, y: 210 };
+            const totalVol = a.inAmt + a.outAmt;
+            const passThrough = a.inAmt > 0 ? a.outAmt / a.inAmt : 0;
+            const maxC1 = a.c1Scores.length > 0 ? Math.max(...a.c1Scores) : 0;
+            const maxC3 = a.c3Scores.length > 0 ? Math.max(...a.c3Scores) : 0;
+
+            return {
+              id: a.id,
+              label,
+              bank: bankInfo.name,
+              bankColor: bankInfo.color,
+              role,
+              x: pos.x,
+              y: pos.y,
+              c1RiskScore: maxC1,
+              c3RiskScore: maxC3,
+              balance: `$${totalVol.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              passThroughRatio: Math.min(Number(passThrough.toFixed(2)), 1.0),
+              velocityMin: 12,
+              inDegree: a.inDeg,
+              outDegree: a.outDeg,
+            };
+          });
+
+          setNodes(dynamicNodes);
+        }
       }
     } catch (err) {
       console.warn('[ChainGraph] Model API sync fallback to preloaded Pattern 268:', err);
@@ -118,8 +244,13 @@ export const ChainGraph: React.FC = () => {
   };
 
   const handleResetLayout = () => {
-    setNodes(PATTERN_268_NODES);
-    showToast('Topology Layout Reset', 'Node coordinates restored to canonical Scatter-Gather funnel', 'info');
+    const resetNodes = PATTERN_268_NODES.map(n => ({
+      ...n,
+      x: CLEAN_COORDINATES[n.id]?.x ?? n.x,
+      y: CLEAN_COORDINATES[n.id]?.y ?? n.y,
+    }));
+    setNodes(resetNodes);
+    showToast('Layout Reset', 'Nodes aligned cleanly to institutional lanes', 'info');
   };
 
   const handleToggleGraphCut = (nodeId: string) => {
@@ -131,7 +262,7 @@ export const ChainGraph: React.FC = () => {
     }
     showToast(
       willCut ? `Account ${target?.label} Interdicted` : `Account ${target?.label} Restored`,
-      willCut ? 'Simulated graph cut: multi-bank laundering path severed' : 'Account restored to active graph topology',
+      willCut ? 'Topology interdiction active: multi-bank laundering path severed' : 'Account restored to active graph topology',
       willCut ? 'danger' : 'info'
     );
   };
@@ -145,102 +276,69 @@ export const ChainGraph: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* ─── Control Bar ────────────────────────────────────────── */}
-      <div className="bento-card animate-bento" style={{ padding: '22px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      {/* ─── Minimal Executive Control Header ────────────────────────── */}
+      <div 
+        className="bento-card animate-bento" 
+        style={{ 
+          padding: '18px 24px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          flexWrap: 'wrap', 
+          gap: '14px' 
+        }}
+      >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-            <span className="pill-tag pill-tag-dark" style={{ fontSize: '0.68rem' }}>
-              CROSS-BANK GRAPH TOPOLOGY
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+            <span className="pill-tag pill-tag-danger" style={{ fontSize: '0.68rem', fontWeight: 700 }}>
+              RING #268 DETECTED
             </span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              Interactive Physics Canvas
-            </span>
-            <span className="pill-tag pill-tag-success" style={{ fontSize: '0.66rem' }}>
-              <Radio size={10} className="animate-pulse" style={{ marginRight: '4px' }} />
-              {isLiveApi ? 'LIVE MODEL API (results/demo_hero_chain.json)' : 'LIVE BENCHMARK CONNECTED'}
+            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+              $583,762.40 Total Tracked · {heroMeta?.num_transactions || 30} Cross-Bank Transfers
             </span>
           </div>
-          <h3 className="bento-card-title">
-            Pattern 268 — Scatter-Gather Laundering Ring
-          </h3>
-          <p className="bento-card-subtitle" style={{ marginTop: '2px' }}>
-            Multi-bank ring: {heroMeta?.num_transactions || 30} transactions across 5 banking institutions. Drag nodes to reposition. Click any node to inspect risk.
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
+            Cross-Bank Money Flow Map
+          </h2>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px', margin: 0 }}>
+            {mode === 'C3' 
+              ? 'Confidential Enclave View: Exposing multi-bank laundering hops between SBI, HDFC, ICICI, Axis & PNB.'
+              : 'Siloed Single-Bank View: Blind to cross-bank topology. Transfers appear as normal isolated transactions.'}
           </p>
         </div>
 
+        {/* View Mode Toggle (Siloed vs Enclave) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Reset Layout Button */}
-          <button
-            onClick={handleResetLayout}
-            className="selector-pill"
-            title="Reset Node Coordinates to Default"
-            style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-          >
-            <RotateCcw size={13} /> Reset Layout
-          </button>
-
-          {/* Detector Scope Toggle (Apple Segmented Style) */}
-          <div className="apple-segmented-control">
+          <div className="apple-segmented-control" style={{ padding: '3px' }}>
             <button
               onClick={() => setMode('C1')}
               className={`apple-segment-btn ${mode === 'C1' ? 'active' : ''}`}
-              title="Siloed View: Each bank only sees its local transfers (prob < 0.40)"
+              style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+              title="What individual banks see in isolation"
             >
-              <EyeOff size={13} /> C1 Siloed (Blind)
+              <EyeOff size={14} /> Siloed Bank View (Blind)
             </button>
             <button
               onClick={() => setMode('C3')}
               className={`apple-segment-btn ${mode === 'C3' ? 'active-lime' : ''}`}
-              title="Mritra Enclave View: Boundary graph reveals cross-bank laundering (prob > 0.90)"
+              style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+              title="What Mritra enclave reveals across all banks"
             >
-              <Eye size={13} /> C3 Enclave (Caught)
+              <Sparkles size={14} /> Enclave View (Full Ring)
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* ─── Hero Explanation Alert (FRONTEND_INTEGRATION.md §5) ────── */}
-      <div 
-        className="bento-card animate-bento" 
-        style={{ 
-          padding: '14px 20px', 
-          background: mode === 'C3' ? 'rgba(198, 239, 78, 0.04)' : 'rgba(148, 163, 184, 0.04)',
-          border: mode === 'C3' ? '1px solid var(--lime-border)' : '1px solid var(--border-subtle)',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-          flexWrap: 'wrap'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {mode === 'C3' ? (
-            <Sparkles size={20} color="var(--apple-green)" style={{ flexShrink: 0 }} />
-          ) : (
-            <Info size={20} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-          )}
-          <div style={{ fontSize: '0.82rem' }}>
-            {mode === 'C3' ? (
-              <span>
-                <strong style={{ color: 'var(--apple-green)' }}>Mritra C3 Confidential Enclave View:</strong> Boundary Graph GFP extracts confidential topological features. The full Scatter-Gather ring lights up in red (<code className="code-font" style={{ fontSize: '0.76rem' }}>prob &gt; 0.90</code>), exposing mules across Alpha, Beta, Gamma, Delta &amp; Epsilon.
-              </span>
-            ) : (
-              <span>
-                <strong style={{ color: 'var(--text-primary)' }}>Siloed C1 View (Current Industry Reality):</strong> No institution shares data. Individual transfers appear innocuous (<code className="code-font" style={{ fontSize: '0.76rem' }}>prob &lt; 0.40</code>), allowing all $583k to pass unflagged.
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className="pill-tag pill-tag-dark" style={{ fontSize: '0.7rem' }}>
-            Detection Gap: <strong>+81.7%</strong>
-          </span>
-          <span className="pill-tag pill-tag-dark" style={{ fontSize: '0.7rem' }}>
-            Avg C3: <strong>0.7181</strong> (Max: 1.0)
-          </span>
+          <button
+            onClick={handleResetLayout}
+            className="selector-pill"
+            title="Reset node positions"
+            style={{ padding: '6px 12px', fontSize: '0.76rem' }}
+          >
+            <RotateCcw size={13} style={{ marginRight: '4px' }} />
+            Reset Layout
+          </button>
         </div>
       </div>
 
@@ -252,7 +350,7 @@ export const ChainGraph: React.FC = () => {
           className="bento-card animate-bento" 
           style={{ 
             padding: 0, 
-            height: '520px', 
+            height: '460px', 
             position: 'relative', 
             overflow: 'hidden', 
             background: 'var(--bg-card-subtle)',
@@ -260,12 +358,12 @@ export const ChainGraph: React.FC = () => {
           }}
         >
           {/* Institutional Background Zone Bands */}
-          <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', pointerEvents: 'none', opacity: 0.35 }}>
-            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '12px', fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 600 }}>INST 0 (ALPHA)</div>
-            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '12px', fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 600 }}>INST 1 (BETA)</div>
-            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '12px', fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 600 }}>INST 2 (GAMMA)</div>
-            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '12px', fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 600 }}>INST 3 (DELTA)</div>
-            <div style={{ padding: '12px', fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 600 }}>INST 4 (EPSILON)</div>
+          <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', pointerEvents: 'none', opacity: 0.65 }}>
+            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '10px 6px', textAlign: 'center', fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>STATE BANK OF INDIA</div>
+            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '10px 6px', textAlign: 'center', fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>HDFC BANK</div>
+            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '10px 6px', textAlign: 'center', fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>ICICI BANK</div>
+            <div style={{ borderRight: '1px dashed var(--border-subtle)', padding: '10px 6px', textAlign: 'center', fontSize: '0.64rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>AXIS BANK</div>
+            <div style={{ padding: '10px 6px', textAlign: 'center', fontSize: '0.64rem', color: 'var(--apple-red)', fontWeight: 700, letterSpacing: '0.04em' }}>PUNJAB NATIONAL BANK (PNB)</div>
           </div>
 
           <svg
@@ -297,46 +395,65 @@ export const ChainGraph: React.FC = () => {
               const from = getNodePos(edge.from);
               const to = getNodePos(edge.to);
               const isFlaggedInMode = mode === 'C3';
+              const isHighlighted = selectedNode && (edge.from === selectedNode.id || edge.to === selectedNode.id);
+              const isHovered = hoveredEdgeId === edge.id;
 
               return (
-                <g key={edge.id} className="graph-edge-group">
+                <g 
+                  key={edge.id} 
+                  className="graph-edge-group"
+                  onMouseEnter={() => setHoveredEdgeId(edge.id)}
+                  onMouseLeave={() => setHoveredEdgeId(null)}
+                >
                   <line
                     x1={from.x}
                     y1={from.y}
                     x2={to.x}
                     y2={to.y}
                     stroke={isFlaggedInMode ? '#ff3b30' : '#64748b'}
-                    strokeWidth={isFlaggedInMode ? 2.5 : 1.2}
-                    strokeOpacity={isFlaggedInMode ? 0.85 : 0.4}
+                    strokeWidth={isHighlighted ? 3.5 : (isFlaggedInMode ? 2 : 1)}
+                    strokeOpacity={isHighlighted ? 1 : (isFlaggedInMode ? 0.75 : 0.25)}
                     strokeDasharray={isFlaggedInMode ? 'none' : '4 3'}
                     markerEnd={isFlaggedInMode ? 'url(#arrow-c3)' : 'url(#arrow-c1)'}
-                    filter={isFlaggedInMode ? 'url(#glow-red)' : 'none'}
+                    filter={isFlaggedInMode && isHighlighted ? 'url(#glow-red)' : 'none'}
                   />
 
                   {/* Laser particle animation in C3 Enclave Mode */}
                   {isFlaggedInMode && (
-                    <circle r="2.5" fill="#c6ef4e">
+                    <circle r={isHighlighted ? 3 : 2} fill="#c6ef4e">
                       <animateMotion
                         path={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
-                        dur="1.8s"
+                        dur={isHighlighted ? "1.2s" : "2.2s"}
                         repeatCount="indefinite"
                       />
                     </circle>
                   )}
 
-                  {/* Flow Amount Tooltip Label at midpoint */}
-                  <text
-                    x={(from.x + to.x) / 2}
-                    y={(from.y + to.y) / 2 - 4}
-                    fill={isFlaggedInMode ? '#ff3b30' : 'var(--text-muted)'}
-                    fontSize="7.5"
-                    fontFamily="JetBrains Mono, monospace"
-                    textAnchor="middle"
-                    fontWeight={isFlaggedInMode ? 700 : 500}
-                    opacity={0.8}
-                  >
-                    {edge.amount}
-                  </text>
+                  {/* Flow Amount Badge ONLY on hover or when connected node is selected - prevents hairball! */}
+                  {(isHighlighted || isHovered) && (
+                    <g pointerEvents="none">
+                      <rect
+                        x={(from.x + to.x) / 2 - 32}
+                        y={(from.y + to.y) / 2 - 14}
+                        width="64"
+                        height="18"
+                        rx="4"
+                        fill="#000000"
+                        opacity="0.9"
+                      />
+                      <text
+                        x={(from.x + to.x) / 2}
+                        y={(from.y + to.y) / 2 - 2}
+                        fill="#c6ef4e"
+                        fontSize="9"
+                        fontFamily="JetBrains Mono, monospace"
+                        textAnchor="middle"
+                        fontWeight="700"
+                      >
+                        {edge.amount}
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             })}
@@ -359,7 +476,7 @@ export const ChainGraph: React.FC = () => {
                   {/* Selection Ring */}
                   {isSelected && (
                     <circle
-                      r="20"
+                      r="22"
                       fill="none"
                       stroke="var(--apple-green)"
                       strokeWidth="2.5"
@@ -372,7 +489,7 @@ export const ChainGraph: React.FC = () => {
                   {/* Node Outer Halo */}
                   <circle
                     r={isSource || isDest ? 16 : 13}
-                    fill={isCut ? '#475569' : node.bankColor}
+                    fill={isCut ? '#475569' : (mode === 'C3' ? '#ff3b30' : node.bankColor)}
                     opacity={isCut ? 0.3 : (mode === 'C3' ? 0.95 : 0.7)}
                     filter={mode === 'C3' && (node.c3RiskScore > 0.8) ? 'url(#glow-red)' : 'none'}
                   />
@@ -387,33 +504,63 @@ export const ChainGraph: React.FC = () => {
                   <text
                     y={24}
                     fill="var(--text-primary)"
-                    fontSize="8.5"
-                    fontWeight={600}
-                    fontFamily="Inter, sans-serif"
+                    fontSize="9.5"
+                    fontFamily="var(--font-display)"
                     textAnchor="middle"
+                    fontWeight="700"
+                    style={{ pointerEvents: 'none' }}
                   >
                     {node.label}
                   </text>
 
                   {/* Role Sub-badge */}
-                  <text
-                    y={34}
-                    fill={node.role === 'Source' ? '#ff3b30' : (node.role === 'Destination' ? 'var(--apple-green)' : 'var(--text-muted)')}
-                    fontSize="7"
-                    fontWeight={700}
-                    textAnchor="middle"
-                  >
-                    {node.role.toUpperCase()}
-                  </text>
+                  {(isSource || isDest) && (
+                    <text
+                      y={34}
+                      fill={isSource ? 'var(--apple-green)' : '#ff9500'}
+                      fontSize="7.5"
+                      fontFamily="var(--font-display)"
+                      textAnchor="middle"
+                      fontWeight="800"
+                      letterSpacing="0.05em"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {node.role.toUpperCase()}
+                    </text>
+                  )}
                 </g>
               );
             })}
           </svg>
+
+          {/* Canvas Guide Footer */}
+          <div style={{ position: 'absolute', bottom: '10px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Hover any transfer to view volume. Click account node for investigation details.
+            </span>
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#000000' }}></span> SBI
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4f46e5' }}></span> HDFC
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></span> ICICI
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#d97706' }}></span> Axis
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--apple-red)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff3b30' }}></span> PNB
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* ─── Selected Node Inspection Panel ─────────────────────── */}
+        {/* ─── Node Inspector Sidebar ──────────────────────────────── */}
         {selectedNode && (
-          <div className="bento-card animate-bento" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px', height: '520px', overflowY: 'auto' }}>
+          <div className="bento-card animate-bento" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px', height: '460px', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="pill-tag pill-tag-dark" style={{ fontSize: '0.66rem' }}>
                 ACCOUNT ATTRIBUTION
@@ -432,7 +579,7 @@ export const ChainGraph: React.FC = () => {
                 {selectedNode.label}
               </h4>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Bank: {selectedNode.bank}
+                Bank: <strong>{selectedNode.bank}</strong>
               </div>
             </div>
 
@@ -440,25 +587,25 @@ export const ChainGraph: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div style={{ padding: '12px', background: 'var(--bg-card-subtle)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  C1 SILOED RISK
+                  LOCAL VIEW
                 </div>
-                <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px', color: selectedNode.c1RiskScore > 0.8 ? '#ff3b30' : 'var(--text-secondary)' }}>
+                <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-secondary)' }}>
                   {(selectedNode.c1RiskScore * 100).toFixed(1)}%
                 </div>
                 <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
-                  Local View Only
+                  Siloed Bank
                 </div>
               </div>
 
               <div style={{ padding: '12px', background: 'rgba(198, 239, 78, 0.05)', borderRadius: '10px', border: '1px solid var(--lime-border)' }}>
                 <div style={{ fontSize: '0.66rem', color: 'var(--apple-green)', fontWeight: 700 }}>
-                  C3 ENCLAVE RISK
+                  ENCLAVE VIEW
                 </div>
                 <div className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px', color: '#ff3b30' }}>
                   {(selectedNode.c3RiskScore * 100).toFixed(1)}%
                 </div>
                 <div style={{ fontSize: '0.66rem', color: 'var(--apple-green)' }}>
-                  Confidential GFP
+                  GFP Enclave
                 </div>
               </div>
             </div>
@@ -466,7 +613,7 @@ export const ChainGraph: React.FC = () => {
             {/* Account Metrics Table */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.76rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Balance Tracked:</span>
+                <span style={{ color: 'var(--text-muted)' }}>Tracked Flow:</span>
                 <span className="tabular-nums" style={{ fontWeight: 600 }}>{selectedNode.balance}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -474,7 +621,7 @@ export const ChainGraph: React.FC = () => {
                 <span className="tabular-nums" style={{ fontWeight: 600 }}>{(selectedNode.passThroughRatio * 100).toFixed(1)}%</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Cross-Bank Fan-out:</span>
+                <span style={{ color: 'var(--text-muted)' }}>Cross-Bank Transfers:</span>
                 <span className="tabular-nums" style={{ fontWeight: 600 }}>{selectedNode.inDegree} in / {selectedNode.outDegree} out</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -493,7 +640,7 @@ export const ChainGraph: React.FC = () => {
                 style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem' }}
               >
                 <Scissors size={14} />
-                {selectedNode.isCut ? 'Restore Node to Graph' : 'Simulate Graph Cut (Interdict)'}
+                {selectedNode.isCut ? 'Restore Node to Graph' : 'Interdict & Quarantine Node'}
               </button>
 
               <button
@@ -502,7 +649,7 @@ export const ChainGraph: React.FC = () => {
                 style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem' }}
               >
                 {copiedNodeId ? <Check size={14} /> : <Copy size={14} />}
-                {copiedNodeId ? 'Node Hash Copied' : 'Copy Cryptographic Reference'}
+                {copiedNodeId ? 'Node Reference Copied' : 'Copy Evidence Reference'}
               </button>
             </div>
           </div>

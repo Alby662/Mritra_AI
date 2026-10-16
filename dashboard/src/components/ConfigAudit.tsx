@@ -50,7 +50,7 @@ export const ConfigAudit: React.FC = () => {
       title: 'Double-Entry Reconciliation: 100% Interception',
       metric: `${REAL_RECONCILIATION_REPORT.caughtIssues.toLocaleString()} / ${REAL_RECONCILIATION_REPORT.injectedIssues.toLocaleString()} injected anomalies caught`,
       status: 'VERIFIED_PASS',
-      note: `100.0% catch rate across ${REAL_RECONCILIATION_REPORT.matchedTransactions.toLocaleString()} transactions from Lying Inst 4`
+      note: `100.0% catch rate across ${REAL_RECONCILIATION_REPORT.matchedTransactions.toLocaleString()} transactions from PNB (Adversarial)`
     }
   ];
 

@@ -178,7 +178,7 @@ fi
 # Probe Static / Live API
 SUMMARY_PROBE=$(curl -s http://localhost:80/api/results/summary 2>/dev/null || curl -s http://localhost:3000/api/results/summary 2>/dev/null || curl -s http://localhost:5173/api/results/summary 2>/dev/null || true)
 if echo "${SUMMARY_PROBE}" | grep -q "success"; then
-    echo -e "  • Results Telemetry API:      ${GREEN}ACTIVE ($3.95M Laundering Intercepted)${NC}"
+    echo -e "  • Results Telemetry API:      ${GREEN}ACTIVE (\$3.95M Laundering Intercepted)${NC}"
 else
     echo -e "  • Results Telemetry API:      ${YELLOW}Static fallback ready${NC}"
 fi

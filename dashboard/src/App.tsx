@@ -8,7 +8,9 @@ import {
   Building2,
   Shield, 
   Moon, 
-  Sun
+  Sun,
+  Palette,
+  Check
 } from 'lucide-react';
 import { Overview } from './components/Overview';
 import { ChainGraph } from './components/ChainGraph';
@@ -21,10 +23,21 @@ import { getEnclaveInfo, getBankHealth } from './api/mritraApi';
 import type { EnclaveInfo, BankHealth } from './api/mritraApi';
 
 type TabType = 'overview' | 'chain' | 'tlog' | 'recon' | 'audit' | 'entity';
+export type PaletteType = 'indigo' | 'slate' | 'emerald' | 'violet' | 'lime';
+
+export const PALETTES: { id: PaletteType; name: string; color: string; desc: string }[] = [
+  { id: 'indigo', name: 'Electric Indigo', color: '#4f46e5', desc: 'Sleek fintech & AI' },
+  { id: 'slate', name: 'Apple Slate', color: '#2563eb', desc: 'Clean titanium neutral' },
+  { id: 'emerald', name: 'Emerald Mint', color: '#059669', desc: 'Banking & trust security' },
+  { id: 'violet', name: 'Cyber Violet', color: '#7c3aed', desc: 'Futuristic AI neon' },
+  { id: 'lime', name: 'Cyber Lime', color: '#16a34a', desc: 'High-contrast energetic' },
+];
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [palette, setPalette] = useState<PaletteType>('indigo');
+  const [showPaletteMenu, setShowPaletteMenu] = useState(false);
   const [enclaveInfo, setEnclaveInfo] = useState<EnclaveInfo | null>(null);
   const [bankHealth, setBankHealth] = useState<BankHealth | null>(null);
 
@@ -38,14 +51,26 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Theme Initializer
+  // Theme & Palette Initializer
   useEffect(() => {
-    const saved = localStorage.getItem('mritra-theme') as 'light' | 'dark' | null;
+    const savedTheme = localStorage.getItem('mritra-theme') as 'light' | 'dark' | null;
     const prefDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = saved || (prefDark ? 'dark' : 'light');
+    const initialTheme = savedTheme || (prefDark ? 'dark' : 'light');
     setTheme(initialTheme);
     document.documentElement.setAttribute('data-theme', initialTheme);
+
+    const savedPalette = localStorage.getItem('mritra-palette') as PaletteType | null;
+    const initialPalette = savedPalette || 'indigo';
+    setPalette(initialPalette);
+    document.documentElement.setAttribute('data-palette', initialPalette);
   }, []);
+
+  const selectPalette = (p: PaletteType) => {
+    setPalette(p);
+    localStorage.setItem('mritra-palette', p);
+    document.documentElement.setAttribute('data-palette', p);
+    setShowPaletteMenu(false);
+  };
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {

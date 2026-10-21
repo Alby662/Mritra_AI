@@ -964,21 +964,21 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-lime);
   position: relative;
   overflow: hidden;
-  color: #000000;
+  color: var(--accent-contrast, #ffffff);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
 .enclave-passport-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 36px -4px rgba(198, 239, 78, 0.65);
+  box-shadow: 0 16px 36px -4px var(--lime-glow);
 }
 
 .enclave-chip-graphic {
   width: 44px;
   height: 34px;
   border-radius: 6px;
-  background: linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.08));
-  border: 1px solid rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+  border: 1px solid rgba(255,255,255,0.25);
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
@@ -987,7 +987,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .enclave-chip-line {
-  border: 0.5px solid rgba(0,0,0,0.2);
+  border: 0.5px solid rgba(255,255,255,0.3);
   border-radius: 2px;
 }
 
@@ -996,7 +996,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--lime);
   border-radius: var(--radius-lg);
   padding: 28px 24px;
-  color: #000000;
+  color: var(--accent-contrast, #ffffff);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1016,14 +1016,14 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.03em;
-  color: #000000;
+  color: var(--accent-contrast, #ffffff);
 }
 
 .bento-spotlight-highlight {
   display: inline-block;
   padding: 0 8px;
   border-radius: var(--radius-full);
-  border: 2px solid #000000;
+  border: 2px solid var(--accent-contrast, #ffffff);
   margin: 0 4px;
 }
 
@@ -1059,7 +1059,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-pill-lime {
   background: var(--lime);
-  color: #000000;
+  color: var(--accent-contrast, #ffffff);
   border: none;
   padding: 10px 20px;
   border-radius: var(--radius-full);
@@ -1072,7 +1072,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 14px rgba(198, 239, 78, 0.35);
+  box-shadow: 0 4px 14px var(--lime-glow);
 }
 
 .btn-pill-lime:hover {
@@ -1104,7 +1104,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .pill-tag-lime {
   background: var(--lime);
-  color: #000000;
+  color: var(--accent-contrast, #ffffff);
 }
 
 .pill-tag-glass {

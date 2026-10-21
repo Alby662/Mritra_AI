@@ -75,11 +75,11 @@ export const IBMHardwareModal: React.FC = () => {
           gap: '6px',
           fontSize: '0.74rem',
           fontWeight: 700,
-          color: '#c6ef4e',
+          color: 'var(--lime)',
           padding: '4px 10px',
-          background: 'rgba(198, 239, 78, 0.08)',
+          background: 'var(--lime-soft)',
           borderRadius: '9999px',
-          border: '1px solid rgba(198, 239, 78, 0.25)',
+          border: '1px solid var(--lime-border)',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
         }}
@@ -90,12 +90,12 @@ export const IBMHardwareModal: React.FC = () => {
             width: '6px',
             height: '6px',
             borderRadius: '50%',
-            background: '#c6ef4e',
-            boxShadow: '0 0 6px #c6ef4e',
+            background: 'var(--lime)',
+            boxShadow: '0 0 6px var(--lime)',
             animation: 'pulse 2s infinite',
           }}
         />
-        <Cpu size={13} color="#c6ef4e" />
+        <Cpu size={13} color="var(--lime)" />
         <span>IBM LinuxONE 4 · 5.5 GHz</span>
       </button>
 
@@ -152,7 +152,7 @@ export const IBMHardwareModal: React.FC = () => {
                     justifyContent: 'center',
                   }}
                 >
-                  <Cpu size={20} color="#c6ef4e" />
+                  <Cpu size={20} color="var(--lime)" />
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -204,20 +204,20 @@ export const IBMHardwareModal: React.FC = () => {
                   style={{
                     padding: '14px',
                     borderRadius: '14px',
-                    background: 'rgba(198, 239, 78, 0.05)',
-                    border: '1px solid rgba(198, 239, 78, 0.2)',
+                    background: 'var(--lime-soft)',
+                    border: '1px solid var(--lime-border)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <Zap size={16} color="#c6ef4e" />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#c6ef4e' }}>
+                    <Zap size={16} color="var(--lime)" />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--lime)' }}>
                       IBM NNPA On-Chip Accelerator
                     </span>
                   </div>
                   <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                     Neural Network Processing Assist hardware engine in IBM Telum/z16 processor. Provides <strong>4.2x lower latency</strong> for real-time LightGBM & Snap ML inferencing directly in transactional loops.
                   </div>
-                  <div style={{ marginTop: '8px', fontSize: '0.68rem', fontWeight: 700, color: '#c6ef4e' }}>
+                  <div style={{ marginTop: '8px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--lime)' }}>
                     STATUS: HARDWARE ACCELERATED (nnpa flag active)
                   </div>
                 </div>
@@ -263,7 +263,7 @@ export const IBMHardwareModal: React.FC = () => {
                   <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     {telemetry?.hardware?.frequency_mhz || 5508} MHz
                   </div>
-                  <div style={{ fontSize: '0.65rem', color: '#c6ef4e' }}>5.5 GHz Mainframe</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--lime)' }}>5.5 GHz Mainframe</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>vCPU Cores</div>
@@ -286,7 +286,7 @@ export const IBMHardwareModal: React.FC = () => {
                   <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                     {telemetry?.system?.load_average?.[0] || '0.11'}
                   </div>
-                  <div style={{ fontSize: '0.65rem', color: '#c6ef4e' }}>Optimal (Low)</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--lime)' }}>Optimal (Low)</div>
                 </div>
               </div>
 
@@ -300,23 +300,23 @@ export const IBMHardwareModal: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Lock size={14} color="#c6ef4e" /> Zero-Trust Network & Confidential Enclave Isolation
+                  <Lock size={14} color="var(--lime)" /> Zero-Trust Network & Confidential Enclave Isolation
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.72rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c6ef4e' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--lime)' }} />
                     Mutual TLS (mTLS v1.3 with X.509 CA)
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c6ef4e' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--lime)' }} />
                     Zero Lateral Bank-to-Bank Network Traversal
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c6ef4e' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--lime)' }} />
                     Differential Privacy (ε=0.1, δ=1e-5) Noise Ingestion
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c6ef4e' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--lime)' }} />
                     Immutable Merkle Tree Transparency Log
                   </div>
                 </div>
@@ -325,7 +325,7 @@ export const IBMHardwareModal: React.FC = () => {
               {/* Active Daemons */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                 <span>Supervised by <strong>systemd</strong> on Host <code>148.100.79.186</code></span>
-                <span style={{ color: '#c6ef4e', fontWeight: 700 }}>● 6 Services Supervised (Enclave + 5 Banks)</span>
+                <span style={{ color: 'var(--lime)', fontWeight: 700 }}>● 6 Services Supervised (Enclave + 5 Banks)</span>
               </div>
             </div>
           </div>

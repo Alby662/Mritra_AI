@@ -81,6 +81,22 @@ export const App: React.FC = () => {
     });
   }, []);
 
+  // Close palette dropdown when clicking outside
+  const paletteMenuRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (paletteMenuRef.current && !paletteMenuRef.current.contains(e.target as Node)) {
+        setShowPaletteMenu(false);
+      }
+    };
+    if (showPaletteMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPaletteMenu]);
+
   // Keyboard Shortcuts (1-6 for tabs, T for theme)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -120,8 +136,8 @@ export const App: React.FC = () => {
             onClick={() => setActiveTab('overview')} 
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}
           >
-            <div style={{ padding: '7px', background: '#000000', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Shield size={18} color="#c6ef4e" />
+            <div style={{ padding: '7px', background: 'var(--bg-dark, #0f172a)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Shield size={18} color="var(--lime)" />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '1.05rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
@@ -206,6 +222,87 @@ export const App: React.FC = () => {
             >
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--apple-green)', boxShadow: '0 0 6px var(--apple-green)' }}></span>
               5 Banks Online
+            </div>
+
+            {/* Color Palette Switcher */}
+            <div ref={paletteMenuRef} style={{ position: 'relative' }}>
+              <button 
+                className="icon-circle-btn" 
+                onClick={() => setShowPaletteMenu((v) => !v)}
+                title={`Theme Color: ${PALETTES.find(p => p.id === palette)?.name}`}
+                aria-label="Change UI Color Theme"
+                style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Palette size={14} style={{ color: 'var(--lime)' }} />
+              </button>
+
+              {showPaletteMenu && (
+                <div 
+                  className="palette-dropdown animate-bento"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    zIndex: 100,
+                    background: 'var(--bg-card-solid)',
+                    border: '1px solid var(--border-medium)',
+                    borderRadius: '16px',
+                    padding: '8px',
+                    boxShadow: 'var(--shadow-modal)',
+                    minWidth: '220px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                >
+                  <div style={{ padding: '6px 10px 4px', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                    UI Accent Theme
+                  </div>
+                  {PALETTES.map((p) => {
+                    const isCurrent = palette === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => selectPalette(p.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          background: isCurrent ? 'var(--lime-soft)' : 'transparent',
+                          border: isCurrent ? '1px solid var(--lime-border)' : '1px solid transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <span 
+                          style={{ 
+                            width: '14px', 
+                            height: '14px', 
+                            borderRadius: '50%', 
+                            background: p.color,
+                            boxShadow: isCurrent ? `0 0 8px ${p.color}` : 'none',
+                            flexShrink: 0
+                          }} 
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {p.name}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                            {p.desc}
+                          </div>
+                        </div>
+                        {isCurrent && (
+                          <Check size={13} style={{ color: 'var(--lime)' }} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Dark / Light Appearance Switcher */}

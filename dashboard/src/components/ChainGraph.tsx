@@ -420,7 +420,7 @@ export const ChainGraph: React.FC = () => {
 
                   {/* Laser particle animation in C3 Enclave Mode */}
                   {isFlaggedInMode && (
-                    <circle r={isHighlighted ? 3 : 2} fill="#c6ef4e">
+                    <circle r={isHighlighted ? 3 : 2} fill="var(--lime, #4f46e5)">
                       <animateMotion
                         path={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
                         dur={isHighlighted ? "1.2s" : "2.2s"}
@@ -444,7 +444,7 @@ export const ChainGraph: React.FC = () => {
                       <text
                         x={(from.x + to.x) / 2}
                         y={(from.y + to.y) / 2 - 2}
-                        fill="#c6ef4e"
+                        fill="var(--lime, #4f46e5)"
                         fontSize="9"
                         fontFamily="JetBrains Mono, monospace"
                         textAnchor="middle"
